@@ -133,6 +133,11 @@ CORS_ALLOWED_ORIGINS = [
 # cookie for authentication.
 CORS_ALLOW_CREDENTIALS = True
 
+# Local HTTP keeps the refresh cookie on the same site.
+# Production turns Secure on and widens SameSite for the public site.
+REFRESH_COOKIE_SECURE = False
+REFRESH_COOKIE_SAMESITE = "Lax"
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",

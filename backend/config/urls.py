@@ -1,10 +1,18 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path
+from django.http import JsonResponse
+from django.urls import include, path, re_path
+from django.views.static import serve
+
+
+def health(request):
+    return JsonResponse({"status": "ok"})
 
 
 urlpatterns = [
+    path("api/health/", health),
+
     path("admin/", admin.site.urls),
 
     # Authentication and account-management endpoints.
@@ -62,9 +70,18 @@ urlpatterns = [
     ),
 ]
 
-# Serve uploaded media files during development.
+# Serve uploaded product photos. Debug uses the development helper.
+# Production keeps the same path so public store images stay reachable.
 if settings.DEBUG:
     urlpatterns += static(
         settings.MEDIA_URL,
         document_root=settings.MEDIA_ROOT,
     )
+else:
+    urlpatterns += [
+        re_path(
+            r"^media/(?P<path>.*)$",
+            serve,
+            {"document_root": settings.MEDIA_ROOT},
+        ),
+    ]

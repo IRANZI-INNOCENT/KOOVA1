@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -81,14 +82,14 @@ class LoginView(generics.GenericAPIView):
         # This provides a stronger security boundary than storing the
         # refresh token in localStorage.
         #
-        # secure=False is appropriate for local HTTP development.
-        # Production will use HTTPS and secure=True.
+        # Local HTTP leaves the cookie insecure.
+        # Production settings mark it Secure for HTTPS.
         response.set_cookie(
             key="kova_refresh_token",
             value=str(refresh),
             httponly=True,
-            secure=False,
-            samesite="Lax",
+            secure=settings.REFRESH_COOKIE_SECURE,
+            samesite=settings.REFRESH_COOKIE_SAMESITE,
             max_age=7 * 24 * 60 * 60,
         )
 
@@ -192,7 +193,7 @@ class LogoutView(generics.GenericAPIView):
         # cookie created by LoginView.
         response.delete_cookie(
             key="kova_refresh_token",
-            samesite="Lax",
+            samesite=settings.REFRESH_COOKIE_SAMESITE,
         )
 
         return response
