@@ -1,10 +1,23 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/workspace/app-shell";
+import { authenticatedApiRequest } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
+
+interface BrainProgress {
+  next_href: string | null;
+  sections: {
+    key: string;
+    complete: boolean;
+    href: string;
+  }[];
+}
 
 const businessBrainSections = [
   {
+    key: "profile",
     label: "Business Profile",
     title: "Tell Kova about your business",
     description:
@@ -12,6 +25,7 @@ const businessBrainSections = [
     href: "/workspace/settings/business-profile",
   },
   {
+    key: "audience",
     label: "Business Audience",
     title: "Define your customers",
     description:
@@ -19,6 +33,7 @@ const businessBrainSections = [
     href: "/workspace/settings/business-audience",
   },
   {
+    key: "brand",
     label: "Business Brand",
     title: "Define how your business communicates",
     description:
@@ -26,6 +41,7 @@ const businessBrainSections = [
     href: "/workspace/settings/business-brand",
   },
   {
+    key: "goals",
     label: "Business Goals",
     title: "Define what your business wants to achieve",
     description:
@@ -33,101 +49,226 @@ const businessBrainSections = [
     href: "/workspace/settings/business-goals",
   },
   {
+    key: "policy",
     label: "Business Policies",
     title: "Define your business policies",
     description:
       "Define what Kova can do automatically and which actions require your approval.",
     href: "/workspace/settings/business-policy",
   },
+  {
+    key: "market",
+    label: "Market position",
+    title: "See how the market sits around you",
+    description:
+      "Kova searches public pages for similar sellers, then writes a brief you can keep for later writing or leave unused.",
+    href: "/workspace/settings/business-market",
+  },
 ];
 
 export default function SettingsPage() {
+  const { accessToken, isAuthenticated } = useAuth();
+  const [progress, setProgress] = useState<BrainProgress | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken) return;
+    const token = accessToken;
+
+    async function loadProgress() {
+      try {
+        const businesses = await authenticatedApiRequest<{ id: number }[]>(
+          "/businesses/",
+          token,
+        );
+        if (!businesses.length) return;
+        const status = await authenticatedApiRequest<BrainProgress>(
+          `/business-brain/${businesses[0].id}/progress/`,
+          token,
+        );
+        setProgress(status);
+      } catch {
+        setProgress(null);
+      }
+    }
+
+    loadProgress();
+  }, [accessToken, isAuthenticated]);
+
+  const completeCount =
+    progress?.sections.filter((section) => section.complete).length ?? 0;
+  const total = businessBrainSections.length;
+  const percent = total ? Math.round((completeCount / total) * 100) : 0;
+
   return (
     <AppShell>
-      <div className="p-6 sm:p-8">
-        <div className="mx-auto max-w-5xl">
-          <header>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-kova-green">
-              Settings
-            </p>
-
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-kova-dark sm:text-4xl">
-              Configure Kova
-            </h1>
-
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
-              Give Kova the information, preferences, and
-              context it needs to understand and eventually
-              operate your business.
-            </p>
+      <div className="p-4 sm:p-8">
+        <div className="mx-auto max-w-5xl space-y-6">
+          <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
+                Settings
+              </p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-kova-dark sm:text-3xl">
+                Configure Kova
+              </h1>
+              <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                Give Kova the information, preferences, and context it needs
+                to understand and eventually operate your business.
+              </p>
+            </div>
+            {progress && (
+              <div className="w-full sm:w-44">
+                <div className="flex items-baseline justify-between text-xs">
+                  <span className="font-bold uppercase tracking-[0.14em] text-gray-400">
+                    Brain
+                  </span>
+                  <span className="font-semibold text-kova-dark">
+                    {completeCount}/{total}
+                  </span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-kova-border">
+                  <div
+                    className="h-full rounded-full bg-kova-green"
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </header>
 
-          <section className="mt-12">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">
-              Business
-            </p>
+          <div className="h-px bg-kova-border" />
 
-            <h2 className="mt-2 text-2xl font-semibold text-kova-dark">
-              Business Brain
-            </h2>
+          <section className="space-y-4">
+            <Link
+              href="/workspace/setup"
+              className="group flex items-start gap-4 rounded-lg border border-kova-border bg-white p-4 transition hover:-translate-y-0.5 hover:border-kova-orange/50 hover:shadow-sm sm:p-5"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-kova-green text-sm font-bold text-white">
+                B
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-kova-orange">
+                  Business details
+                </p>
+                <h3 className="mt-1 text-base font-semibold text-kova-dark">
+                  Name, phone, and contact
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-gray-500">
+                  Update the business name, description, phone number, email, and location from the page you filled in when you signed up.
+                </p>
+              </div>
+              <span className="inline-flex h-7 shrink-0 items-center rounded-md bg-kova-orange/15 px-2.5 text-xs font-bold text-kova-dark">
+                Update
+              </span>
+            </Link>
 
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-              Build the knowledge Kova uses to understand
-              your business, your customers, your brand, and
-              your goals.
-            </p>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-kova-orange">
+                Business
+              </p>
+              <h2 className="mt-1 text-lg font-bold text-kova-dark">
+                Business Brain
+              </h2>
+              <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                Build the knowledge Kova uses to understand your business,
+                your customers, your brand, and your goals.
+              </p>
+            </div>
 
-            <div className="mt-6 space-y-4">
-              {businessBrainSections.map((section) => (
-                <Link
-                  key={section.href}
-                  href={section.href}
-                  className="block border border-kova-border bg-white p-6 transition-colors hover:border-kova-green hover:bg-kova-background"
-                >
-                  <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="max-w-2xl">
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-kova-green">
-                        {section.label}
-                      </p>
+            {progress?.next_href && (
+              <Link
+                href={progress.next_href}
+                className="flex items-center gap-3 rounded-lg border border-kova-orange/40 bg-kova-orange/5 px-5 py-4 transition hover:border-kova-orange"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-kova-orange/20">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-kova-orange"
+                  >
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-kova-dark">
+                    Continue business setup
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Your progress is saved. Pick up at the next section.
+                  </p>
+                </div>
+                <span className="inline-flex h-8 shrink-0 items-center rounded-md bg-kova-orange px-3 text-xs font-bold text-kova-dark">
+                  Continue
+                </span>
+              </Link>
+            )}
 
-                      <h3 className="mt-3 text-lg font-semibold text-kova-dark">
-                        {section.title}
-                      </h3>
-
+            <div className="space-y-3">
+              {businessBrainSections.map((section, index) => {
+                const status = progress?.sections.find(
+                  (item) => item.key === section.key,
+                );
+                const complete = !!status?.complete;
+                return (
+                  <Link
+                    key={section.href}
+                    href={
+                      status && !status.complete ? status.href : section.href
+                    }
+                    className="group flex items-start gap-4 rounded-lg border border-kova-border bg-white p-4 transition hover:-translate-y-0.5 hover:border-kova-orange/50 hover:shadow-sm sm:p-5"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-kova-orange/15 text-xs font-bold text-kova-dark">
+                      {index + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-[0.14em] text-kova-orange">
+                            {section.label}
+                          </p>
+                          <h3 className="mt-1 text-base font-semibold text-kova-dark">
+                            {section.title}
+                          </h3>
+                        </div>
+                        <span
+                          className={`inline-flex h-7 shrink-0 items-center rounded-md px-2.5 text-xs font-bold ${
+                            complete
+                              ? "bg-kova-green/10 text-kova-green"
+                              : "bg-kova-orange/15 text-kova-dark"
+                          }`}
+                        >
+                          {complete ? "Done" : "Configure"}
+                        </span>
+                      </div>
                       <p className="mt-2 text-sm leading-6 text-gray-500">
                         {section.description}
                       </p>
                     </div>
-
-                    <span
-                      aria-hidden="true"
-                      className="shrink-0 text-sm font-semibold text-kova-green"
-                    >
-                      Configure →
-                    </span>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           </section>
 
-          <section className="mt-10 border border-kova-border bg-kova-background p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-kova-green">
+          <section className="rounded-lg border border-kova-orange/40 bg-kova-orange/5 px-5 py-5">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-kova-orange">
               Why this matters
             </p>
-
-            <h2 className="mt-3 text-lg font-semibold text-kova-dark">
+            <h2 className="mt-2 text-base font-bold text-kova-dark">
               Kova should understand before it acts.
             </h2>
-
             <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-600">
-              The Business Brain gives Kova structured context
-              about the business. This context will eventually
-              work together with products, policies,
-              conversations, and other business activity so
-              Kova can make better decisions when creating
-              content, engaging customers, generating leads,
-              and supporting sales.
+              The Business Brain gives Kova structured context about the
+              business. This context works together with products, policies,
+              conversations, and other business activity so Kova can make
+              better decisions when creating content, engaging customers,
+              generating leads, and supporting sales.
             </p>
           </section>
         </div>

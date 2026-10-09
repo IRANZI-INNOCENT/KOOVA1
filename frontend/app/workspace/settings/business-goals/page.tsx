@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError, authenticatedApiRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { SetupGuide } from "@/components/workspace/setup-guide";
+import { useSectionSetup } from "@/components/workspace/use-section-setup";
 
 interface Business {
   id: number;
@@ -149,6 +151,22 @@ export default function BusinessGoalsPage() {
     useState<FieldErrors>({});
   const [success, setSuccess] = useState("");
 
+  const setup = useSectionSetup({
+    section: "goals",
+    businessId: business?.id ?? null,
+    accessToken,
+    form,
+    ready: !loading && !!business,
+    save: async (current) => {
+      if (!business || !accessToken) return;
+      await authenticatedApiRequest(
+        `/business-brain/${business.id}/goals/`,
+        accessToken,
+        { method: "PATCH", body: JSON.stringify(current) },
+      );
+    },
+  });
+
   const updateField = <K extends keyof GoalForm>(
     field: K,
     value: GoalForm[K],
@@ -245,6 +263,11 @@ export default function BusinessGoalsPage() {
         },
       );
 
+      if (setup.isSetup && setup.nextPath) {
+        router.push(setup.nextPath);
+        return;
+      }
+
       setSuccess("Business goals saved successfully.");
     } catch (err) {
       if (err instanceof ApiError) {
@@ -294,6 +317,19 @@ export default function BusinessGoalsPage() {
               decisions for your business.
             </p>
           </div>
+
+          <SetupGuide
+            section="goals"
+            isSetup={setup.isSetup}
+            autoState={setup.autoState}
+            drafting={setup.drafting}
+            draftError={setup.draftError}
+            onDraft={() =>
+              setup.draft((fields) =>
+                setForm((current) => ({ ...current, ...fields })),
+              )
+            }
+          />
 
           <form
             onSubmit={handleSubmit}
@@ -427,7 +463,7 @@ export default function BusinessGoalsPage() {
                 loading={saving}
                 disabled={saving}
               >
-                Save business goals
+                {setup.isSetup ? "Continue" : "Save business goals"}
               </Button>
             </div>
           </form>

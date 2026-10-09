@@ -56,14 +56,38 @@ class PermissionEngine:
                 reason="The requested action requires owner approval.",
             )
 
+        # ------------------------------------------------------------------
+        # Read-only context retrieval — always allowed.
+        # ------------------------------------------------------------------
+
         if decision.action == DecisionAction.READ_BUSINESS_CONTEXT:
             return PermissionResult(
                 status=PermissionStatus.ALLOWED,
                 reason=(
-                    "Kova may read the business context for the current "
-                    "business."
+                    "Kova may read the business context for the "
+                    "current business."
                 ),
             )
+
+        # ------------------------------------------------------------------
+        # Analytics and social activity — read-only, always allowed.
+        # ------------------------------------------------------------------
+
+        if decision.action == DecisionAction.GET_ANALYTICS:
+            return PermissionResult(
+                status=PermissionStatus.ALLOWED,
+                reason="Kova may retrieve analytics.",
+            )
+
+        if decision.action == DecisionAction.GET_SOCIAL_ACTIVITY:
+            return PermissionResult(
+                status=PermissionStatus.ALLOWED,
+                reason="Kova may retrieve social activity.",
+            )
+
+        # ------------------------------------------------------------------
+        # Content creation
+        # ------------------------------------------------------------------
 
         if decision.action == DecisionAction.CREATE_CONTENT:
             if policy.get("allow_content_creation", False):
@@ -76,6 +100,29 @@ class PermissionEngine:
                 status=PermissionStatus.DENIED,
                 reason="Business policy does not allow Kova to create content.",
             )
+
+        # ------------------------------------------------------------------
+        # Content publishing
+        # ------------------------------------------------------------------
+
+        if decision.action == DecisionAction.PUBLISH_CONTENT:
+            if policy.get("allow_auto_publish", False):
+                return PermissionResult(
+                    status=PermissionStatus.ALLOWED,
+                    reason="Business policy allows Kova to publish content.",
+                )
+
+            return PermissionResult(
+                status=PermissionStatus.REQUIRES_APPROVAL,
+                reason=(
+                    "Business policy requires approval before "
+                    "Kova can publish content."
+                ),
+            )
+
+        # ------------------------------------------------------------------
+        # Customer responses (comments and DMs)
+        # ------------------------------------------------------------------
 
         if decision.action == DecisionAction.RESPOND_TO_CUSTOMER:
             channel = decision.inputs.get("channel")
@@ -119,10 +166,68 @@ class PermissionEngine:
             return PermissionResult(
                 status=PermissionStatus.REQUIRES_APPROVAL,
                 reason=(
-                    "The customer communication channel is not explicitly "
-                    "authorized."
+                    "The customer communication channel is not "
+                    "explicitly authorized."
                 ),
             )
+
+        # ------------------------------------------------------------------
+        # Lead creation
+        # ------------------------------------------------------------------
+
+        if decision.action == DecisionAction.CREATE_LEAD:
+            if policy.get("allow_lead_creation", True):
+                return PermissionResult(
+                    status=PermissionStatus.ALLOWED,
+                    reason="Business policy allows Kova to create leads.",
+                )
+
+            return PermissionResult(
+                status=PermissionStatus.DENIED,
+                reason="Business policy does not allow Kova to create leads.",
+            )
+
+        # ------------------------------------------------------------------
+        # Product management
+        # ------------------------------------------------------------------
+
+        if decision.action == DecisionAction.MANAGE_PRODUCT:
+            if policy.get("allow_product_management", False):
+                return PermissionResult(
+                    status=PermissionStatus.ALLOWED,
+                    reason="Business policy allows Kova to manage products.",
+                )
+
+            return PermissionResult(
+                status=PermissionStatus.DENIED,
+                reason=(
+                    "Business policy does not allow Kova to manage "
+                    "products."
+                ),
+            )
+
+        # ------------------------------------------------------------------
+        # Order management
+        # ------------------------------------------------------------------
+
+        if decision.action == DecisionAction.MANAGE_ORDER:
+            if policy.get("allow_order_management", False):
+                return PermissionResult(
+                    status=PermissionStatus.ALLOWED,
+                    reason="Business policy allows Kova to manage orders.",
+                )
+
+            return PermissionResult(
+                status=PermissionStatus.DENIED,
+                reason=(
+                    "Business policy does not allow Kova to manage "
+                    "orders."
+                ),
+            )
+
+        # ------------------------------------------------------------------
+        # Commerce management (generic commerce operations)
+        # ------------------------------------------------------------------
 
         if decision.action == DecisionAction.MANAGE_COMMERCE:
             commerce_action = decision.inputs.get("commerce_action")
@@ -163,28 +268,29 @@ class PermissionEngine:
                     ),
                 )
 
-            if policy.get("allow_product_management", False):
+            # Generic commerce without a sub-action: check both.
+            if (
+                policy.get("allow_product_management", False)
+                or policy.get("allow_order_management", False)
+            ):
                 return PermissionResult(
                     status=PermissionStatus.ALLOWED,
                     reason=(
-                        "Business policy allows Kova to manage products "
-                        "without requiring a more specific commerce action."
-                    ),
-                )
-
-            if policy.get("allow_order_management", False):
-                return PermissionResult(
-                    status=PermissionStatus.ALLOWED,
-                    reason=(
-                        "Business policy allows Kova to manage orders "
-                        "without requiring a more specific commerce action."
+                        "Business policy allows commerce management."
                     ),
                 )
 
             return PermissionResult(
                 status=PermissionStatus.DENIED,
-                reason="Neither product nor order management is authorized.",
+                reason=(
+                    "Neither product nor order management is "
+                    "authorized."
+                ),
             )
+
+        # ------------------------------------------------------------------
+        # Unknown action — deny by default for security.
+        # ------------------------------------------------------------------
 
         return PermissionResult(
             status=PermissionStatus.DENIED,

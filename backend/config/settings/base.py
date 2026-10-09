@@ -27,6 +27,11 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "corsheaders",
     "apps.business_brain",
+    "apps.commerce",
+    "apps.content",
+    "apps.leads",
+    "apps.social",
+    "apps.brief",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
@@ -37,6 +42,14 @@ OPENROUTER_API_KEY = os.getenv(
 )
 
 OPENROUTER_MODEL = os.getenv(
+    "OPENROUTER_MODEL",
+    "google/gemini-3.8-flash",
+)
+
+OPENROUTER_VISION_MODEL = os.getenv(
+    "OPENROUTER_VISION_MODEL",
+    "",
+) or os.getenv(
     "OPENROUTER_MODEL",
     "google/gemini-3.8-flash",
 )

@@ -146,7 +146,7 @@ export default function SignupPage() {
       });
 
 
-      router.push("/workspace");
+      router.push("/workspace/setup");
 
         } catch (error) {
       console.error(
@@ -345,7 +345,7 @@ export default function SignupPage() {
         {error && (
           <div
             role="alert"
-            className="border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700"
+            className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700"
           >
             {error}
           </div>

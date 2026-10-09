@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError, authenticatedApiRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { SetupGuide } from "@/components/workspace/setup-guide";
+import { useSectionSetup } from "@/components/workspace/use-section-setup";
 
 interface Business {
   id: number;
@@ -155,6 +157,25 @@ export default function BusinessProfilePage() {
   const [fieldErrors, setFieldErrors] =
     useState<FieldErrors>({});
 
+  const setup = useSectionSetup({
+    section: "profile",
+    businessId: business?.id ?? null,
+    accessToken,
+    form,
+    ready: !loading && !!business,
+    save: async (current) => {
+      if (!business || !accessToken) return;
+      await authenticatedApiRequest(
+        `/business-brain/${business.id}/profile/`,
+        accessToken,
+        {
+          method: "PATCH",
+          body: JSON.stringify(current),
+        },
+      );
+    },
+  });
+
   const updateField = <K extends keyof ProfileForm>(
     field: K,
     value: ProfileForm[K],
@@ -255,6 +276,11 @@ export default function BusinessProfilePage() {
         },
       );
 
+      if (setup.isSetup && setup.nextPath) {
+        router.push(setup.nextPath);
+        return;
+      }
+
       setSuccess(
         "Your business profile has been updated.",
       );
@@ -308,6 +334,19 @@ export default function BusinessProfilePage() {
               evolves.
             </p>
           </header>
+
+          <SetupGuide
+            section="profile"
+            isSetup={setup.isSetup}
+            autoState={setup.autoState}
+            drafting={setup.drafting}
+            draftError={setup.draftError}
+            onDraft={() =>
+              setup.draft((fields) =>
+                setForm((current) => ({ ...current, ...fields })),
+              )
+            }
+          />
 
           <form
             onSubmit={handleSubmit}
@@ -423,7 +462,7 @@ export default function BusinessProfilePage() {
                 loading={saving}
                 disabled={saving}
               >
-                Save business profile
+                {setup.isSetup ? "Continue" : "Save business profile"}
               </Button>
             </div>
           </form>

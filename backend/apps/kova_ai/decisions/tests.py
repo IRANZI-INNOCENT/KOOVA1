@@ -56,6 +56,10 @@ class DecisionEngineTests(TestCase):
     def test_content_creation_requires_policy(self):
         """Content creation should require business policy."""
 
+        BusinessPolicy.objects.filter(
+            business=self.business,
+        ).delete()
+
         context = self.build_context(
             task=ContextTask.CONTENT_CREATION,
         )
@@ -79,10 +83,9 @@ class DecisionEngineTests(TestCase):
     def test_content_creation_is_ready_when_allowed(self):
         """Kova should be ready when content creation is allowed."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
-            allow_content_creation=True,
-        )
+        ).update(allow_content_creation=True)
 
         context = self.build_context(
             task=ContextTask.CONTENT_CREATION,
@@ -119,10 +122,9 @@ class DecisionEngineTests(TestCase):
     def test_content_creation_requires_approval_when_disallowed(self):
         """Disallowed content creation should require approval."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
-            allow_content_creation=False,
-        )
+        ).update(allow_content_creation=False)
 
         context = self.build_context(
             task=ContextTask.CONTENT_CREATION,
@@ -147,6 +149,10 @@ class DecisionEngineTests(TestCase):
     def test_customer_response_requires_policy(self):
         """Customer responses should require business policy."""
 
+        BusinessPolicy.objects.filter(
+            business=self.business,
+        ).delete()
+
         context = self.build_context(
             task=ContextTask.CUSTOMER_RESPONSE,
         )
@@ -167,8 +173,9 @@ class DecisionEngineTests(TestCase):
     def test_customer_response_is_ready_when_comments_are_allowed(self):
         """Comment replies should be allowed when policy permits them."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
+        ).update(
             allow_comment_replies=True,
             allow_dm_replies=False,
         )
@@ -196,8 +203,9 @@ class DecisionEngineTests(TestCase):
     def test_customer_response_is_ready_when_dms_are_allowed(self):
         """DM replies should be allowed when policy permits them."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
+        ).update(
             allow_comment_replies=False,
             allow_dm_replies=True,
         )
@@ -222,8 +230,9 @@ class DecisionEngineTests(TestCase):
     def test_customer_response_requires_approval_when_disallowed(self):
         """Customer responses should require approval when disabled."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
+        ).update(
             allow_comment_replies=False,
             allow_dm_replies=False,
         )
@@ -251,6 +260,10 @@ class DecisionEngineTests(TestCase):
     def test_commerce_requires_policy(self):
         """Commerce operations should require business policy."""
 
+        BusinessPolicy.objects.filter(
+            business=self.business,
+        ).delete()
+
         context = self.build_context(
             task=ContextTask.COMMERCE,
         )
@@ -271,8 +284,9 @@ class DecisionEngineTests(TestCase):
     def test_commerce_is_ready_when_product_management_is_allowed(self):
         """Product management should enable commerce decisions."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
+        ).update(
             allow_product_management=True,
             allow_order_management=False,
         )
@@ -304,8 +318,9 @@ class DecisionEngineTests(TestCase):
     def test_commerce_is_ready_when_order_management_is_allowed(self):
         """Order management should enable commerce decisions."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
+        ).update(
             allow_product_management=False,
             allow_order_management=True,
         )
@@ -330,8 +345,9 @@ class DecisionEngineTests(TestCase):
     def test_commerce_requires_approval_when_management_is_disallowed(self):
         """Commerce should require approval when management is disabled."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
+        ).update(
             allow_product_management=False,
             allow_order_management=False,
         )
@@ -376,10 +392,9 @@ class DecisionEngineTests(TestCase):
         business state.
         """
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
-            allow_content_creation=True,
-        )
+        ).update(allow_content_creation=True)
 
         context = self.build_context(
             task=ContextTask.CONTENT_CREATION,

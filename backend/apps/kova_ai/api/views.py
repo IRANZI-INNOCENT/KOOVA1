@@ -185,3 +185,19 @@ class KovaAgentView(APIView):
             response_serializer.validated_data,
             status=status.HTTP_200_OK,
         )
+
+
+class KovaStartersView(APIView):
+    """Questions based on the shop and a market search."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        business = get_object_or_404(
+            Business,
+            id=request.query_params.get("business_id"),
+            owner=request.user,
+        )
+        from apps.kova_ai.services.starters import starter_prompts
+
+        return Response({"prompts": starter_prompts(business)})

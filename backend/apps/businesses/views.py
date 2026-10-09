@@ -1,63 +1,134 @@
-from rest_framework import generics
+from django.shortcuts import get_object_or_404
+
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import Business
 from .serializers import BusinessSerializer
 
 
-class BusinessListCreateView(generics.ListCreateAPIView):
+class BusinessListCreateView(APIView):
     """
-    List and create businesses for the authenticated Kova user.
-
-    GET:
-        Returns only businesses owned by the authenticated user.
-
-    POST:
-        Creates a new business and automatically assigns the
-        authenticated user as its owner.
+    List businesses owned by the authenticated user or create one.
     """
 
-    serializer_class = BusinessSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAuthenticated,
+    ]
 
-    def get_queryset(self):
-        """
-        Return only businesses owned by the authenticated user.
+    def get(self, request):
+        """Return the user's businesses."""
 
-        Filtering at the database-query level prevents users from
-        receiving another user's businesses through the API.
-        """
-        return Business.objects.filter(
-            owner=self.request.user,
+        businesses = Business.objects.filter(
+            owner=request.user,
         )
 
-    def perform_create(self, serializer):
-        """
-        Assign the authenticated user as the business owner.
+        serializer = BusinessSerializer(
+            businesses,
+            many=True,
+        )
 
-        The owner comes from request.user rather than the request body.
-        """
-        serializer.save(
-            owner=self.request.user,
+        return Response(
+            serializer.data,
+        )
+
+    def post(self, request):
+        """Create a new business for the authenticated user."""
+
+        serializer = BusinessSerializer(
+            data=request.data,
+        )
+
+        serializer.is_valid(
+            raise_exception=True,
+        )
+
+        business = serializer.save(
+            owner=request.user,
+        )
+
+        return Response(
+            BusinessSerializer(business).data,
+            status=status.HTTP_201_CREATED,
         )
 
 
-class BusinessDetailView(generics.RetrieveAPIView):
+class BusinessDetailView(APIView):
     """
-    Retrieve a single business owned by the authenticated user.
-
-    The queryset is restricted to the current user's businesses.
-    Therefore, requesting another user's business results in a
-    404 response rather than exposing that the business exists.
+    Retrieve, update, or delete one owned business.
     """
 
-    serializer_class = BusinessSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAuthenticated,
+    ]
 
-    def get_queryset(self):
-        """
-        Restrict business lookup to the authenticated owner.
-        """
-        return Business.objects.filter(
-            owner=self.request.user,
+    def get_business(
+        self,
+        request,
+        business_id,
+    ):
+        """Return only a business owned by the current user."""
+
+        return get_object_or_404(
+            Business,
+            id=business_id,
+            owner=request.user,
+        )
+
+    def get(
+        self,
+        request,
+        business_id,
+    ):
+        business = self.get_business(
+            request,
+            business_id,
+        )
+
+        return Response(
+            BusinessSerializer(business).data,
+        )
+
+    def patch(
+        self,
+        request,
+        business_id,
+    ):
+        business = self.get_business(
+            request,
+            business_id,
+        )
+
+        serializer = BusinessSerializer(
+            business,
+            data=request.data,
+            partial=True,
+        )
+
+        serializer.is_valid(
+            raise_exception=True,
+        )
+
+        business = serializer.save()
+
+        return Response(
+            BusinessSerializer(business).data,
+        )
+
+    def delete(
+        self,
+        request,
+        business_id,
+    ):
+        business = self.get_business(
+            request,
+            business_id,
+        )
+
+        business.delete()
+
+        return Response(
+            status=status.HTTP_204_NO_CONTENT,
         )

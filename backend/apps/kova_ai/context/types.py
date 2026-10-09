@@ -1,21 +1,9 @@
-"""
-Types used by the Kova Context Engine.
-
-The Context Engine assembles existing business data into an in-memory
-context package that can later be consumed by Kova's Decision Engine.
-
-No context is persisted here. The existing Django models remain the
-source of truth.
-"""
-
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
 
 class ContextTask(StrEnum):
-    """Tasks that determine which business context Kova needs."""
-
     GENERAL = "general"
     CONTENT_CREATION = "content_creation"
     CUSTOMER_RESPONSE = "customer_response"
@@ -25,10 +13,12 @@ class ContextTask(StrEnum):
 @dataclass(frozen=True)
 class BusinessContext:
     """
-    Immutable business context assembled for a specific Kova task.
+    Immutable business context assembled for one Kova task.
 
-    The core Business Brain entities are always represented. Task-specific
-    data can be added later without changing the underlying database models.
+    Products and the commerce page are part of the Business Brain because
+    Commerce is not a separate intelligence system. Product information can
+    influence content, customer responses, selling decisions, and future
+    recommendations.
     """
 
     business: dict[str, Any]
@@ -37,7 +27,11 @@ class BusinessContext:
     brand: dict[str, Any] | None
     goals: dict[str, Any] | None
     policy: dict[str, Any] | None
-
     task: ContextTask
 
+    # Defaults keep older callers/tests compatible while allowing the
+    # ContextEngine to populate these fields whenever relevant.
+    products: list[dict[str, Any]] = field(default_factory=list)
+    commerce_page: dict[str, Any] | None = None
     task_context: dict[str, Any] | None = None
+    market: dict[str, Any] | None = None

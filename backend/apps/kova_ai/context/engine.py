@@ -1,24 +1,3 @@
-"""
-Kova Context Engine.
-
-The Context Engine determines what Kova needs to know about a business
-for a particular task.
-
-It does not make decisions and it does not call an AI model.
-
-Its responsibility is:
-
-    Database
-        ↓
-    Task Definition
-        ↓
-    Relevant business context
-        ↓
-    BusinessContext
-
-The Decision Engine will consume this context later.
-"""
-
 from typing import Any
 
 from django.db.models import Model
@@ -27,27 +6,23 @@ from apps.business_brain.models import (
     BusinessAudience,
     BusinessBrand,
     BusinessGoal,
+    BusinessMarketBrief,
     BusinessPolicy,
     BusinessProfile,
 )
 from apps.businesses.models import Business
+from apps.commerce.models import CommercePage, Product
 
-from .definitions import (
-    ContextRequirement,
-    TASK_DEFINITIONS,
-    TaskDefinition,
-)
+from .definitions import ContextRequirement, TASK_DEFINITIONS
 from .types import BusinessContext, ContextTask
 
 
 class ContextEngine:
     """
-    Builds task-specific context for Kova.
+    Build task-aware Business Brain context.
 
-    The engine does not persist context. It reads the existing business
-    entities and assembles them into an in-memory BusinessContext object.
-
-    Only the context required by the task definition is loaded.
+    The engine deliberately assembles context from the underlying business
+    entities instead of creating one giant BusinessBrain database table.
     """
 
     def build(
@@ -57,187 +32,187 @@ class ContextEngine:
         task: ContextTask = ContextTask.GENERAL,
         task_context: dict[str, Any] | None = None,
     ) -> BusinessContext:
-        """
-        Build context for a business and a specific Kova task.
-
-        Args:
-            business_id: ID of the business whose context is required.
-            task: The operation Kova is preparing to perform.
-            task_context: Optional task-specific information.
-
-        Returns:
-            A BusinessContext containing the context required by the task.
-
-        Raises:
-            Business.DoesNotExist: If the business does not exist.
-        """
-
-        business = self._get_business(business_id)
-        definition = self._get_task_definition(task)
+        business = Business.objects.get(id=business_id)
+        definition = TASK_DEFINITIONS[task]
 
         return BusinessContext(
             business=self._serialize_business(business),
-            profile=self._get_profile(
+            profile=self._get_brain(
+                BusinessProfile,
                 business,
                 definition,
+                ContextRequirement.PROFILE,
             ),
-            audience=self._get_audience(
+            audience=self._get_brain(
+                BusinessAudience,
                 business,
                 definition,
+                ContextRequirement.AUDIENCE,
             ),
-            brand=self._get_brand(
+            brand=self._get_brain(
+                BusinessBrand,
                 business,
                 definition,
+                ContextRequirement.BRAND,
             ),
-            goals=self._get_goals(
+            goals=self._get_brain(
+                BusinessGoal,
                 business,
                 definition,
+                ContextRequirement.GOALS,
             ),
-            policy=self._get_policy(
+            policy=self._get_brain(
+                BusinessPolicy,
                 business,
                 definition,
+                ContextRequirement.POLICY,
             ),
+            market=self._get_market(business, definition),
+            products=self._get_products(business, definition),
+            commerce_page=self._get_commerce_page(business, definition),
             task=task,
             task_context=task_context,
         )
 
     @staticmethod
-    def _get_business(
-        business_id: int,
-    ) -> Business:
-        """
-        Load the business that owns the requested context.
-
-        Authorization is intentionally handled outside this low-level
-        engine for V1. The engine receives a business ID and assembles
-        context for that business.
-        """
-
-        return Business.objects.get(id=business_id)
-
-    @staticmethod
-    def _get_task_definition(
-        task: ContextTask,
-    ) -> TaskDefinition:
-        """Return the definition describing the task's context needs."""
-
-        return TASK_DEFINITIONS[task]
-
-    @staticmethod
     def _requires(
-        definition: TaskDefinition,
+        definition: Any,
         requirement: ContextRequirement,
     ) -> bool:
-        """Return whether the task requires a particular context type."""
-
         return requirement in definition.requirements
 
     @classmethod
-    def _get_profile(
+    def _get_brain(
         cls,
+        model: type[Model],
         business: Business,
-        definition: TaskDefinition,
-    ) -> dict[str, Any] | None:
-        """Load Business Profile when required by the task."""
-
-        if not cls._requires(
-            definition,
-            ContextRequirement.PROFILE,
-        ):
+        definition: Any,
+        requirement: ContextRequirement,
+    ):
+        if not cls._requires(definition, requirement):
             return None
 
-        return cls._serialize_optional(
-            BusinessProfile.objects.filter(
-                business=business,
-            ).first()
-        )
+        instance = model.objects.filter(
+            business=business
+        ).first()
+
+        return cls._serialize_optional(instance)
 
     @classmethod
-    def _get_audience(
-        cls,
-        business: Business,
-        definition: TaskDefinition,
-    ) -> dict[str, Any] | None:
-        """Load Business Audience when required by the task."""
-
-        if not cls._requires(
-            definition,
-            ContextRequirement.AUDIENCE,
-        ):
+    def _get_market(cls, business: Business, definition: Any):
+        if not cls._requires(definition, ContextRequirement.MARKET):
             return None
 
-        return cls._serialize_optional(
-            BusinessAudience.objects.filter(
-                business=business,
-            ).first()
-        )
+        brief = BusinessMarketBrief.objects.filter(
+            business=business,
+            kept=True,
+        ).first()
+        if brief is None:
+            return None
+
+        return {
+            "summary": brief.summary,
+            "competitors": brief.competitors,
+            "gap": brief.gap,
+            "positioning": brief.positioning,
+            "sources": brief.sources,
+        }
 
     @classmethod
-    def _get_brand(
+    def _get_products(
         cls,
         business: Business,
-        definition: TaskDefinition,
-    ) -> dict[str, Any] | None:
-        """Load Business Brand when required by the task."""
-
+        definition: Any,
+    ) -> list[dict[str, Any]]:
         if not cls._requires(
             definition,
-            ContextRequirement.BRAND,
+            ContextRequirement.PRODUCTS,
         ):
-            return None
+            return []
 
-        return cls._serialize_optional(
-            BusinessBrand.objects.filter(
+        products = (
+            Product.objects.filter(
                 business=business,
-            ).first()
+                status__in=[
+                    Product.Status.DRAFT,
+                    Product.Status.ACTIVE,
+                ],
+            )
+            .prefetch_related("images")
+            .order_by("-updated_at")
         )
+
+        return [
+            {
+                "id": product.id,
+                "name": product.name,
+                "slug": product.slug,
+                "category": product.category,
+                "sku": product.sku,
+                "price": (
+                    str(product.price)
+                    if product.price is not None
+                    else None
+                ),
+                "currency": product.currency,
+                "stock": product.stock,
+                "brand": product.brand,
+                "material": product.material,
+                "size": product.size,
+                "color": product.color,
+                "condition": product.condition,
+                "short_description": product.short_description,
+                "description": product.description,
+                "seo_title": product.seo_title,
+                "seo_description": product.seo_description,
+                "selling_points": product.selling_points,
+                "keywords": product.keywords,
+                "visual_attributes": product.visual_attributes,
+                "uncertain_attributes": product.uncertain_attributes,
+                "ai_confidence": (
+                    float(product.ai_confidence)
+                    if product.ai_confidence is not None
+                    else None
+                ),
+                "status": product.status,
+                "images": [
+                    {
+                        "url": (
+                            image.image.url
+                            if image.image
+                            else None
+                        ),
+                        "alt_text": image.alt_text,
+                        "is_primary": image.is_primary,
+                    }
+                    for image in product.images.all()
+                ],
+            }
+            for product in products
+        ]
 
     @classmethod
-    def _get_goals(
+    def _get_commerce_page(
         cls,
         business: Business,
-        definition: TaskDefinition,
+        definition: Any,
     ) -> dict[str, Any] | None:
-        """Load Business Goals when required by the task."""
-
         if not cls._requires(
             definition,
-            ContextRequirement.GOALS,
+            ContextRequirement.COMMERCE_PAGE,
         ):
             return None
 
-        return cls._serialize_optional(
-            BusinessGoal.objects.filter(
-                business=business,
-            ).first()
-        )
+        page = CommercePage.objects.filter(
+            business=business
+        ).first()
 
-    @classmethod
-    def _get_policy(
-        cls,
-        business: Business,
-        definition: TaskDefinition,
-    ) -> dict[str, Any] | None:
-        """Load Business Policy when required by the task."""
-
-        if not cls._requires(
-            definition,
-            ContextRequirement.POLICY,
-        ):
-            return None
-
-        return cls._serialize_optional(
-            BusinessPolicy.objects.filter(
-                business=business,
-            ).first()
-        )
+        return cls._serialize_optional(page)
 
     @staticmethod
     def _serialize_business(
         business: Business,
     ) -> dict[str, Any]:
-        """Return the business fields Kova needs as base context."""
-
         return {
             "id": business.id,
             "name": business.name,
@@ -252,18 +227,10 @@ class ContextEngine:
     def _serialize_optional(
         instance: Model | None,
     ) -> dict[str, Any] | None:
-        """
-        Convert an optional Business Brain model into a context dictionary.
-
-        Database identifiers and timestamps are intentionally excluded.
-        They are persistence details rather than business intelligence
-        needed for reasoning.
-        """
-
         if instance is None:
             return None
 
-        excluded_fields = {
+        excluded = {
             "id",
             "business",
             "created_at",
@@ -273,5 +240,5 @@ class ContextEngine:
         return {
             field.name: getattr(instance, field.name)
             for field in instance._meta.fields
-            if field.name not in excluded_fields
+            if field.name not in excluded
         }

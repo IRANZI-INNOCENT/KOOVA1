@@ -1,0 +1,1843 @@
+"use client";
+
+import {
+  ChangeEvent,
+  FormEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  Product,
+  snapToSell,
+  updateProduct,
+} from "@/lib/commerce";
+import { authenticatedApiRequest } from "@/lib/api";
+
+interface SnapToSellModalProps {
+  open: boolean;
+  onClose: () => void;
+  businessId: number;
+  accessToken: string;
+  onCreated?: (product: Product) => void;
+}
+
+type Step =
+  | "capture"
+  | "price"
+  | "processing"
+  | "review"
+  | "manual"
+  | "live";
+
+interface ImagePreview {
+  file: File;
+  url: string;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Kova could not complete this operation.";
+  }
+
+  const message = error.message || "";
+
+  // Never expose Django's HTML debug page inside the UI.
+  if (
+    message.includes("<!DOCTYPE") ||
+    message.includes("<html") ||
+    message.includes("Traceback") ||
+    message.includes("TypeError at")
+  ) {
+    return "Kova could not complete this operation. Please try again.";
+  }
+
+  return message;
+}
+
+export default function SnapToSellModal({
+  open,
+  onClose,
+  businessId,
+  accessToken,
+  onCreated,
+}: SnapToSellModalProps) {
+  const cameraInputRef =
+    useRef<HTMLInputElement | null>(null);
+
+  const fileInputRef =
+    useRef<HTMLInputElement | null>(null);
+
+  const manualImageInputRef =
+    useRef<HTMLInputElement | null>(null);
+
+  const manualCameraInputRef =
+    useRef<HTMLInputElement | null>(null);
+
+  const [step, setStep] = useState<Step>("capture");
+
+  const [images, setImages] = useState<ImagePreview[]>(
+    [],
+  );
+
+  const [price, setPrice] = useState("");
+  const [currency, setCurrency] = useState("KES");
+
+  const [product, setProduct] =
+    useState<Product | null>(null);
+
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("");
+  const [brand, setBrand] = useState("");
+  const [material, setMaterial] = useState("");
+  const [size, setSize] = useState("");
+  const [color, setColor] = useState("");
+  const [condition, setCondition] = useState("");
+
+  const [manualImage, setManualImage] =
+    useState<File | null>(null);
+
+  const [manualImagePreview, setManualImagePreview] =
+    useState<string | null>(null);
+
+  const [error, setError] = useState("");
+
+  const [saving, setSaving] = useState(false);
+
+  /*
+   * ---------------------------------------------------------------
+   * RESET
+   * ---------------------------------------------------------------
+   */
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    setStep("capture");
+    setError("");
+    setProduct(null);
+
+    setPrice("");
+    setCurrency("KES");
+
+    setName("");
+    setCategory("");
+    setBrand("");
+    setMaterial("");
+    setSize("");
+    setColor("");
+    setCondition("");
+
+    setManualImage(null);
+
+    if (manualImagePreview) {
+      URL.revokeObjectURL(manualImagePreview);
+    }
+
+    setManualImagePreview(null);
+  }, [open]);
+
+  /*
+   * Clean up object URLs when the component is unmounted.
+   */
+
+  useEffect(() => {
+    return () => {
+      images.forEach((image) => {
+        URL.revokeObjectURL(image.url);
+      });
+
+      if (manualImagePreview) {
+        URL.revokeObjectURL(manualImagePreview);
+      }
+    };
+  }, []);
+
+  if (!open) {
+    return null;
+  }
+
+  /*
+   * ---------------------------------------------------------------
+   * COMMON ERROR HANDLER
+   * ---------------------------------------------------------------
+   */
+
+  function renderError() {
+    return (
+      <div className="border border-red-200 bg-red-50 px-4 py-3">
+        <p className="text-sm leading-6 text-red-700">
+          {error}
+        </p>
+      </div>
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------------
+   * SNAP IMAGE HANDLING
+   * ---------------------------------------------------------------
+   */
+
+  function addImages(files: File[]) {
+    setError("");
+
+    const validImages = files.filter((file) =>
+      file.type.startsWith("image/"),
+    );
+
+    if (!validImages.length) {
+      setError("Please select a valid product photo.");
+      return;
+    }
+
+    const remaining = 5 - images.length;
+
+    if (remaining <= 0) {
+      setError("You can use a maximum of 5 photos.");
+      return;
+    }
+
+    const selected = validImages.slice(0, remaining);
+
+    const previews = selected.map((file) => ({
+      file,
+      url: URL.createObjectURL(file),
+    }));
+
+    setImages((current) => [
+      ...current,
+      ...previews,
+    ]);
+  }
+
+  function handleCameraCapture(
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const files = Array.from(
+      event.target.files || [],
+    );
+
+    addImages(files);
+
+    event.target.value = "";
+  }
+
+  function handleFileSelection(
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const files = Array.from(
+      event.target.files || [],
+    );
+
+    addImages(files);
+
+    event.target.value = "";
+  }
+
+  function removeImage(index: number) {
+    setImages((current) => {
+      const image = current[index];
+
+      if (image) {
+        URL.revokeObjectURL(image.url);
+      }
+
+      return current.filter(
+        (_, currentIndex) =>
+          currentIndex !== index,
+      );
+    });
+  }
+
+  function openCamera() {
+    setError("");
+    cameraInputRef.current?.click();
+  }
+
+  function openFilePicker() {
+    setError("");
+    fileInputRef.current?.click();
+  }
+
+  /*
+   * ---------------------------------------------------------------
+   * MANUAL IMAGE HANDLING
+   * ---------------------------------------------------------------
+   */
+
+  function handleManualImage(
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid product image.");
+      return;
+    }
+
+    setError("");
+
+    if (manualImagePreview) {
+      URL.revokeObjectURL(manualImagePreview);
+    }
+
+    setManualImage(file);
+
+    setManualImagePreview(
+      URL.createObjectURL(file),
+    );
+
+    event.target.value = "";
+  }
+
+  function removeManualImage() {
+    if (manualImagePreview) {
+      URL.revokeObjectURL(manualImagePreview);
+    }
+
+    setManualImage(null);
+    setManualImagePreview(null);
+  }
+
+  function openManualCamera() {
+    setError("");
+    manualCameraInputRef.current?.click();
+  }
+
+  function openManualFilePicker() {
+    setError("");
+    manualImageInputRef.current?.click();
+  }
+
+  /*
+   * ---------------------------------------------------------------
+   * CAPTURE FLOW
+   * ---------------------------------------------------------------
+   */
+
+  function continueFromCapture() {
+    setError("");
+
+    if (!images.length) {
+      setError(
+        "Take a product photo first, or choose Add Manually.",
+      );
+
+      return;
+    }
+
+    setStep("price");
+  }
+
+  function openManualMode() {
+    setError("");
+    setStep("manual");
+  }
+
+  /*
+   * ---------------------------------------------------------------
+   * SNAP TO SELL
+   * ---------------------------------------------------------------
+   */
+
+  async function prepareProduct(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    setError("");
+
+    const numericPrice = Number(price);
+
+    if (!price.trim()) {
+      setError("Enter the selling price.");
+      return;
+    }
+
+    if (
+      !Number.isFinite(numericPrice) ||
+      numericPrice < 0
+    ) {
+      setError("Enter a valid selling price.");
+      return;
+    }
+
+    if (!images.length) {
+      setError("Take at least one product photo.");
+      return;
+    }
+
+    setStep("processing");
+
+    try {
+      const formData = new FormData();
+
+      images.forEach(({ file }) => {
+        formData.append("images", file);
+      });
+
+      formData.append("price", price);
+      formData.append("currency", currency);
+
+      const createdProduct = await snapToSell(
+        businessId,
+        accessToken,
+        formData,
+      );
+
+      setProduct(createdProduct);
+
+      setName(createdProduct.name || "");
+      setCategory(createdProduct.category || "");
+      setBrand(createdProduct.brand || "");
+      setMaterial(createdProduct.material || "");
+      setSize(createdProduct.size || "");
+      setColor(createdProduct.color || "");
+      setCondition(createdProduct.condition || "New");
+
+      setStep("review");
+    } catch (err) {
+      setError(getErrorMessage(err));
+      setStep("price");
+    }
+  }
+
+  /*
+   * ---------------------------------------------------------------
+   * MANUAL PRODUCT CREATION
+   * ---------------------------------------------------------------
+   */
+
+  async function saveManualProduct(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    setError("");
+
+    if (!name.trim()) {
+      setError("Product name is required.");
+      return;
+    }
+
+    if (!category.trim()) {
+      setError("Category is required.");
+      return;
+    }
+
+    if (!price.trim()) {
+      setError("Selling price is required.");
+      return;
+    }
+
+    const numericPrice = Number(price);
+
+    if (
+      !Number.isFinite(numericPrice) ||
+      numericPrice < 0
+    ) {
+      setError("Enter a valid selling price.");
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      /*
+       * First create the product.
+       */
+      const createdProduct =
+        await authenticatedApiRequest<Product>(
+          `/commerce/${businessId}/products/`,
+          accessToken,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              name: name.trim(),
+              category: category.trim(),
+              price,
+              currency,
+              brand: brand.trim(),
+              material: material.trim(),
+              size: size.trim(),
+              color: color.trim(),
+              condition: condition.trim(),
+              status: "draft",
+            }),
+          },
+        );
+
+      /*
+       * If the user supplied an image, upload it to
+       * the newly-created product.
+       */
+      if (manualImage) {
+        const imageFormData = new FormData();
+
+        imageFormData.append(
+          "image",
+          manualImage,
+        );
+
+        imageFormData.append(
+          "is_primary",
+          "true",
+        );
+
+        imageFormData.append(
+          "display_order",
+          "0",
+        );
+
+        await authenticatedApiRequest(
+          `/commerce/${businessId}/products/${createdProduct.id}/images/`,
+          accessToken,
+          {
+            method: "POST",
+            body: imageFormData,
+          },
+        );
+      }
+
+      setProduct(createdProduct);
+      setStep("live");
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  /*
+   * ---------------------------------------------------------------
+   * SAVE AI-GENERATED PRODUCT
+   * ---------------------------------------------------------------
+   */
+
+  async function saveProduct() {
+    if (!product) {
+      return;
+    }
+
+    setError("");
+    setSaving(true);
+
+    try {
+      const updatedProduct = await updateProduct(
+        businessId,
+        product.id,
+        accessToken,
+        {
+          name: name.trim(),
+          category: category.trim(),
+          brand: brand.trim(),
+          material: material.trim(),
+          size: size.trim(),
+          color: color.trim(),
+          condition: condition.trim(),
+        },
+      );
+
+      setProduct(updatedProduct);
+      setStep("live");
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  /*
+   * ---------------------------------------------------------------
+   * HEADER
+   * ---------------------------------------------------------------
+   */
+
+  function renderHeader() {
+    return (
+      <div className="flex shrink-0 items-start justify-between border-b border-[#E5E7E5] bg-white px-6 py-5 md:px-8">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#176B4D]">
+            Snap to Sell
+          </p>
+
+          <h1
+            id="snap-to-sell-title"
+            className="mt-2 text-2xl font-semibold tracking-tight text-[#17211D]"
+          >
+            Photograph it. Kova prepares it.
+          </h1>
+
+          <p className="mt-1 text-sm text-gray-500">
+            Turn a product photo into a ready-to-sell
+            product.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close Snap to Sell"
+          className="ml-6 flex h-9 w-9 shrink-0 items-center justify-center text-2xl leading-none text-gray-500 transition hover:bg-[#FAFAF8] hover:text-[#17211D]"
+        >
+          ×
+        </button>
+      </div>
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------------
+   * CAPTURE SCREEN
+   * ---------------------------------------------------------------
+   */
+
+  function renderCaptureStep() {
+    return (
+      <div className="space-y-7">
+        <div>
+          <h2 className="text-xl font-semibold text-[#17211D]">
+            How do you want to add your product?
+          </h2>
+
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
+            Snap a photo and let Kova understand the
+            product, or enter the product information
+            yourself.
+          </p>
+        </div>
+
+        {/* Camera input */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleCameraCapture}
+          className="hidden"
+        />
+
+        {/* Device file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleFileSelection}
+          className="hidden"
+        />
+
+        {images.length === 0 ? (
+          <>
+            {/* Primary camera action */}
+            <button
+              type="button"
+              onClick={openCamera}
+              className="group flex w-full items-center gap-4 border border-kova-green bg-white px-5 py-5 text-left transition hover:bg-kova-green/[0.04]"
+            >
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-kova-green text-white">
+                <svg
+                  width="30"
+                  height="30"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M4 7.5C4 6.67 4.67 6 5.5 6H8L9.5 4H14.5L16 6H18.5C19.33 6 20 6.67 20 7.5V18.5C20 19.33 19.33 20 18.5 20H5.5C4.67 20 4 19.33 4 18.5V7.5Z"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                  />
+
+                  <circle
+                    cx="12"
+                    cy="13"
+                    r="3.5"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                  />
+                </svg>
+              </div>
+
+              <span>
+                <span className="block text-base font-semibold text-kova-dark">
+                  Open camera
+                </span>
+                <span className="mt-1 block text-sm text-gray-500">
+                  Take a photo of your product
+                </span>
+              </span>
+            </button>
+
+            {/* Secondary actions */}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={openFilePicker}
+                className="flex items-center justify-center gap-3 border border-[#E5E7E5] bg-white px-5 py-4 text-sm font-semibold text-[#17211D] transition hover:border-[#176B4D] hover:text-[#176B4D]"
+              >
+                <svg
+                  width="19"
+                  height="19"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M4 5.5C4 4.67 4.67 4 5.5 4H18.5C19.33 4 20 4.67 20 5.5V18.5C20 19.33 19.33 20 18.5 20H5.5C4.67 20 4 19.33 4 18.5V5.5Z"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+
+                  <circle
+                    cx="8.5"
+                    cy="8.5"
+                    r="1.3"
+                    fill="currentColor"
+                  />
+
+                  <path
+                    d="M4 16L9 11L13 15L15.5 12.5L20 17"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+
+                Choose from device
+              </button>
+
+              <button
+                type="button"
+                onClick={openManualMode}
+                className="flex items-center justify-center gap-3 border border-[#E5E7E5] bg-white px-5 py-4 text-sm font-semibold text-[#17211D] transition hover:border-[#176B4D] hover:text-[#176B4D]"
+              >
+                <svg
+                  width="19"
+                  height="19"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M4 19.5V16.5L15.5 5C16.33 4.17 17.67 4.17 18.5 5L19 5.5C19.83 6.33 19.83 7.67 19 8.5L7.5 20H4V19.5Z"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinejoin="round"
+                  />
+
+                  <path
+                    d="M14 6.5L17.5 10"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                </svg>
+
+                Add manually
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                {images.map((image, index) => (
+                  <div
+                    key={`${image.file.name}-${index}`}
+                    className="group relative aspect-square overflow-hidden border border-[#E5E7E5] bg-[#FAFAF8]"
+                  >
+                    <img
+                      src={image.url}
+                      alt={`Product photo ${index + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        removeImage(index)
+                      }
+                      aria-label={`Remove photo ${index + 1}`}
+                      className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center bg-[#17211D] text-lg leading-none text-white opacity-0 transition group-hover:opacity-100"
+                    >
+                      ×
+                    </button>
+
+                    {index === 0 && (
+                      <span className="absolute bottom-2 left-2 bg-white px-2 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#176B4D]">
+                        Primary
+                      </span>
+                    )}
+                  </div>
+                ))}
+
+                {images.length < 5 && (
+                  <button
+                    type="button"
+                    onClick={openCamera}
+                    className="flex aspect-square flex-col items-center justify-center border border-dashed border-[#BFC8C3] bg-[#FAFAF8] text-sm font-semibold text-[#176B4D] transition hover:border-[#176B4D] hover:bg-white"
+                  >
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M4 7.5C4 6.67 4.67 6 5.5 6H8L9.5 4H14.5L16 6H18.5C19.33 6 20 6.67 20 7.5V18.5C20 19.33 19.33 20 18.5 20H5.5C4.67 20 4 19.33 4 18.5V7.5Z"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                      />
+
+                      <circle
+                        cx="12"
+                        cy="13"
+                        r="3.5"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                      />
+                    </svg>
+
+                    <span className="mt-2">
+                      Take another photo
+                    </span>
+                  </button>
+                )}
+              </div>
+
+              <p className="mt-3 text-xs text-gray-500">
+                {images.length}{" "}
+                {images.length === 1
+                  ? "photo"
+                  : "photos"}{" "}
+                added
+              </p>
+            </div>
+
+            {error && renderError()}
+
+            <div className="flex items-center justify-between border-t border-[#E5E7E5] pt-5">
+              <button
+                type="button"
+                onClick={() => {
+                  images.forEach((image) => {
+                    URL.revokeObjectURL(
+                      image.url,
+                    );
+                  });
+
+                  setImages([]);
+                }}
+                className="text-sm font-medium text-gray-500 transition hover:text-[#17211D]"
+              >
+                Start again
+              </button>
+
+              <button
+                type="button"
+                onClick={continueFromCapture}
+                className="bg-[#176B4D] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#12583F]"
+              >
+                Continue
+              </button>
+            </div>
+          </>
+        )}
+
+        {images.length === 0 && error && renderError()}
+      </div>
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------------
+   * PRICE SCREEN
+   * ---------------------------------------------------------------
+   */
+
+  function renderPriceStep() {
+    return (
+      <form
+        onSubmit={prepareProduct}
+        className="space-y-6"
+      >
+        <div>
+          <button
+            type="button"
+            onClick={() => setStep("capture")}
+            className="mb-5 text-sm font-medium text-gray-500 hover:text-[#17211D]"
+          >
+            ← Back
+          </button>
+
+          <p className="text-sm font-medium text-[#176B4D]">
+            Your product is ready for Kova.
+          </p>
+
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[#17211D]">
+            What is your selling price?
+          </h2>
+
+          <p className="mt-2 max-w-xl text-sm leading-6 text-gray-500">
+            Kova will use the price you provide as the
+            authoritative selling price. It will not guess a
+            price from the image.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_160px]">
+          <div>
+            <label
+              htmlFor="selling-price"
+              className="mb-2 block text-sm font-medium text-[#17211D]"
+            >
+              Selling price
+            </label>
+
+            <input
+              id="selling-price"
+              type="number"
+              min="0"
+              step="0.01"
+              value={price}
+              onChange={(event) =>
+                setPrice(event.target.value)
+              }
+              placeholder="2300"
+              autoFocus
+              className="h-14 w-full border border-[#E5E7E5] bg-white px-4 text-base text-[#17211D] outline-none transition focus:border-[#176B4D]"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="currency"
+              className="mb-2 block text-sm font-medium text-[#17211D]"
+            >
+              Currency
+            </label>
+
+            <select
+              id="currency"
+              value={currency}
+              onChange={(event) =>
+                setCurrency(event.target.value)
+              }
+              className="h-14 w-full border border-[#E5E7E5] bg-white px-4 text-base text-[#17211D] outline-none transition focus:border-[#176B4D]"
+            >
+              <option value="KES">KES</option>
+              <option value="USD">USD</option>
+              <option value="UGX">UGX</option>
+              <option value="TZS">TZS</option>
+              <option value="RWF">RWF</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="border border-[#E5E7E5] bg-[#FAFAF8] px-4 py-4">
+          <p className="text-sm font-medium text-[#17211D]">
+            Your price stays authoritative
+          </p>
+
+          <p className="mt-1 text-sm leading-6 text-gray-500">
+            Kova can help market and sell the product, but it
+            will not invent or silently change your selling
+            price.
+          </p>
+        </div>
+
+        {error && renderError()}
+
+        <div className="flex justify-end border-t border-[#E5E7E5] pt-5">
+          <button
+            type="submit"
+            className="bg-[#176B4D] px-7 py-3 text-sm font-semibold text-white transition hover:bg-[#12583F]"
+          >
+            Prepare product
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------------
+   * PROCESSING
+   * ---------------------------------------------------------------
+   */
+
+  function renderProcessingStep() {
+    return (
+      <div className="flex min-h-[430px] flex-col items-center justify-center px-6 text-center">
+        <div className="flex h-14 w-14 items-center justify-center border border-[#176B4D]">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#E5E7E5] border-t-[#176B4D]" />
+        </div>
+
+        <h2 className="mt-6 text-xl font-semibold text-[#17211D]">
+          Kova is preparing your product
+        </h2>
+
+        <p className="mt-2 max-w-md text-sm leading-6 text-gray-500">
+          Kova is looking at your photos together with your
+          Business Brain to understand the product and prepare
+          its selling information.
+        </p>
+
+        <div className="mt-8 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#176B4D]">
+          <span>Understanding</span>
+          <span className="text-gray-300">
+            →
+          </span>
+          <span>Preparing</span>
+          <span className="text-gray-300">
+            →
+          </span>
+          <span>Review</span>
+        </div>
+      </div>
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------------
+   * MANUAL PRODUCT
+   * ---------------------------------------------------------------
+   */
+
+  function renderManualStep() {
+    return (
+      <form
+        onSubmit={saveManualProduct}
+        className="space-y-6"
+      >
+        <div>
+          <button
+            type="button"
+            onClick={() => setStep("capture")}
+            className="mb-5 text-sm font-medium text-gray-500 transition hover:text-[#17211D]"
+          >
+            ← Back
+          </button>
+
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#176B4D]">
+            Add manually
+          </p>
+
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[#17211D]">
+            Add your product details
+          </h2>
+
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
+            Add the information you know. Kova will use these
+            facts as the authoritative product information.
+          </p>
+        </div>
+
+        {/* -------------------------------------------------------
+            PRODUCT IMAGE
+        ------------------------------------------------------- */}
+
+        <section className="border border-[#E5E7E5] bg-white">
+          <div className="border-b border-[#E5E7E5] px-5 py-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#176B4D]">
+              Product image
+            </p>
+
+            <h3 className="mt-2 text-lg font-semibold text-[#17211D]">
+              Add a photo
+            </h3>
+
+            <p className="mt-1 text-sm leading-6 text-gray-500">
+              Add a clear image of the product. This will become
+              the primary product image.
+            </p>
+          </div>
+
+          <div className="p-5">
+            <input
+              ref={manualImageInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleManualImage}
+              className="hidden"
+            />
+
+            <input
+              ref={manualCameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleManualImage}
+              className="hidden"
+            />
+
+            {manualImagePreview ? (
+              <div className="flex flex-col gap-5 sm:flex-row">
+                <div className="relative h-48 w-48 shrink-0 overflow-hidden border border-[#E5E7E5] bg-[#FAFAF8]">
+                  <img
+                    src={manualImagePreview}
+                    alt="Product preview"
+                    className="h-full w-full object-cover"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={removeManualImage}
+                    aria-label="Remove product image"
+                    className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center bg-[#17211D] text-lg leading-none text-white"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="flex flex-col justify-center">
+                  <p className="break-all text-sm font-medium text-[#17211D]">
+                    {manualImage?.name}
+                  </p>
+
+                  <p className="mt-1 text-xs text-gray-500">
+                    This image will be saved as the primary
+                    product image.
+                  </p>
+
+                  <div className="mt-4 flex flex-wrap gap-4">
+                    <button
+                      type="button"
+                      onClick={openManualCamera}
+                      className="text-sm font-medium text-[#176B4D] hover:underline"
+                    >
+                      Take another photo
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={openManualFilePicker}
+                      className="text-sm font-medium text-gray-500 hover:text-[#17211D]"
+                    >
+                      Choose another image
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={removeManualImage}
+                      className="text-sm font-medium text-red-600 hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={openManualCamera}
+                  className="flex min-h-[130px] flex-col items-center justify-center gap-3 border border-[#176B4D] bg-[#176B4D] px-5 py-5 text-sm font-semibold text-white transition hover:bg-[#12583F]"
+                >
+                  <svg
+                    width="28"
+                    height="28"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M4 7.5C4 6.67 4.67 6 5.5 6H8L9.5 4H14.5L16 6H18.5C19.33 6 20 6.67 20 7.5V18.5C20 19.33 19.33 20 18.5 20H5.5C4.67 20 4 19.33 4 18.5V7.5Z"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                    />
+
+                    <circle
+                      cx="12"
+                      cy="13"
+                      r="3.5"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                    />
+                  </svg>
+
+                  <span>
+                    Take a photo
+                  </span>
+
+                  <span className="text-xs font-normal text-white/70">
+                    Use your camera
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={openManualFilePicker}
+                  className="flex min-h-[130px] flex-col items-center justify-center gap-3 border border-[#E5E7E5] bg-[#FAFAF8] px-5 py-5 text-sm font-semibold text-[#17211D] transition hover:border-[#176B4D] hover:text-[#176B4D]"
+                >
+                  <svg
+                    width="28"
+                    height="28"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M4 5.5C4 4.67 4.67 4 5.5 4H18.5C19.33 4 20 4.67 20 5.5V18.5C20 19.33 19.33 20 18.5 20H5.5C4.67 20 4 19.33 4 18.5V5.5Z"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                    />
+
+                    <circle
+                      cx="8.5"
+                      cy="8.5"
+                      r="1.3"
+                      fill="currentColor"
+                    />
+
+                    <path
+                      d="M4 16L9 11L13 15L15.5 12.5L20 17"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+
+                  <span>
+                    Choose from device
+                  </span>
+
+                  <span className="text-xs font-normal text-gray-500">
+                    Upload an existing photo
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* -------------------------------------------------------
+            PRODUCT INFORMATION
+        ------------------------------------------------------- */}
+
+        <section className="border border-[#E5E7E5] bg-white">
+          <div className="border-b border-[#E5E7E5] px-5 py-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#176B4D]">
+              Product information
+            </p>
+
+            <h3 className="mt-2 text-lg font-semibold text-[#17211D]">
+              Add your product details
+            </h3>
+
+            <p className="mt-1 text-sm leading-6 text-gray-500">
+              Only add facts you know. Kova will use them as
+              authoritative information.
+            </p>
+          </div>
+
+          <div className="p-5">
+            <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
+              {/* Product name */}
+              <div className="md:col-span-2">
+                <label
+                  htmlFor="manual-name"
+                  className="block text-sm font-medium text-[#17211D]"
+                >
+                  Product name *
+                </label>
+
+                <input
+                  id="manual-name"
+                  type="text"
+                  value={name}
+                  onChange={(event) =>
+                    setName(event.target.value)
+                  }
+                  placeholder="e.g. Men's denim jacket"
+                  className="mt-2 h-12 w-full border border-[#E5E7E5] px-4 text-sm text-[#17211D] outline-none transition focus:border-[#176B4D]"
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label
+                  htmlFor="manual-category"
+                  className="block text-sm font-medium text-[#17211D]"
+                >
+                  Category *
+                </label>
+
+                <input
+                  id="manual-category"
+                  type="text"
+                  value={category}
+                  onChange={(event) =>
+                    setCategory(event.target.value)
+                  }
+                  placeholder="e.g. Jackets"
+                  className="mt-2 h-12 w-full border border-[#E5E7E5] px-4 text-sm text-[#17211D] outline-none transition focus:border-[#176B4D]"
+                />
+              </div>
+
+              {/* Price */}
+              <div>
+                <label
+                  htmlFor="manual-price"
+                  className="block text-sm font-medium text-[#17211D]"
+                >
+                  Selling price *
+                </label>
+
+                <div className="mt-2 flex">
+                  <input
+                    id="manual-price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={price}
+                    onChange={(event) =>
+                      setPrice(event.target.value)
+                    }
+                    placeholder="2300"
+                    className="h-12 min-w-0 flex-1 border border-[#E5E7E5] px-4 text-sm text-[#17211D] outline-none focus:border-[#176B4D]"
+                  />
+
+                  <select
+                    value={currency}
+                    onChange={(event) =>
+                      setCurrency(event.target.value)
+                    }
+                    className="h-12 w-24 border-y border-r border-[#E5E7E5] bg-[#FAFAF8] px-2 text-sm text-[#17211D] outline-none focus:border-[#176B4D]"
+                  >
+                    <option value="KES">
+                      KES
+                    </option>
+
+                    <option value="USD">
+                      USD
+                    </option>
+
+                    <option value="UGX">
+                      UGX
+                    </option>
+
+                    <option value="TZS">
+                      TZS
+                    </option>
+
+                    <option value="RWF">
+                      RWF
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Brand */}
+              <div>
+                <label
+                  htmlFor="manual-brand"
+                  className="block text-sm font-medium text-[#17211D]"
+                >
+                  Brand
+                </label>
+
+                <input
+                  id="manual-brand"
+                  type="text"
+                  value={brand}
+                  onChange={(event) =>
+                    setBrand(event.target.value)
+                  }
+                  placeholder="If known"
+                  className="mt-2 h-12 w-full border border-[#E5E7E5] px-4 text-sm text-[#17211D] outline-none focus:border-[#176B4D]"
+                />
+              </div>
+
+              {/* Material */}
+              <div>
+                <label
+                  htmlFor="manual-material"
+                  className="block text-sm font-medium text-[#17211D]"
+                >
+                  Material
+                </label>
+
+                <input
+                  id="manual-material"
+                  type="text"
+                  value={material}
+                  onChange={(event) =>
+                    setMaterial(event.target.value)
+                  }
+                  placeholder="If known"
+                  className="mt-2 h-12 w-full border border-[#E5E7E5] px-4 text-sm text-[#17211D] outline-none focus:border-[#176B4D]"
+                />
+              </div>
+
+              {/* Size */}
+              <div>
+                <label
+                  htmlFor="manual-size"
+                  className="block text-sm font-medium text-[#17211D]"
+                >
+                  Size
+                </label>
+
+                <input
+                  id="manual-size"
+                  type="text"
+                  value={size}
+                  onChange={(event) =>
+                    setSize(event.target.value)
+                  }
+                  placeholder="e.g. M, L, XL"
+                  className="mt-2 h-12 w-full border border-[#E5E7E5] px-4 text-sm text-[#17211D] outline-none focus:border-[#176B4D]"
+                />
+              </div>
+
+              {/* Color */}
+              <div>
+                <label
+                  htmlFor="manual-color"
+                  className="block text-sm font-medium text-[#17211D]"
+                >
+                  Color
+                </label>
+
+                <input
+                  id="manual-color"
+                  type="text"
+                  value={color}
+                  onChange={(event) =>
+                    setColor(event.target.value)
+                  }
+                  placeholder="e.g. Black"
+                  className="mt-2 h-12 w-full border border-[#E5E7E5] px-4 text-sm text-[#17211D] outline-none focus:border-[#176B4D]"
+                />
+              </div>
+
+              {/* Condition */}
+              <div className="md:col-span-2">
+                <label
+                  htmlFor="manual-condition"
+                  className="block text-sm font-medium text-[#17211D]"
+                >
+                  Condition
+                </label>
+
+                <input
+                  id="manual-condition"
+                  type="text"
+                  value={condition}
+                  onChange={(event) =>
+                    setCondition(event.target.value)
+                  }
+                  placeholder="e.g. New, excellent, good"
+                  className="mt-2 h-12 w-full border border-[#E5E7E5] px-4 text-sm text-[#17211D] outline-none focus:border-[#176B4D]"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {error && renderError()}
+
+        <div className="flex items-center justify-between border-t border-[#E5E7E5] pt-5">
+          <button
+            type="button"
+            onClick={() => setStep("capture")}
+            disabled={saving}
+            className="text-sm font-medium text-gray-500 transition hover:text-[#17211D] disabled:opacity-50"
+          >
+            Back
+          </button>
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="bg-[#176B4D] px-7 py-3 text-sm font-semibold text-white transition hover:bg-[#12583F] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saving
+              ? "Saving product..."
+              : "Save product"}
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------------
+   * AI REVIEW SCREEN
+   * ---------------------------------------------------------------
+   */
+
+  function finishLive() {
+    if (product) {
+      onCreated?.(product);
+    }
+    onClose();
+  }
+
+  function renderLiveStep() {
+    if (!product) {
+      return null;
+    }
+
+    return (
+      <div className="flex min-h-[420px] flex-col items-center justify-center px-6 text-center">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#176B4D]">
+          Store live
+        </p>
+        <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#17211D]">
+          {product.name} is on your Kova store
+        </h2>
+        <p className="mt-3 max-w-md text-sm leading-6 text-gray-500">
+          Customers can buy this product on its own page, or browse every product in your store. Share either link.
+        </p>
+
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          {product.product_path && (
+            <a
+              href={product.product_path}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-[#176B4D] px-6 py-3 text-sm font-semibold text-white hover:bg-[#12583F]"
+            >
+              Open product page
+            </a>
+          )}
+          {product.store_path && (
+            <a
+              href={product.store_path}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="border border-[#E5E7E5] px-6 py-3 text-sm font-semibold text-[#17211D] hover:border-[#176B4D]"
+            >
+              Open full store
+            </a>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={finishLive}
+          className="mt-8 text-sm font-medium text-gray-500 hover:text-[#17211D]"
+        >
+          Done
+        </button>
+      </div>
+    );
+  }
+
+  function renderReviewStep() {
+    if (!product) {
+      return null;
+    }
+
+    const uncertainAttributes =
+      product.uncertain_attributes || [];
+
+    return (
+      <div className="space-y-5">
+        <div>
+          <button
+            type="button"
+            onClick={() => setStep("price")}
+            className="mb-5 text-sm font-medium text-gray-500 hover:text-[#17211D]"
+          >
+            ← Back
+          </button>
+
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#176B4D]">
+            Product draft
+          </p>
+
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[#17211D]">
+            Review what Kova prepared
+          </h2>
+
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
+            Kova has analyzed your product photos using your
+            Business Brain. Review the product facts before
+            saving.
+          </p>
+        </div>
+
+        {product.ai_summary && (
+          <div className="border border-[#E5E7E5] bg-[#FAFAF8] px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">
+              Kova's understanding
+            </p>
+
+            <p className="mt-2 text-sm leading-6 text-[#17211D]">
+              {product.ai_summary}
+            </p>
+          </div>
+        )}
+
+        {uncertainAttributes.length > 0 && (
+          <div className="border border-[#F4B183] bg-[#FFF9F4] px-5 py-4">
+            <p className="text-sm font-semibold text-[#17211D]">
+              A few details need your attention
+            </p>
+
+            <p className="mt-1 text-sm leading-6 text-gray-600">
+              Kova could not confidently determine some
+              attributes from the photographs.
+            </p>
+
+            <ul className="mt-3 space-y-1">
+              {uncertainAttributes.map(
+                (attribute, index) => (
+                  <li
+                    key={`${attribute}-${index}`}
+                    className="text-sm text-gray-600"
+                  >
+                    • {attribute}
+                  </li>
+                ),
+              )}
+            </ul>
+          </div>
+        )}
+
+        <section className="border border-[#E5E7E5] bg-white">
+          <div className="border-b border-[#E5E7E5] px-5 py-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#176B4D]">
+              Product information
+            </p>
+
+            <h3 className="mt-2 text-lg font-semibold text-[#17211D]">
+              Review the product facts
+            </h3>
+
+            <p className="mt-1 text-sm text-gray-500">
+              These are facts you control.
+            </p>
+          </div>
+
+          <div className="p-5">
+            <div className="mb-6 border border-[#E5E7E5] bg-[#FAFAF8] px-4 py-4">
+              <p className="text-sm font-semibold text-[#17211D]">
+                Owner-provided information
+              </p>
+
+              <p className="mt-1 text-xs leading-5 text-gray-500">
+                Kova will treat these details as authoritative
+                business information.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <label
+                  htmlFor="product-name"
+                  className="block text-sm font-medium text-[#17211D]"
+                >
+                  Product name
+                </label>
+
+                <input
+                  id="product-name"
+                  type="text"
+                  value={name}
+                  onChange={(event) =>
+                    setName(event.target.value)
+                  }
+                  className="mt-2 h-12 w-full border border-[#E5E7E5] px-4 text-sm text-[#17211D] outline-none focus:border-[#176B4D]"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label
+                  htmlFor="product-category"
+                  className="block text-sm font-medium text-[#17211D]"
+                >
+                  Category
+                </label>
+
+                <input
+                  id="product-category"
+                  type="text"
+                  value={category}
+                  onChange={(event) =>
+                    setCategory(event.target.value)
+                  }
+                  className="mt-2 h-12 w-full border border-[#E5E7E5] px-4 text-sm text-[#17211D] outline-none focus:border-[#176B4D]"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="product-brand"
+                  className="block text-sm font-medium text-[#17211D]"
+                >
+                  Brand
+                </label>
+
+                <input
+                  id="product-brand"
+                  type="text"
+                  value={brand}
+                  onChange={(event) =>
+                    setBrand(event.target.value)
+                  }
+                  className="mt-2 h-12 w-full border border-[#E5E7E5] px-4 text-sm text-[#17211D] outline-none focus:border-[#176B4D]"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="product-material"
+                  className="block text-sm font-medium text-[#17211D]"
+                >
+                  Material
+                </label>
+
+                <input
+                  id="product-material"
+                  type="text"
+                  value={material}
+                  onChange={(event) =>
+                    setMaterial(event.target.value)
+                  }
+                  className="mt-2 h-12 w-full border border-[#E5E7E5] px-4 text-sm text-[#17211D] outline-none focus:border-[#176B4D]"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="product-size"
+                  className="block text-sm font-medium text-[#17211D]"
+                >
+                  Size
+                </label>
+
+                <input
+                  id="product-size"
+                  type="text"
+                  value={size}
+                  onChange={(event) =>
+                    setSize(event.target.value)
+                  }
+                  className="mt-2 h-12 w-full border border-[#E5E7E5] px-4 text-sm text-[#17211D] outline-none focus:border-[#176B4D]"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="product-color"
+                  className="block text-sm font-medium text-[#17211D]"
+                >
+                  Color
+                </label>
+
+                <input
+                  id="product-color"
+                  type="text"
+                  value={color}
+                  onChange={(event) =>
+                    setColor(event.target.value)
+                  }
+                  className="mt-2 h-12 w-full border border-[#E5E7E5] px-4 text-sm text-[#17211D] outline-none focus:border-[#176B4D]"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label
+                  htmlFor="product-condition"
+                  className="block text-sm font-medium text-[#17211D]"
+                >
+                  Condition
+                </label>
+
+                <input
+                  id="product-condition"
+                  type="text"
+                  value={condition}
+                  onChange={(event) =>
+                    setCondition(event.target.value)
+                  }
+                  className="mt-2 h-12 w-full border border-[#E5E7E5] px-4 text-sm text-[#17211D] outline-none focus:border-[#176B4D]"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {error && renderError()}
+
+        <div className="flex items-center justify-between border-t border-[#E5E7E5] pt-5">
+          <button
+            type="button"
+            onClick={() => setStep("price")}
+            disabled={saving}
+            className="text-sm font-medium text-gray-500 hover:text-[#17211D] disabled:opacity-50"
+          >
+            Back
+          </button>
+
+          <button
+            type="button"
+            onClick={saveProduct}
+            disabled={
+              saving ||
+              !name.trim()
+            }
+            className="bg-[#176B4D] px-7 py-3 text-sm font-semibold text-white transition hover:bg-[#12583F] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saving
+              ? "Saving product..."
+              : "Save product"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------------
+   * MODAL
+   * ---------------------------------------------------------------
+   */
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#17211D]/55 p-0 sm:items-center sm:p-4 md:p-6">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="snap-to-sell-title"
+        className="flex h-[100dvh] max-h-[100dvh] w-full max-w-4xl flex-col overflow-hidden bg-white shadow-2xl sm:h-auto sm:max-h-[calc(100dvh-32px)] sm:rounded-lg md:max-h-[calc(100dvh-48px)]"
+      >
+        {renderHeader()}
+
+        <div className="min-h-0 flex-1 overflow-y-auto bg-kova-orange/15">
+          <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-5 sm:py-7 md:px-8 md:py-8">
+            {step === "capture" &&
+              renderCaptureStep()}
+
+            {step === "price" &&
+              renderPriceStep()}
+
+            {step === "processing" &&
+              renderProcessingStep()}
+
+            {step === "review" &&
+              renderReviewStep()}
+
+            {step === "manual" &&
+              renderManualStep()}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

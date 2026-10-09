@@ -6,6 +6,8 @@ import { AppShell } from "@/components/workspace/app-shell";
 import { Button } from "@/components/ui/button";
 import { ApiError, authenticatedApiRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { SetupGuide } from "@/components/workspace/setup-guide";
+import { useSectionSetup } from "@/components/workspace/use-section-setup";
 
 interface Business {
   id: number;
@@ -150,6 +152,22 @@ export default function BusinessAudiencePage() {
   const [form, setForm] =
     useState<AudienceForm>(initialForm);
   const [loading, setLoading] = useState(true);
+
+  const setup = useSectionSetup({
+    section: "audience",
+    businessId: business?.id ?? null,
+    accessToken,
+    form,
+    ready: !loading && !!business,
+    save: async (current) => {
+      if (!business || !accessToken) return;
+      await authenticatedApiRequest(
+        `/business-brain/${business.id}/audience/`,
+        accessToken,
+        { method: "PATCH", body: JSON.stringify(current) },
+      );
+    },
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -260,6 +278,11 @@ export default function BusinessAudiencePage() {
         },
       );
 
+      if (setup.isSetup && setup.nextPath) {
+        router.push(setup.nextPath);
+        return;
+      }
+
       setSuccess(
         "Your customer audience has been updated.",
       );
@@ -314,6 +337,19 @@ export default function BusinessAudiencePage() {
               experiences.
             </p>
           </header>
+
+          <SetupGuide
+            section="audience"
+            isSetup={setup.isSetup}
+            autoState={setup.autoState}
+            drafting={setup.drafting}
+            draftError={setup.draftError}
+            onDraft={() =>
+              setup.draft((fields) =>
+                setForm((current) => ({ ...current, ...fields })),
+              )
+            }
+          />
 
           <form
             onSubmit={handleSubmit}
@@ -435,7 +471,7 @@ export default function BusinessAudiencePage() {
                 loading={saving}
                 disabled={saving}
               >
-                Save customer audience
+                {setup.isSetup ? "Continue" : "Save customer audience"}
               </Button>
             </div>
           </form>

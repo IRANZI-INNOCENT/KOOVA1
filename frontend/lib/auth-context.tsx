@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -39,35 +40,32 @@ interface AuthContextValue {
 }
 
 
-/**
- * React context used to make authentication state available
- * throughout the Kova application.
- */
-const AuthContext = createContext<
-  AuthContextValue | undefined
->(undefined);
+const AuthContext =
+  createContext<AuthContextValue | undefined>(
+    undefined,
+  );
 
 
-/**
- * Props accepted by the authentication provider.
- */
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 
 /**
- * Provide authentication state to the Kova frontend.
+ * Central authentication provider for Kova.
  *
- * The access token is intentionally kept in React memory rather
- * than localStorage.
+ * Authentication architecture:
  *
- * The longer-lived refresh token is handled by Django through
- * an HttpOnly cookie.
+ * - Access token lives only in React memory.
+ * - Refresh token lives inside Django's HttpOnly cookie.
+ * - The provider restores the session once when the application starts.
+ * - Protected pages must wait until isLoading becomes false before
+ *   deciding whether to redirect.
  */
 export function AuthProvider({
   children,
 }: AuthProviderProps) {
+
   const [user, setUser] =
     useState<AuthUser | null>(null);
 
@@ -79,31 +77,47 @@ export function AuthProvider({
 
 
   /**
-   * Register AuthProvider's token state with the API layer.
+   * Prevent duplicate session initialization.
    *
-   * This allows apiRequest() to update the same access token
-   * whenever it performs an automatic token refresh.
+   * React Strict Mode can mount/effect components more than once
+   * during development. This guard ensures that Kova does not
+   * perform competing session restoration requests.
+   */
+  const initializationStarted =
+    useRef(false);
+
+
+  /**
+   * Keep the API layer synchronized with the access token
+   * held by this provider.
    */
   useEffect(() => {
-    const unregister =
-      registerAccessTokenUpdater(
-        setAccessToken,
-      );
-
-    return unregister;
+    return registerAccessTokenUpdater(
+      setAccessToken,
+    );
   }, []);
 
 
   /**
-   * Attempt to restore an existing authentication session.
+   * Restore an existing authentication session.
    *
-   * The refresh token remains inside Django's HttpOnly cookie.
-   * We exchange that cookie for a short-lived access token,
-   * then use the access token to retrieve the authenticated user.
+   * The refresh token is never exposed to JavaScript.
+   * Django reads the HttpOnly cookie and returns a new
+   * short-lived access token.
    */
   useEffect(() => {
-    async function restoreSession() {
+
+    if (initializationStarted.current) {
+      return;
+    }
+
+    initializationStarted.current = true;
+
+
+    async function restoreSession(): Promise<void> {
+
       try {
+
         const response =
           await apiRequest<{
             access: string;
@@ -114,10 +128,12 @@ export function AuthProvider({
             },
           );
 
+
         const restoredUser =
           await getCurrentUser(
             response.access,
           );
+
 
         setAccessToken(
           response.access,
@@ -128,38 +144,51 @@ export function AuthProvider({
         );
 
       } catch (error) {
-        /**
-         * A missing or expired refresh session is normal for
-         * a new visitor. In that case Kova starts unauthenticated.
-         */
-        console.error(
-          "Kova session restoration failed:",
-          error,
-        );
 
+        /**
+         * A missing refresh session is normal for a new
+         * or signed-out visitor.
+         *
+         * Do not treat this as an application error.
+         */
         setAccessToken(null);
         setUser(null);
 
       } finally {
+
+        /**
+         * Protected routes may now safely evaluate
+         * isAuthenticated.
+         */
         setIsLoading(false);
+
       }
     }
 
+
     restoreSession();
+
   }, []);
 
 
   /**
-   * Authenticate a user through Django.
+   * Authenticate a user.
    *
-   * Successful authentication updates the application state
-   * with the user information and short-lived access token.
+   * Login returns:
+   *
+   * - a short-lived access token
+   * - authenticated user information
+   *
+   * Django simultaneously creates the HttpOnly
+   * refresh-token cookie.
    */
   async function signIn(
     credentials: LoginCredentials,
   ): Promise<void> {
+
     const response =
       await login(credentials);
+
 
     setAccessToken(
       response.access,
@@ -168,40 +197,50 @@ export function AuthProvider({
     setUser(
       response.user,
     );
+
   }
 
 
   /**
-   * End the current Kova authentication session.
-   *
-   * The backend requires the current access token to authenticate
-   * the logout request. Once the backend removes the refresh cookie,
-   * the frontend clears its in-memory authentication state.
+   * End the current authentication session.
    */
   async function signOut(): Promise<void> {
+
     try {
+
       if (accessToken) {
-        await logout(accessToken);
+
+        await logout(
+          accessToken,
+        );
+
       }
+
     } finally {
-      /**
-       * Clear the frontend state even if the backend request fails.
-       */
+
       setAccessToken(null);
       setUser(null);
+
     }
   }
 
 
   const value: AuthContextValue = {
+
     user,
+
     accessToken,
+
     isLoading,
+
     isAuthenticated:
       accessToken !== null &&
       user !== null,
+
     signIn,
+
     signOut,
+
   };
 
 
@@ -214,19 +253,22 @@ export function AuthProvider({
 
 
 /**
- * Access Kova authentication state from a React component.
- *
- * Components must be rendered inside AuthProvider.
+ * Access the Kova authentication state.
  */
 export function useAuth(): AuthContextValue {
+
   const context =
     useContext(AuthContext);
 
+
   if (!context) {
+
     throw new Error(
       "useAuth must be used inside AuthProvider.",
     );
+
   }
+
 
   return context;
 }

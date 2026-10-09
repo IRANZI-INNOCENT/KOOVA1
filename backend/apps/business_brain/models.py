@@ -269,10 +269,26 @@ class BusinessPolicy(models.Model):
     actions require owner approval.
     """
 
+    class OperatingMode(models.TextChoices):
+        ASSIST = "assist", "Assist"
+        APPROVAL = "approval", "Approval"
+        AUTOPILOT = "autopilot", "Autopilot"
+
     business = models.OneToOneField(
         "businesses.Business",
         on_delete=models.CASCADE,
         related_name="policy",
+    )
+
+    social_operating_mode = models.CharField(
+        max_length=20,
+        choices=OperatingMode.choices,
+        default=OperatingMode.ASSIST,
+        help_text=(
+            "Assist: Kova drafts and recommends, owner acts. "
+            "Approval: Kova prepares work and executes after approval. "
+            "Autopilot: Kova independently performs permitted low-risk tasks."
+        ),
     )
 
     allow_content_creation = models.BooleanField(
@@ -338,3 +354,45 @@ class BusinessPolicy(models.Model):
 
     def __str__(self):
         return f"{self.business.name} policy"
+
+
+class BusinessMarketBrief(models.Model):
+    """
+    A market brief Kova researched from public pages.
+
+    The owner can keep it, so later writing and replies use it, or leave it
+    stored here without feeding it into Kova.
+    """
+
+    class Status(models.TextChoices):
+        EMPTY = "empty", "Empty"
+        READY = "ready", "Ready"
+        SKIPPED = "skipped", "Skipped"
+
+    business = models.OneToOneField(
+        "businesses.Business",
+        on_delete=models.CASCADE,
+        related_name="market_brief",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.EMPTY,
+    )
+    kept = models.BooleanField(default=False)
+    summary = models.TextField(blank=True)
+    competitors = models.JSONField(default=list, blank=True)
+    gap = models.TextField(blank=True)
+    positioning = models.TextField(blank=True)
+    sources = models.JSONField(default=list, blank=True)
+    researched_at = models.DateTimeField(null=True, blank=True)
+    starter_prompts = models.JSONField(default=list, blank=True)
+    starter_prompts_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.business.name} market brief"

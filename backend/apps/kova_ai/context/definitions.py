@@ -1,16 +1,3 @@
-"""
-Task definitions for the Kova Context Engine.
-
-A task definition describes which core Business Brain context Kova
-needs for a particular operation.
-
-Task definitions do not retrieve data and do not make decisions.
-They only describe context requirements.
-
-The Context Engine uses these definitions when assembling
-BusinessContext objects.
-"""
-
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -18,24 +5,20 @@ from .types import ContextTask
 
 
 class ContextRequirement(StrEnum):
-    """Core business context available to Kova."""
-
     BUSINESS = "business"
     PROFILE = "profile"
     AUDIENCE = "audience"
     BRAND = "brand"
     GOALS = "goals"
     POLICY = "policy"
+    MARKET = "market"
+    PRODUCTS = "products"
+    COMMERCE_PAGE = "commerce_page"
 
 
 @dataclass(frozen=True)
 class TaskDefinition:
-    """
-    Describes the context required for a Kova task.
-
-    Requirements represent the minimum core business context
-    needed before the task can be passed to the Decision Engine.
-    """
+    """Defines the business information required for a Kova task."""
 
     task: ContextTask
     requirements: frozenset[ContextRequirement]
@@ -52,9 +35,13 @@ TASK_DEFINITIONS: dict[ContextTask, TaskDefinition] = {
                 ContextRequirement.BRAND,
                 ContextRequirement.GOALS,
                 ContextRequirement.POLICY,
+                ContextRequirement.MARKET,
+                ContextRequirement.PRODUCTS,
+                ContextRequirement.COMMERCE_PAGE,
             }
         ),
     ),
+
     ContextTask.CONTENT_CREATION: TaskDefinition(
         task=ContextTask.CONTENT_CREATION,
         requirements=frozenset(
@@ -64,9 +51,12 @@ TASK_DEFINITIONS: dict[ContextTask, TaskDefinition] = {
                 ContextRequirement.AUDIENCE,
                 ContextRequirement.GOALS,
                 ContextRequirement.POLICY,
+                ContextRequirement.MARKET,
+                ContextRequirement.PRODUCTS,
             }
         ),
     ),
+
     ContextTask.CUSTOMER_RESPONSE: TaskDefinition(
         task=ContextTask.CUSTOMER_RESPONSE,
         requirements=frozenset(
@@ -74,9 +64,12 @@ TASK_DEFINITIONS: dict[ContextTask, TaskDefinition] = {
                 ContextRequirement.BUSINESS,
                 ContextRequirement.BRAND,
                 ContextRequirement.POLICY,
+                ContextRequirement.MARKET,
+                ContextRequirement.PRODUCTS,
             }
         ),
     ),
+
     ContextTask.COMMERCE: TaskDefinition(
         task=ContextTask.COMMERCE,
         requirements=frozenset(
@@ -84,6 +77,9 @@ TASK_DEFINITIONS: dict[ContextTask, TaskDefinition] = {
                 ContextRequirement.BUSINESS,
                 ContextRequirement.GOALS,
                 ContextRequirement.POLICY,
+                ContextRequirement.MARKET,
+                ContextRequirement.PRODUCTS,
+                ContextRequirement.COMMERCE_PAGE,
             }
         ),
     ),

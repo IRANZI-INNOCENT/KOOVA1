@@ -38,22 +38,29 @@ export function AuthLayout({
   footer,
 }: AuthLayoutProps) {
   return (
-    <main className="min-h-screen bg-kova-background">
+    <main className="min-h-dvh bg-kova-orange-soft">
 
-      <div className="grid min-h-screen lg:grid-cols-[0.9fr_1.1fr]">
+      <div className="grid min-h-dvh lg:grid-cols-[0.92fr_1.08fr]">
 
         {/* Kova brand panel */}
-        <section className="hidden bg-kova-green lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16">
+        <section className="relative hidden overflow-hidden bg-kova-green lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16">
+          <img
+            src="/landing/auth.jpg"
+            alt=""
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-[#176b4d]/84" />
 
-          <div>
+          <div className="relative">
             <Logo
               href="/"
               showTagline={false}
+              tone="light"
             />
 
             <div className="mt-24 max-w-md">
 
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-kova-orange">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-kova-orange">
                 AI social media + commerce
               </p>
 
@@ -61,7 +68,7 @@ export function AuthLayout({
                 From content to customers.
               </h2>
 
-              <p className="mt-6 max-w-sm text-base leading-7 text-white/80">
+              <p className="mt-6 max-w-sm text-base leading-7 text-white/85">
                 Kova helps small businesses plan, create, publish,
                 engage with customers, generate leads, and sell.
               </p>
@@ -71,7 +78,7 @@ export function AuthLayout({
 
 
           {/* Product capabilities */}
-          <div className="grid grid-cols-2 gap-x-8 gap-y-4 border-t border-white/15 pt-8 xl:grid-cols-3">
+          <div className="relative grid grid-cols-2 gap-x-8 gap-y-4 border-t border-white/20 pt-8 xl:grid-cols-3">
 
             {[
               "Plan",
@@ -83,7 +90,7 @@ export function AuthLayout({
             ].map((item) => (
               <div
                 key={item}
-                className="text-sm font-medium text-white/80"
+                className="text-sm font-medium text-white/90"
               >
                 {item}
               </div>
@@ -95,30 +102,38 @@ export function AuthLayout({
 
 
         {/* Authentication panel */}
-        <section className="flex min-h-screen items-center justify-center px-6 py-10 sm:px-10">
+        <section className="flex min-h-dvh items-center justify-center px-4 py-10 sm:px-10">
 
           <div className="w-full max-w-md">
 
-            {/* Mobile logo */}
-            <div className="mb-12 lg:hidden">
-              <Logo
-                href="/"
-                showTagline={true}
+          <div className="mb-8 overflow-hidden rounded-lg lg:hidden">
+            <div className="relative flex h-36 items-end px-5 py-4">
+              <img
+                src="/landing/auth.jpg"
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover object-[center_30%]"
               />
+              <div className="absolute inset-0 bg-[#176b4d]/82" />
+              <div className="relative">
+                <Logo href="/" showTagline={false} tone="light" />
+                <p className="mt-2 text-sm font-medium text-white/85">
+                  From content to customers.
+                </p>
+              </div>
             </div>
-
+          </div>
 
             <div>
 
-              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-kova-green">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
                 Kova
               </p>
 
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-kova-dark sm:text-4xl">
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-kova-dark">
                 {title}
               </h1>
 
-              <p className="mt-3 text-sm leading-6 text-gray-600">
+              <p className="mt-2 text-sm leading-6 text-gray-500">
                 {description}
               </p>
 
@@ -131,7 +146,7 @@ export function AuthLayout({
 
 
             {footer && (
-              <div className="mt-8 border-t border-kova-border pt-6 text-center text-sm text-gray-600">
+              <div className="mt-8 border-t border-[#e8cbb4] pt-6 text-center text-sm text-gray-600">
                 {footer}
               </div>
             )}

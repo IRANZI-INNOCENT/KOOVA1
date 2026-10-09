@@ -57,6 +57,9 @@ class TaskDefinitionTests(TestCase):
                     ContextRequirement.BRAND,
                     ContextRequirement.GOALS,
                     ContextRequirement.POLICY,
+                    ContextRequirement.MARKET,
+                    ContextRequirement.PRODUCTS,
+                    ContextRequirement.COMMERCE_PAGE,
                 }
             ),
         )
@@ -77,6 +80,8 @@ class TaskDefinitionTests(TestCase):
                     ContextRequirement.AUDIENCE,
                     ContextRequirement.GOALS,
                     ContextRequirement.POLICY,
+                    ContextRequirement.MARKET,
+                    ContextRequirement.PRODUCTS,
                 }
             ),
         )
@@ -100,6 +105,8 @@ class TaskDefinitionTests(TestCase):
                     ContextRequirement.BUSINESS,
                     ContextRequirement.BRAND,
                     ContextRequirement.POLICY,
+                    ContextRequirement.MARKET,
+                    ContextRequirement.PRODUCTS,
                 }
             ),
         )
@@ -118,6 +125,9 @@ class TaskDefinitionTests(TestCase):
                     ContextRequirement.BUSINESS,
                     ContextRequirement.GOALS,
                     ContextRequirement.POLICY,
+                    ContextRequirement.MARKET,
+                    ContextRequirement.PRODUCTS,
+                    ContextRequirement.COMMERCE_PAGE,
                 }
             ),
         )
@@ -176,6 +186,12 @@ class ContextEngineTests(TestCase):
         configuration has not been completed.
         """
 
+        BusinessProfile.objects.filter(business=self.business).delete()
+        BusinessAudience.objects.filter(business=self.business).delete()
+        BusinessBrand.objects.filter(business=self.business).delete()
+        BusinessGoal.objects.filter(business=self.business).delete()
+        BusinessPolicy.objects.filter(business=self.business).delete()
+
         context = self.engine.build(
             business_id=self.business.id,
         )
@@ -189,29 +205,21 @@ class ContextEngineTests(TestCase):
     def test_general_loads_all_core_context(self):
         """GENERAL should load all core Business Brain entities."""
 
-        BusinessProfile.objects.create(
+        BusinessProfile.objects.filter(
             business=self.business,
-            mission="Help businesses grow.",
-        )
+        ).update(mission="Help businesses grow.")
 
-        BusinessAudience.objects.create(
+        BusinessAudience.objects.filter(
             business=self.business,
-            primary_audience="Small business owners",
-        )
+        ).update(primary_audience="Small business owners")
 
-        BusinessBrand.objects.create(
+        BusinessBrand.objects.filter(
             business=self.business,
-            voice="Helpful",
-        )
+        ).update(voice="Helpful")
 
-        BusinessGoal.objects.create(
+        BusinessGoal.objects.filter(
             business=self.business,
-            primary_goal="Increase sales",
-        )
-
-        BusinessPolicy.objects.create(
-            business=self.business,
-        )
+        ).update(primary_goal="Increase sales")
 
         context = self.engine.build(
             business_id=self.business.id,
@@ -230,29 +238,21 @@ class ContextEngineTests(TestCase):
         definition and leave unrelated context unset.
         """
 
-        BusinessProfile.objects.create(
+        BusinessProfile.objects.filter(
             business=self.business,
-            mission="Help businesses grow.",
-        )
+        ).update(mission="Help businesses grow.")
 
-        BusinessAudience.objects.create(
+        BusinessAudience.objects.filter(
             business=self.business,
-            primary_audience="Small business owners",
-        )
+        ).update(primary_audience="Small business owners")
 
-        BusinessBrand.objects.create(
+        BusinessBrand.objects.filter(
             business=self.business,
-            voice="Helpful",
-        )
+        ).update(voice="Helpful")
 
-        BusinessGoal.objects.create(
+        BusinessGoal.objects.filter(
             business=self.business,
-            primary_goal="Increase sales",
-        )
-
-        BusinessPolicy.objects.create(
-            business=self.business,
-        )
+        ).update(primary_goal="Increase sales")
 
         context = self.engine.build(
             business_id=self.business.id,
@@ -271,29 +271,21 @@ class ContextEngineTests(TestCase):
         context in V1.
         """
 
-        BusinessProfile.objects.create(
+        BusinessProfile.objects.filter(
             business=self.business,
-            mission="Help businesses grow.",
-        )
+        ).update(mission="Help businesses grow.")
 
-        BusinessAudience.objects.create(
+        BusinessAudience.objects.filter(
             business=self.business,
-            primary_audience="Small business owners",
-        )
+        ).update(primary_audience="Small business owners")
 
-        BusinessBrand.objects.create(
+        BusinessBrand.objects.filter(
             business=self.business,
-            voice="Helpful",
-        )
+        ).update(voice="Helpful")
 
-        BusinessGoal.objects.create(
+        BusinessGoal.objects.filter(
             business=self.business,
-            primary_goal="Increase sales",
-        )
-
-        BusinessPolicy.objects.create(
-            business=self.business,
-        )
+        ).update(primary_goal="Increase sales")
 
         context = self.engine.build(
             business_id=self.business.id,
@@ -309,29 +301,21 @@ class ContextEngineTests(TestCase):
     def test_commerce_loads_only_required_context(self):
         """Commerce should load goals and policy alongside the business."""
 
-        BusinessProfile.objects.create(
+        BusinessProfile.objects.filter(
             business=self.business,
-            mission="Help businesses grow.",
-        )
+        ).update(mission="Help businesses grow.")
 
-        BusinessAudience.objects.create(
+        BusinessAudience.objects.filter(
             business=self.business,
-            primary_audience="Small business owners",
-        )
+        ).update(primary_audience="Small business owners")
 
-        BusinessBrand.objects.create(
+        BusinessBrand.objects.filter(
             business=self.business,
-            voice="Helpful",
-        )
+        ).update(voice="Helpful")
 
-        BusinessGoal.objects.create(
+        BusinessGoal.objects.filter(
             business=self.business,
-            primary_goal="Increase sales",
-        )
-
-        BusinessPolicy.objects.create(
-            business=self.business,
-        )
+        ).update(primary_goal="Increase sales")
 
         context = self.engine.build(
             business_id=self.business.id,
@@ -347,8 +331,9 @@ class ContextEngineTests(TestCase):
     def test_includes_business_profile_when_required(self):
         """Business Profile should become part of the context."""
 
-        BusinessProfile.objects.create(
+        BusinessProfile.objects.filter(
             business=self.business,
+        ).update(
             mission="Help businesses grow.",
             value_proposition="Simple business tools.",
             target_market="Small businesses",
@@ -375,8 +360,9 @@ class ContextEngineTests(TestCase):
     def test_includes_business_audience_when_required(self):
         """Business Audience should become part of the context."""
 
-        BusinessAudience.objects.create(
+        BusinessAudience.objects.filter(
             business=self.business,
+        ).update(
             primary_audience="Small business owners",
             customer_needs="Affordable marketing",
             pain_points="Limited marketing capacity",
@@ -399,8 +385,9 @@ class ContextEngineTests(TestCase):
     def test_includes_business_brand_when_required(self):
         """Business Brand should become part of the context."""
 
-        BusinessBrand.objects.create(
+        BusinessBrand.objects.filter(
             business=self.business,
+        ).update(
             voice="Helpful",
             tone="Professional but friendly",
             positioning="Simple tools for growing businesses",
@@ -427,8 +414,9 @@ class ContextEngineTests(TestCase):
     def test_includes_business_goals_when_required(self):
         """Business Goals should become part of the context."""
 
-        BusinessGoal.objects.create(
+        BusinessGoal.objects.filter(
             business=self.business,
+        ).update(
             primary_goal="Increase monthly sales",
             secondary_goals="Grow customer base",
             growth_priorities="Online sales",
@@ -451,8 +439,9 @@ class ContextEngineTests(TestCase):
     def test_includes_business_policy_when_required(self):
         """Business Policy should become part of operational context."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
+        ).update(
             allow_content_creation=True,
             allow_auto_publish=False,
             allow_comment_replies=False,
@@ -488,10 +477,9 @@ class ContextEngineTests(TestCase):
         Persistence metadata should not be exposed as business context.
         """
 
-        BusinessBrand.objects.create(
+        BusinessBrand.objects.filter(
             business=self.business,
-            voice="Helpful",
-        )
+        ).update(voice="Helpful")
 
         context = self.engine.build(
             business_id=self.business.id,

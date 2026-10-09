@@ -1,0 +1,70 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+import { useAuth } from "@/lib/auth-context";
+import { getBusiness } from "@/lib/commerce";
+import { getActivity, type ActivitySnapshot } from "@/lib/operations";
+
+export function ActivityBoard({
+  title,
+  intro,
+}: {
+  title: string;
+  intro: string;
+}) {
+  const { accessToken, isAuthenticated } = useAuth();
+  const [snapshot, setSnapshot] = useState<ActivitySnapshot | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken) return;
+    const token = accessToken;
+    getBusiness(token)
+      .then((business) => getActivity(business.id, token))
+      .then(setSnapshot)
+      .catch(() => setError("Could not load activity."));
+  }, [accessToken, isAuthenticated]);
+
+  const cards = snapshot
+    ? [
+        ["Published posts", String(snapshot.posts.published)],
+        ["Scheduled", String(snapshot.posts.scheduled)],
+        ["Failed sends", String(snapshot.posts.failed)],
+        ["Reach", String(snapshot.posts.reach)],
+        ["Likes", String(snapshot.posts.likes)],
+        ["Comments", String(snapshot.posts.comments)],
+        ["Clicks", String(snapshot.posts.clicks)],
+        ["New leads", String(snapshot.leads.new)],
+        ["New orders", String(snapshot.orders.new)],
+        ["Buying messages", String(snapshot.messages.buying)],
+      ]
+    : [];
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6">
+      <header>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
+          Results
+        </p>
+        <h1 className="mt-1 text-2xl font-semibold text-kova-dark">{title}</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">{intro}</p>
+      </header>
+      {error && (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+      {snapshot && (
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-kova-border bg-kova-border sm:grid-cols-5">
+          {cards.map(([label, value]) => (
+            <div key={label} className="bg-white p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-gray-400">{label}</p>
+              <p className="mt-1 text-2xl font-bold text-kova-dark">{value}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

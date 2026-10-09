@@ -1,0 +1,8 @@
+# Extend BusinessContext with:
+products: list[dict[str, Any]] = field(default_factory=list)
+commerce_page: dict[str, Any] | None = None
+
+# The full ContextEngine should then load:
+# - business.products.all()
+# - business.commerce_page when present
+# for COMMERCE and content-related tasks.

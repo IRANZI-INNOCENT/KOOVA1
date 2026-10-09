@@ -13,7 +13,7 @@ urlpatterns = [
         name="business-list-create",
     ),
     path(
-        "<int:pk>/",
+        "<int:business_id>/",
         BusinessDetailView.as_view(),
         name="business-detail",
     ),

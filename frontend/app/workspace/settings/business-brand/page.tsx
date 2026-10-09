@@ -6,6 +6,8 @@ import { AppShell } from "@/components/workspace/app-shell";
 import { Button } from "@/components/ui/button";
 import { ApiError, authenticatedApiRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { SetupGuide } from "@/components/workspace/setup-guide";
+import { useSectionSetup } from "@/components/workspace/use-section-setup";
 
 interface Business {
   id: number;
@@ -132,6 +134,22 @@ export default function BusinessBrandPage() {
   const [fieldErrors, setFieldErrors] =
     useState<FieldErrors>({});
 
+  const setup = useSectionSetup({
+    section: "brand",
+    businessId: business?.id ?? null,
+    accessToken,
+    form,
+    ready: !loading && !!business,
+    save: async (current) => {
+      if (!business || !accessToken) return;
+      await authenticatedApiRequest(
+        `/business-brain/${business.id}/brand/`,
+        accessToken,
+        { method: "PATCH", body: JSON.stringify(current) },
+      );
+    },
+  });
+
   const updateField = <K extends keyof BrandForm>(
     field: K,
     value: BrandForm[K],
@@ -250,6 +268,11 @@ export default function BusinessBrandPage() {
         },
       );
 
+      if (setup.isSetup && setup.nextPath) {
+        router.push(setup.nextPath);
+        return;
+      }
+
       setSuccess(
         "Business brand saved successfully.",
       );
@@ -302,6 +325,19 @@ export default function BusinessBrandPage() {
               content or interacting with customers.
             </p>
           </header>
+
+          <SetupGuide
+            section="brand"
+            isSetup={setup.isSetup}
+            autoState={setup.autoState}
+            drafting={setup.drafting}
+            draftError={setup.draftError}
+            onDraft={() =>
+              setup.draft((fields) =>
+                setForm((current) => ({ ...current, ...fields })),
+              )
+            }
+          />
 
           <form
             onSubmit={handleSubmit}
@@ -423,7 +459,7 @@ export default function BusinessBrandPage() {
                 loading={saving}
                 disabled={saving || !isComplete(form)}
               >
-                Save business brand
+                {setup.isSetup ? "Continue" : "Save business brand"}
               </Button>
             </div>
           </form>

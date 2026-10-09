@@ -2,11 +2,13 @@
 
 import {
   FormEvent,
+  useEffect,
   useState,
 } from "react";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import {
+  useRouter,
+} from "next/navigation";
 
 import {
   AppShell,
@@ -22,18 +24,25 @@ import {
 
 import {
   ApiError,
-  authenticatedApiRequest,
 } from "@/lib/api";
+
+import {
+  createBusiness,
+  getCurrentBusiness,
+  updateBusiness,
+} from "@/lib/business";
+
+import {
+  getCommercePage,
+  saveCommercePage,
+} from "@/lib/commerce";
 
 import {
   useAuth,
 } from "@/lib/auth-context";
 
 
-/**
- * Data required to create a Kova business.
- */
-interface BusinessFormData {
+interface BusinessForm {
   name: string;
   description: string;
   industry: string;
@@ -43,20 +52,14 @@ interface BusinessFormData {
 }
 
 
-/**
- * Business returned by the Kova API after creation.
- */
-interface Business {
-  id: number;
-  name: string;
-  description: string;
-  industry: string;
-  location: string;
-  email: string;
-  phone: string;
-  created_at: string;
-  updated_at: string;
-}
+const initialForm: BusinessForm = {
+  name: "",
+  description: "",
+  industry: "",
+  location: "",
+  email: "",
+  phone: "",
+};
 
 
 export default function BusinessSetupPage() {
@@ -68,126 +71,134 @@ export default function BusinessSetupPage() {
     accessToken,
   } = useAuth();
 
+  const [form, setForm] =
+    useState<BusinessForm>(
+      initialForm,
+    );
 
-  const [
-    formData,
-    setFormData,
-  ] = useState<BusinessFormData>({
-    name: "",
-    description: "",
-    industry: "",
-    location: "",
-    email: "",
-    phone: "",
-  });
+  const [businessId, setBusinessId] =
+    useState<number | null>(null);
+
+  const [original, setOriginal] =
+    useState<BusinessForm>(initialForm);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const [saved, setSaved] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  useEffect(() => {
+    if (authLoading || !isAuthenticated || !accessToken) return;
+    const token = accessToken;
+    getCurrentBusiness(token)
+      .then((business) => {
+        if (!business) return;
+        setBusinessId(business.id);
+        const loaded = {
+          name: business.name,
+          description: business.description,
+          industry: business.industry,
+          location: business.location,
+          email: business.email,
+          phone: business.phone,
+        };
+        setOriginal(loaded);
+        setForm(loaded);
+      })
+      .finally(() => setLoading(false));
+  }, [accessToken, authLoading, isAuthenticated]);
 
 
-  const [
-    error,
-    setError,
-  ] = useState("");
-
-
-  const [
-    loading,
-    setLoading,
-  ] = useState(false);
-
-
-  /**
-   * Update one field in the business form.
-   *
-   * Keeping the update logic centralized prevents every input
-   * from needing its own state management pattern.
-   */
   function updateField(
-    field: keyof BusinessFormData,
+    field: keyof BusinessForm,
     value: string,
-  ): void {
-    setFormData(
+  ) {
+    setForm(
       (current) => ({
         ...current,
         [field]: value,
       }),
     );
+
+    setError("");
+    setSaved(false);
   }
 
 
-  /**
-   * Create the user's first business.
-   *
-   * Ownership is assigned by the backend from the authenticated
-   * user. The frontend therefore never sends an owner ID.
-   */
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
-  ): Promise<void> {
+  ) {
     event.preventDefault();
 
+    if (!accessToken) {
+      return;
+    }
+
+    const name =
+      form.name.trim();
+
+    if (!name) {
+      setError(
+        "Business name is required.",
+      );
+
+      return;
+    }
+
+    setSaving(true);
     setError("");
 
-
-    if (!accessToken) {
-      setError(
-        "Your session has expired. Please sign in again.",
-      );
-
-      return;
-    }
-
-
-    if (!formData.name.trim()) {
-      setError(
-        "Please enter your business name.",
-      );
-
-      return;
-    }
-
-
-    setLoading(true);
-
+    const payload = {
+      ...form,
+      name,
+    };
 
     try {
-      await authenticatedApiRequest<Business>(
-          "/businesses/",
-          accessToken,
-          {
-            method: "POST",
-            body: JSON.stringify({
-              name: formData.name.trim(),
-              description:
-                formData.description.trim(),
-              industry:
-                formData.industry.trim(),
-              location:
-                formData.location.trim(),
-              email:
-                formData.email.trim(),
-              phone:
-                formData.phone.trim(),
-            }),
-          },
-        );
+      if (businessId) {
+        await updateBusiness(accessToken, businessId, payload);
+        try {
+          const page = await getCommercePage(businessId, accessToken);
+          const pageUpdates: Record<string, string> = {};
+          if (!page.phone || page.phone === original.phone) {
+            pageUpdates.phone = payload.phone;
+          }
+          if (!page.whatsapp || page.whatsapp === original.phone) {
+            pageUpdates.whatsapp = payload.phone;
+          }
+          if (!page.email || page.email === original.email) {
+            pageUpdates.email = payload.email;
+          }
+          if (!page.location || page.location === original.location) {
+            pageUpdates.location = payload.location;
+          }
+          if (Object.keys(pageUpdates).length) {
+            await saveCommercePage(businessId, accessToken, pageUpdates);
+          }
+        } catch {
+          // The business record is saved even if the store page is unavailable.
+        }
+        setOriginal(payload);
+        setSaved(true);
+        return;
+      }
 
-
-      /**
-       * The business now exists, so the user can enter the normal
-       * workspace experience.
-       */
-      router.push("/workspace");
-
-      return;
-
-    } catch (error) {
-      console.error(
-        "Kova business creation failed:",
-        error,
+      await createBusiness(accessToken, payload);
+      router.replace(
+        "/workspace/settings/business-profile?setup=1",
       );
 
-
-      if (error instanceof ApiError) {
-        setError(error.message);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(
+          err.message,
+        );
       } else {
         setError(
           "We couldn't create your business. Please try again.",
@@ -195,28 +206,17 @@ export default function BusinessSetupPage() {
       }
 
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   }
 
 
-  if (authLoading) {
+  if (authLoading || (isAuthenticated && loading)) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-kova-background">
-
-        <div className="text-center">
-
-          <div
-            aria-hidden="true"
-            className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-kova-green border-t-transparent"
-          />
-
-          <p className="mt-4 text-sm text-gray-500">
-            Loading your account...
-          </p>
-
-        </div>
-
+        <p className="text-sm text-gray-500">
+          Loading your workspace...
+        </p>
       </main>
     );
   }
@@ -227,11 +227,9 @@ export default function BusinessSetupPage() {
 
     return (
       <main className="flex min-h-screen items-center justify-center bg-kova-background">
-
         <p className="text-sm text-gray-500">
           Redirecting to sign in...
         </p>
-
       </main>
     );
   }
@@ -239,44 +237,36 @@ export default function BusinessSetupPage() {
 
   return (
     <AppShell>
-
       <div className="p-6 sm:p-8">
+        <div className="mx-auto max-w-4xl">
 
-        <div className="mx-auto max-w-3xl">
-
-          {/* Introduction */}
           <div className="mb-10">
-
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-kova-green">
-              Business setup
+              Business Setup
             </p>
 
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-kova-dark sm:text-4xl">
-              Let's set up your business.
-            </h2>
+            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-kova-dark">
+              {businessId ? "Your business" : "Let's set up your business."}
+            </h1>
 
             <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
-              Tell Kova a little about your business so it can
-              understand what you do and start working with you.
+              {businessId
+                ? "Update the name, phone number, email, and location customers and Kova use."
+                : "Tell Kova a little about your business. Next you will walk through profile, customers, brand, goals, policies, and a market brief. Each part is saved if you leave, and Kova can draft the later parts from what you enter here."}
             </p>
-
           </div>
 
 
-          {/* Setup form */}
-          <div className="border border-kova-border bg-white p-6 sm:p-8">
+          <form
+            onSubmit={handleSubmit}
+            className="border border-kova-border bg-white p-6 sm:p-10"
+          >
 
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-6"
-            >
+            <div className="space-y-8">
 
               <Input
-                id="business-name"
-                name="name"
-                type="text"
-                label="Business name"
-                value={formData.name}
+                label="Business name *"
+                value={form.name}
                 onChange={(event) =>
                   updateField(
                     "name",
@@ -284,167 +274,134 @@ export default function BusinessSetupPage() {
                   )
                 }
                 placeholder="e.g. Kova Boutique"
-                required
-                disabled={loading}
               />
 
 
               <div>
-
                 <label
-                  htmlFor="description"
-                  className="mb-2 block text-sm font-medium text-kova-dark"
+                  htmlFor="business-description"
+                  className="block text-sm font-medium text-kova-dark"
                 >
                   What does your business do?
                 </label>
 
                 <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
+                  id="business-description"
+                  value={form.description}
                   onChange={(event) =>
                     updateField(
                       "description",
                       event.target.value,
                     )
                   }
+                  rows={5}
                   placeholder="Tell Kova what your business sells or provides."
-                  rows={4}
-                  disabled={loading}
-                  className="w-full resize-none border border-kova-border bg-white px-4 py-3 text-sm text-kova-dark outline-none transition-colors placeholder:text-gray-400 focus:border-kova-green focus:ring-1 focus:ring-kova-green disabled:cursor-not-allowed disabled:bg-gray-100"
+                  className="mt-2 block w-full border border-kova-border bg-white px-4 py-3 text-sm text-kova-dark outline-none focus:border-kova-green focus:ring-1 focus:ring-kova-green"
                 />
 
                 <p className="mt-2 text-xs text-gray-500">
-                  This will help Kova understand your business
-                  when creating content and responding to customers.
+                  This becomes part of the information Kova uses
+                  to understand your business.
                 </p>
+              </div>
+
+
+              <div className="grid gap-6 sm:grid-cols-2">
+
+                <Input
+                  label="Industry"
+                  value={form.industry}
+                  onChange={(event) =>
+                    updateField(
+                      "industry",
+                      event.target.value,
+                    )
+                  }
+                  placeholder="e.g. Fashion"
+                />
+
+                <Input
+                  label="Location"
+                  value={form.location}
+                  onChange={(event) =>
+                    updateField(
+                      "location",
+                      event.target.value,
+                    )
+                  }
+                  placeholder="e.g. Nairobi, Kenya"
+                />
 
               </div>
 
 
-              <Input
-                id="industry"
-                name="industry"
-                type="text"
-                label="Industry"
-                value={formData.industry}
-                onChange={(event) =>
-                  updateField(
-                    "industry",
-                    event.target.value,
-                  )
-                }
-                placeholder="e.g. Fashion, Food, Retail, Technology"
-                disabled={loading}
-              />
+              <div className="grid gap-6 sm:grid-cols-2">
 
+                <Input
+                  label="Business email"
+                  type="email"
+                  value={form.email}
+                  onChange={(event) =>
+                    updateField(
+                      "email",
+                      event.target.value,
+                    )
+                  }
+                  placeholder="business@example.com"
+                />
 
-              <Input
-                id="location"
-                name="location"
-                type="text"
-                label="Business location"
-                value={formData.location}
-                onChange={(event) =>
-                  updateField(
-                    "location",
-                    event.target.value,
-                  )
-                }
-                placeholder="e.g. Nairobi, Kenya"
-                disabled={loading}
-              />
-
-
-              <div className="border-t border-kova-border pt-6">
-
-                <p className="text-sm font-semibold text-kova-dark">
-                  Customer contact details
-                </p>
-
-                <p className="mt-1 text-xs leading-5 text-gray-500">
-                  Optional. These are contact details customers
-                  can use to reach your business. They are separate
-                  from your Kova account information.
-                </p>
+                <Input
+                  label="Phone"
+                  value={form.phone}
+                  onChange={(event) =>
+                    updateField(
+                      "phone",
+                      event.target.value,
+                    )
+                  }
+                  placeholder="+254..."
+                />
 
               </div>
-
-
-              <Input
-                id="business-email"
-                name="email"
-                type="email"
-                label="Business email"
-                value={formData.email}
-                onChange={(event) =>
-                  updateField(
-                    "email",
-                    event.target.value,
-                  )
-                }
-                placeholder="hello@yourbusiness.com"
-                autoComplete="email"
-                disabled={loading}
-              />
-
-
-              <Input
-                id="business-phone"
-                name="phone"
-                type="tel"
-                label="Business phone"
-                value={formData.phone}
-                onChange={(event) =>
-                  updateField(
-                    "phone",
-                    event.target.value,
-                  )
-                }
-                placeholder="+254 7XX XXX XXX"
-                autoComplete="tel"
-                disabled={loading}
-              />
 
 
               {error && (
                 <div
                   role="alert"
-                  className="border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700"
+                  className="border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
                 >
                   {error}
                 </div>
               )}
 
 
-              <div className="flex flex-col gap-3 border-t border-kova-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+              {saved && (
+                <p className="text-sm font-semibold text-kova-green">
+                  Saved.
+                </p>
+              )}
 
-                <Link
-                  href="/workspace"
-                  className="text-sm font-medium text-gray-500 transition-colors hover:text-kova-dark"
-                >
-                  Cancel
-                </Link>
-
+              <div className="flex justify-end border-t border-kova-border pt-6">
 
                 <Button
                   type="submit"
-                  loading={loading}
-                  className="sm:min-w-44"
+                  disabled={saving}
                 >
-                  Create business
+                  {saving
+                    ? "Saving..."
+                    : businessId
+                      ? "Save changes"
+                      : "Continue"}
                 </Button>
 
               </div>
 
-            </form>
+            </div>
 
-          </div>
+          </form>
 
         </div>
-
       </div>
-
     </AppShell>
   );
 }

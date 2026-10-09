@@ -4,6 +4,7 @@
   /* Kova brand */
   --kova-green: #176b4d;
   --kova-orange: #f4b183;
+  --kova-orange-soft: #f8e6d2;
 
   /* Kova neutrals */
   --kova-dark: #17211d;
@@ -19,6 +20,7 @@
 @theme inline {
   --color-kova-green: var(--kova-green);
   --color-kova-orange: var(--kova-orange);
+  --color-kova-orange-soft: var(--kova-orange-soft);
   --color-kova-dark: var(--kova-dark);
   --color-kova-background: var(--kova-background);
   --color-kova-white: var(--kova-white);
@@ -42,6 +44,8 @@
 html {
   scroll-behavior: smooth;
   scrollbar-width: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 html::-webkit-scrollbar {
@@ -50,7 +54,39 @@ html::-webkit-scrollbar {
 
 body {
   margin: 0;
+  overflow-x: clip;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-wrap: break-word;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/*
+ * A light radius only. Green is the primary brand color.
+ * Orange is the secondary accent.
+ */
+@layer components {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea,
+  button {
+    border-radius: 0.375rem;
+  }
+
+  .border.bg-white,
+  .border.bg-kova-white,
+  .border.bg-kova-background {
+    border-radius: 0.5rem;
+  }
 }

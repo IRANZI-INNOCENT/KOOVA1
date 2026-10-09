@@ -1,382 +1,448 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { AppShell } from "@/components/workspace/app-shell";
+import { useAuth } from "@/lib/auth-context";
+import { ApiError } from "@/lib/api";
+import { generateBrief, getLatestBrief } from "@/lib/brief";
+import {
+  getBusiness,
+  getProducts,
+  getCommercePage,
+  getContents,
+  getLeads,
+  type Business,
+  type Product,
+  type CommercePage,
+  type Content,
+  type Lead,
+} from "@/lib/commerce";
 
-
-/**
- * Settings section displayed on the Kova settings page.
- */
-interface SettingsSection {
-  label: string;
-  title: string;
-  description: string;
-  href: string;
-  status?: string;
+function localDate() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
 }
 
+async function ensureTodayBrief(businessId: number, token: string) {
+  const today = localDate();
+  const key = `kova-brief-auto-${businessId}-${today}`;
+  if (sessionStorage.getItem(key) === "1") return;
+  try {
+    const latest = await getLatestBrief(businessId, token);
+    if (
+      latest.date === today &&
+      (latest.status === "ready" || latest.status === "generating")
+    ) {
+      return;
+    }
+  } catch (err) {
+    if (!(err instanceof ApiError) || err.status !== 404) return;
+  }
+  sessionStorage.setItem(key, "1");
+  await generateBrief(businessId, token).catch(() => undefined);
+}
 
-/**
- * Business Brain settings.
- *
- * These settings define the knowledge Kova uses to understand
- * and eventually operate on behalf of the business.
- */
-const businessBrainSections: SettingsSection[] = [
-  {
-    label: "Business Profile",
-    title: "Tell Kova about your business",
-    description:
-      "Define what your business does, why it exists, who it serves, and how it creates value.",
-    href: "/workspace/settings/business-profile",
-  },
-  {
-    label: "Business Audience",
-    title: "Define your customers",
-    description:
-      "Help Kova understand who your customers are, what they need, their pain points, and how they make buying decisions.",
-    href: "/workspace/settings/business-audience",
-  },
-  {
-    label: "Business Brand",
-    title: "Define how your business communicates",
-    description:
-      "Set the voice, tone, personality, positioning, and communication style Kova should use when representing your business.",
-    href: "/workspace/settings/business-brand",
-  },
-  {
-  label: "Business Goals",
-  title: "Define what your business wants to achieve",
-  description:
-    "Tell Kova what matters most to your business, where you want to grow, how you measure success, and the challenges you are trying to overcome.",
-  href: "/workspace/settings/business-goals",
-},
-];
+function formatName(name: string) {
+  if (name === name.toUpperCase() && name.length > 1) {
+    return name.charAt(0) + name.slice(1).toLowerCase();
+  }
+  return name;
+}
 
+export default function OverviewPage() {
+  const router = useRouter();
+  const {
+    isAuthenticated,
+    isLoading: authLoading,
+    accessToken,
+    user,
+  } = useAuth();
 
-export default function SettingsPage() {
+  const [business, setBusiness] = useState<Business | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [commercePage, setCommercePage] = useState<CommercePage | null>(null);
+  const [contents, setContents] = useState<Content[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!isAuthenticated || !accessToken) {
+      router.replace("/login");
+      return;
+    }
+    const token = accessToken;
+
+    async function loadOverview() {
+      try {
+        setLoading(true);
+        setError("");
+        const biz = await getBusiness(token);
+        setBusiness(biz);
+
+        const [prods, page, contentList, leadList] = await Promise.all([
+          getProducts(biz.id, token),
+          getCommercePage(biz.id, token),
+          getContents(biz.id, token).catch(() => [] as Content[]),
+          getLeads(biz.id, token).catch(() => [] as Lead[]),
+        ]);
+
+        setProducts(prods);
+        setCommercePage(page);
+        setContents(contentList);
+        setLeads(leadList);
+        void ensureTodayBrief(biz.id, token);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) {
+          router.replace("/workspace/setup");
+          return;
+        }
+        if (
+          err instanceof Error &&
+          err.message === "No business is configured."
+        ) {
+          router.replace("/workspace/setup");
+          return;
+        }
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Could not load your workspace.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadOverview();
+  }, [authLoading, isAuthenticated, accessToken, router]);
+
+  function copyStoreLink() {
+    if (!commercePage?.slug) return;
+    const url = `${window.location.origin}/store/${commercePage.slug}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  if (authLoading || loading) {
+    return (
+      <AppShell>
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-kova-green border-t-transparent" />
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppShell>
+        <div className="p-4 sm:p-8">
+          <div className="mx-auto max-w-5xl rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+            {error}
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const activeProducts = products.filter((p) => p.status === "active");
+  const draftProducts = products.filter((p) => p.status === "draft");
+  const newLeads = leads.filter((l) => l.status === "new");
+  const draftContent = contents.filter((c) => c.status === "draft");
+  const publishedContent = contents.filter((c) => c.status === "published");
+  const storeIsLive = !!commercePage?.is_published;
+  const storeUrl = commercePage?.slug
+    ? `/store/${commercePage.slug}`
+    : null;
+
   return (
     <AppShell>
+      <div className="p-4 sm:p-8">
+        <div className="mx-auto max-w-5xl space-y-6">
+          {/* ──── Header ──── */}
+          <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
+                Overview
+              </p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-kova-dark sm:text-3xl">
+                {business?.name || "Your business"}
+              </h1>
+              <p className="mt-1 text-sm text-gray-500">
+                {user?.first_name
+                  ? `Welcome back, ${formatName(user.first_name)}.`
+                  : "Welcome back."}{" "}
+                Here is what is happening with your business.
+              </p>
+            </div>
+            {storeIsLive && storeUrl && (
+              <div className="flex gap-2">
+                <a
+                  href={storeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-10 items-center rounded-lg bg-kova-green px-4 text-sm font-bold text-white transition hover:bg-[#12563d]"
+                >
+                  View store
+                </a>
+                <button
+                  type="button"
+                  onClick={copyStoreLink}
+                  className="inline-flex h-10 items-center gap-2 rounded-lg border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark transition hover:border-kova-orange/50"
+                >
+                  {copied ? (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-kova-green"><polyline points="20 6 9 17 4 12" /></svg>
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+                      Share link
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </header>
 
-      <div className="p-6 sm:p-8">
+          <div className="h-px bg-kova-border" />
 
-        <div className="mx-auto max-w-5xl">
+          {/* ──── Store link card (when published) ──── */}
+          {storeIsLive && storeUrl && (
+            <div className="flex items-center gap-3 rounded-lg border border-kova-orange/40 bg-kova-orange/5 px-5 py-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-kova-orange/20">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-kova-orange"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" /></svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-kova-dark">Your store is live</p>
+                <p className="truncate text-xs text-gray-500">
+                  {typeof window !== "undefined"
+                    ? `${window.location.origin}${storeUrl}`
+                    : storeUrl}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={copyStoreLink}
+                className="inline-flex h-8 shrink-0 items-center rounded-md bg-kova-orange px-3 text-xs font-bold text-kova-dark transition hover:bg-[#f0a46e]"
+              >
+                {copied ? "Copied!" : "Copy link"}
+              </button>
+            </div>
+          )}
 
-          {/* Page introduction */}
-          <div>
-            <p
-              className="
-                text-sm
-                font-semibold
-                uppercase
-                tracking-[0.16em]
-                text-kova-green
-              "
-            >
-              Settings
-            </p>
-
-            <h1
-              className="
-                mt-3
-                text-3xl
-                font-semibold
-                tracking-tight
-                text-kova-dark
-                sm:text-4xl
-              "
-            >
-              Configure Kova
-            </h1>
-
-            <p
-              className="
-                mt-3
-                max-w-2xl
-                text-sm
-                leading-6
-                text-gray-600
-              "
-            >
-              This is where you give Kova the information,
-              preferences, and context it needs to understand
-              and eventually operate your business.
-            </p>
+          {/* ──── Stats ──── */}
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-kova-border bg-kova-border sm:grid-cols-4">
+            <StatCell
+              label="Products"
+              value={String(products.length)}
+              detail={`${activeProducts.length} active · ${draftProducts.length} draft`}
+              color="green"
+            />
+            <StatCell
+              label="Leads"
+              value={String(leads.length)}
+              detail={`${newLeads.length} new · ${leads.filter((l) => l.created_by_ai).length} from Kova`}
+              color="default"
+            />
+            <StatCell
+              label="Content"
+              value={String(contents.length)}
+              detail={`${publishedContent.length} published · ${draftContent.length} draft`}
+              color="orange"
+            />
+            <StatCell
+              label="Store"
+              value={storeIsLive ? "Live" : "Draft"}
+              detail={storeIsLive ? "Customers can shop" : "Publish to go live"}
+              color={storeIsLive ? "green" : "default"}
+            />
           </div>
 
+          {/* ──── Quick actions ──── */}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <ActionCard
+              label="Talk to Kova"
+              description="Ask Kova about products, content, or customers."
+              href="/workspace/kova"
+              variant="orange"
+            />
+            <ActionCard
+              label="Snap to Sell"
+              description="Photograph a product and list it for sale."
+              href="/workspace/commerce/snap-to-sell"
+              variant="orange"
+            />
+            <ActionCard
+              label="Social"
+              description="Create content and manage social channels."
+              href="/workspace/social"
+              variant="green"
+            />
+            <ActionCard
+              label="Settings"
+              description="Business Brain, goals, and policies."
+              href="/workspace/settings"
+              variant="default"
+            />
+          </div>
 
-          {/* Business Brain */}
-          <section className="mt-12">
+          {/* ──── Recent products ──── */}
+          {products.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-kova-dark">
+                  Recent products
+                </h2>
+                <Link
+                  href="/workspace/commerce/products"
+                  className="text-sm font-semibold text-kova-orange hover:underline"
+                >
+                  View all →
+                </Link>
+              </div>
 
-            <div>
-              <p
-                className="
-                  text-xs
-                  font-semibold
-                  uppercase
-                  tracking-[0.14em]
-                  text-gray-400
-                "
-              >
-                Business
-              </p>
-
-              <h2
-                className="
-                  mt-2
-                  text-2xl
-                  font-semibold
-                  text-kova-dark
-                "
-              >
-                Business Brain
-              </h2>
-
-              <p
-                className="
-                  mt-2
-                  max-w-2xl
-                  text-sm
-                  leading-6
-                  text-gray-500
-                "
-              >
-                Build the knowledge Kova uses to understand
-                your business, your customers, and your brand.
-              </p>
-            </div>
-
-
-            <div className="mt-6 space-y-4">
-
-              {businessBrainSections.map(
-                (section) => {
-                  const isAvailable =
-                    !section.status;
-
-
-                  if (!isAvailable) {
-                    return (
-                      <div
-                        key={section.label}
-                        className="
-                          border
-                          border-kova-border
-                          bg-white
-                          p-6
-                        "
-                      >
-
-                        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-
-                          <div className="max-w-2xl">
-
-                            <div className="flex flex-wrap items-center gap-3">
-
-                              <p
-                                className="
-                                  text-xs
-                                  font-semibold
-                                  uppercase
-                                  tracking-[0.14em]
-                                  text-gray-400
-                                "
-                              >
-                                {section.label}
-                              </p>
-
-                              {section.status && (
-                                <span
-                                  className="
-                                    border
-                                    border-kova-border
-                                    bg-kova-background
-                                    px-2.5
-                                    py-1
-                                    text-[10px]
-                                    font-semibold
-                                    uppercase
-                                    tracking-[0.12em]
-                                    text-gray-500
-                                  "
-                                >
-                                  {section.status}
-                                </span>
-                              )}
-
-                            </div>
-
-                            <h3
-                              className="
-                                mt-3
-                                text-lg
-                                font-semibold
-                                text-kova-dark
-                              "
-                            >
-                              {section.title}
-                            </h3>
-
-                            <p
-                              className="
-                                mt-2
-                                text-sm
-                                leading-6
-                                text-gray-500
-                              "
-                            >
-                              {section.description}
-                            </p>
-
-                          </div>
-
-                        </div>
-
-                      </div>
-                    );
-                  }
-
-
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {products.slice(0, 4).map((product) => {
+                  const image =
+                    product.images.find((i) => i.is_primary) ??
+                    product.images[0];
                   return (
                     <Link
-                      key={section.label}
-                      href={section.href}
-                      className="
-                        block
-                        border
-                        border-kova-border
-                        bg-white
-                        p-6
-                        transition-colors
-                        hover:border-kova-green
-                        hover:bg-kova-background
-                      "
+                      key={product.id}
+                      href={`/workspace/commerce/products/${product.id}`}
+                      className="group overflow-hidden rounded-lg border border-kova-border bg-white transition hover:-translate-y-0.5 hover:border-kova-orange/50 hover:shadow-sm"
                     >
-
-                      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-
-                        <div className="max-w-2xl">
-
-                          <p
-                            className="
-                              text-xs
-                              font-semibold
-                              uppercase
-                              tracking-[0.14em]
-                              text-kova-green
-                            "
-                          >
-                            {section.label}
-                          </p>
-
-                          <h3
-                            className="
-                              mt-3
-                              text-lg
-                              font-semibold
-                              text-kova-dark
-                            "
-                          >
-                            {section.title}
-                          </h3>
-
-                          <p
-                            className="
-                              mt-2
-                              text-sm
-                              leading-6
-                              text-gray-500
-                            "
-                          >
-                            {section.description}
-                          </p>
-
-                        </div>
-
-
-                        <div
-                          aria-hidden="true"
-                          className="
-                            shrink-0
-                            text-sm
-                            font-semibold
-                            text-kova-green
-                          "
-                        >
-                          Configure →
-                        </div>
-
+                      <div className="aspect-[4/3] bg-kova-background">
+                        {image?.url ? (
+                          <img
+                            src={image.url}
+                            alt={image.alt_text || product.name}
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-sm text-gray-400">
+                            No image
+                          </div>
+                        )}
                       </div>
-
+                      <div className="p-3.5">
+                        <h3 className="line-clamp-2 text-sm font-semibold text-kova-dark">
+                          {product.name}
+                        </h3>
+                        <p className="mt-1.5 text-sm font-bold text-kova-orange">
+                          {product.price
+                            ? `${product.currency} ${product.price}`
+                            : "Price on request"}
+                        </p>
+                      </div>
                     </Link>
                   );
-                },
-              )}
+                })}
+              </div>
+            </section>
+          )}
 
-            </div>
-
-          </section>
-
-
-          {/* Explanation */}
-          <section
-            className="
-              mt-10
-              border
-              border-kova-border
-              bg-kova-background
-              p-6
-            "
-          >
-
-            <p
-              className="
-                text-xs
-                font-semibold
-                uppercase
-                tracking-[0.14em]
-                text-kova-green
-              "
-            >
-              Why this matters
-            </p>
-
-            <h2
-              className="
-                mt-3
-                text-lg
-                font-semibold
-                text-kova-dark
-              "
-            >
-              Kova should understand before it acts.
-            </h2>
-
-            <p
-              className="
-                mt-2
-                max-w-3xl
-                text-sm
-                leading-6
-                text-gray-600
-              "
-            >
-              The Business Brain gives Kova structured context
-              about the business. Later, this context will be
-              combined with products, goals, policies,
-              conversations, and other business data so Kova
-              can make better decisions when creating content,
-              engaging customers, generating leads, and
-              supporting sales.
-            </p>
-
-          </section>
-
+          {/* ──── Empty state ──── */}
+          {products.length === 0 && (
+            <section className="rounded-lg border-2 border-dashed border-kova-orange/40 bg-kova-orange/5 p-8 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-kova-orange/20">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-kova-orange"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+              </div>
+              <p className="mt-4 text-lg font-semibold text-kova-dark">
+                No products yet
+              </p>
+              <p className="mt-2 text-sm leading-6 text-gray-500">
+                Use Snap to Sell to photograph your first product, or add one
+                manually.
+              </p>
+              <Link
+                href="/workspace/commerce/snap-to-sell"
+                className="mt-5 inline-flex h-11 items-center justify-center rounded-lg bg-kova-orange px-6 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e]"
+              >
+                Add your first product
+              </Link>
+            </section>
+          )}
         </div>
-
       </div>
-
     </AppShell>
+  );
+}
+
+/* ───── Stat cell ───── */
+
+function StatCell({
+  label,
+  value,
+  detail,
+  color,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  color: "green" | "orange" | "default";
+}) {
+  const valueColor =
+    color === "green"
+      ? "text-kova-green"
+      : color === "orange"
+        ? "text-kova-orange"
+        : "text-kova-dark";
+  return (
+    <div className="bg-white p-5">
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-gray-400">
+        {label}
+      </p>
+      <p className={`mt-1 text-2xl font-bold ${valueColor}`}>{value}</p>
+      <p className="mt-1 text-xs text-gray-500">{detail}</p>
+    </div>
+  );
+}
+
+/* ───── Action card ───── */
+
+function ActionCard({
+  label,
+  description,
+  href,
+  variant,
+}: {
+  label: string;
+  description: string;
+  href: string;
+  variant: "orange" | "green" | "default";
+}) {
+  const border =
+    variant === "orange"
+      ? "border-kova-orange/40 hover:border-kova-orange"
+      : variant === "green"
+        ? "border-kova-green/30 hover:border-kova-green"
+        : "border-kova-border hover:border-gray-300";
+  const titleColor =
+    variant === "orange"
+      ? "text-kova-orange"
+      : variant === "green"
+        ? "text-kova-green"
+        : "text-kova-dark";
+  return (
+    <Link
+      href={href}
+      className={`block rounded-lg border bg-white px-4 py-3.5 transition-colors ${border}`}
+    >
+      <p className={`text-sm font-bold ${titleColor}`}>{label}</p>
+      <p className="mt-1 text-xs leading-5 text-gray-500">{description}</p>
+    </Link>
   );
 }

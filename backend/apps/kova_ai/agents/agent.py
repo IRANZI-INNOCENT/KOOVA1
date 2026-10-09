@@ -404,6 +404,7 @@ class KovaAgent:
                 "brand": context.brand,
                 "goals": context.goals,
                 "policy": context.policy,
+                "market": context.market,
                 "task": context.task,
                 "task_context": context.task_context,
             },

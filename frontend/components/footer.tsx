@@ -1,21 +1,21 @@
 const productLinks = [
-  { label: "Product", href: "#product" },
-  { label: "Social", href: "#social" },
-  { label: "Commerce", href: "#commerce" },
-  { label: "Pricing", href: "#pricing" },
+  { label: "How it works", href: "/#how-it-works" },
+  { label: "Snap to Sell", href: "/#commerce" },
+  { label: "Talk to Kova", href: "/#social" },
+  { label: "Pricing", href: "/#pricing" },
 ];
 
 const companyLinks = [
-  { label: "About", href: "#" },
-  { label: "Contact", href: "#" },
-  { label: "Privacy", href: "#" },
-  { label: "Terms", href: "#" },
+  { label: "Privacy", href: "/privacy" },
+  { label: "Terms", href: "/terms" },
+  { label: "Cookies", href: "/cookies" },
+  { label: "AI usage", href: "/ai" },
 ];
 
 export default function Footer() {
   return (
     <footer className="border-t border-kova-border bg-kova-dark text-white">
-      <div className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-[1.5fr_1fr_1fr]">
           <div>
             <a
@@ -26,7 +26,7 @@ export default function Footer() {
             </a>
 
             <p className="mt-5 max-w-sm text-sm leading-6 text-white/50">
-              AI social media management and commerce for small businesses.
+              Photograph a product, publish the store, and take the order on WhatsApp.
             </p>
           </div>
 

@@ -144,10 +144,9 @@ class ActionExecutorTests(TestCase):
     def test_successful_execution(self):
         """An authorized successful tool should produce success."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
-            allow_content_creation=True,
-        )
+        ).update(allow_content_creation=True)
 
         self.registry.register(
             SuccessfulTool(),
@@ -177,10 +176,9 @@ class ActionExecutorTests(TestCase):
     def test_denied_action_does_not_execute(self):
         """A denied action must never reach the tool."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
-            allow_content_creation=False,
-        )
+        ).update(allow_content_creation=False)
 
         self.registry.register(
             SuccessfulTool(),
@@ -206,6 +204,10 @@ class ActionExecutorTests(TestCase):
     def test_missing_policy_does_not_execute(self):
         """Missing policy must prevent automatic execution."""
 
+        BusinessPolicy.objects.filter(
+            business=self.business,
+        ).delete()
+
         self.registry.register(
             SuccessfulTool(),
         )
@@ -227,10 +229,9 @@ class ActionExecutorTests(TestCase):
     def test_approval_required_does_not_execute(self):
         """Approval-gated decisions must not reach the tool."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
-            allow_content_creation=True,
-        )
+        ).update(allow_content_creation=True)
 
         self.registry.register(
             SuccessfulTool(),
@@ -260,10 +261,9 @@ class ActionExecutorTests(TestCase):
     def test_missing_tool_fails_safely(self):
         """An authorized action without a tool should fail safely."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
-            allow_content_creation=True,
-        )
+        ).update(allow_content_creation=True)
 
         result = self.executor.execute(
             decision=self.build_decision(),
@@ -282,10 +282,9 @@ class ActionExecutorTests(TestCase):
     def test_tool_failure_becomes_execution_failure(self):
         """A failed ToolResult should become a failed execution."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
-            allow_content_creation=True,
-        )
+        ).update(allow_content_creation=True)
 
         self.registry.register(
             FailedTool(),
@@ -311,10 +310,9 @@ class ActionExecutorTests(TestCase):
     def test_unexpected_tool_exception_becomes_execution_failure(self):
         """Unexpected tool errors should not escape the execution layer."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
-            allow_content_creation=True,
-        )
+        ).update(allow_content_creation=True)
 
         self.registry.register(
             RaisingTool(),
@@ -340,10 +338,9 @@ class ActionExecutorTests(TestCase):
         has been verified.
         """
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
-            allow_content_creation=True,
-        )
+        ).update(allow_content_creation=True)
 
         self.registry.register(
             SuccessfulTool(),

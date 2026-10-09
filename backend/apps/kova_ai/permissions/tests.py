@@ -9,7 +9,6 @@ from apps.business_brain.models import BusinessPolicy
 from apps.businesses.models import Business
 from apps.kova_ai.context.engine import ContextEngine
 from apps.kova_ai.context.types import ContextTask
-from apps.kova_ai.decisions.engine import DecisionEngine
 from apps.kova_ai.decisions.types import (
     Decision,
     DecisionAction,
@@ -39,8 +38,13 @@ class PermissionEngineTests(TestCase):
             location="Nairobi",
         )
 
+        # Provisioning auto-creates a BusinessPolicy.
+        # Grab it so tests can configure it as needed.
+        self.policy = BusinessPolicy.objects.get(
+            business=self.business,
+        )
+
         self.context_engine = ContextEngine()
-        self.decision_engine = DecisionEngine()
         self.permission_engine = PermissionEngine()
 
     def build_context(
@@ -49,8 +53,6 @@ class PermissionEngineTests(TestCase):
         task: ContextTask,
         task_context: dict | None = None,
     ):
-        """Build business context for permission tests."""
-
         return self.context_engine.build(
             business_id=self.business.id,
             task=task,
@@ -59,6 +61,9 @@ class PermissionEngineTests(TestCase):
 
     def test_missing_policy_requires_approval(self):
         """Missing policy must never result in automatic permission."""
+
+        # Delete the auto-provisioned policy to test the no-policy path.
+        self.policy.delete()
 
         context = self.build_context(
             task=ContextTask.CONTENT_CREATION,
@@ -79,20 +84,14 @@ class PermissionEngineTests(TestCase):
             result.status,
             PermissionStatus.REQUIRES_APPROVAL,
         )
-        self.assertTrue(
-            result.requires_approval
-        )
-        self.assertFalse(
-            result.allowed
-        )
+        self.assertTrue(result.requires_approval)
+        self.assertFalse(result.allowed)
 
     def test_content_creation_is_allowed_by_policy(self):
         """Content creation should be allowed when policy permits it."""
 
-        BusinessPolicy.objects.create(
-            business=self.business,
-            allow_content_creation=True,
-        )
+        self.policy.allow_content_creation = True
+        self.policy.save()
 
         context = self.build_context(
             task=ContextTask.CONTENT_CREATION,
@@ -109,24 +108,15 @@ class PermissionEngineTests(TestCase):
             context=context,
         )
 
-        self.assertEqual(
-            result.status,
-            PermissionStatus.ALLOWED,
-        )
-        self.assertTrue(
-            result.allowed
-        )
-        self.assertFalse(
-            result.requires_approval
-        )
+        self.assertEqual(result.status, PermissionStatus.ALLOWED)
+        self.assertTrue(result.allowed)
+        self.assertFalse(result.requires_approval)
 
     def test_content_creation_is_denied_by_policy(self):
         """Content creation should be denied when policy disables it."""
 
-        BusinessPolicy.objects.create(
-            business=self.business,
-            allow_content_creation=False,
-        )
+        self.policy.allow_content_creation = False
+        self.policy.save()
 
         context = self.build_context(
             task=ContextTask.CONTENT_CREATION,
@@ -143,24 +133,15 @@ class PermissionEngineTests(TestCase):
             context=context,
         )
 
-        self.assertEqual(
-            result.status,
-            PermissionStatus.DENIED,
-        )
-        self.assertTrue(
-            result.denied
-        )
-        self.assertFalse(
-            result.allowed
-        )
+        self.assertEqual(result.status, PermissionStatus.DENIED)
+        self.assertTrue(result.denied)
+        self.assertFalse(result.allowed)
 
     def test_decision_requiring_approval_cannot_bypass_policy(self):
         """A decision requiring approval must remain gated."""
 
-        BusinessPolicy.objects.create(
-            business=self.business,
-            allow_content_creation=True,
-        )
+        self.policy.allow_content_creation = True
+        self.policy.save()
 
         context = self.build_context(
             task=ContextTask.CONTENT_CREATION,
@@ -178,34 +159,23 @@ class PermissionEngineTests(TestCase):
             context=context,
         )
 
-        self.assertEqual(
-            result.status,
-            PermissionStatus.REQUIRES_APPROVAL,
-        )
+        self.assertEqual(result.status, PermissionStatus.REQUIRES_APPROVAL)
 
     def test_comment_reply_is_allowed(self):
-        """Comment replies should be allowed when explicitly enabled."""
-
-        BusinessPolicy.objects.create(
-            business=self.business,
-            allow_comment_replies=True,
-            allow_dm_replies=False,
-        )
+        self.policy.allow_comment_replies = True
+        self.policy.allow_dm_replies = False
+        self.policy.save()
 
         context = self.build_context(
             task=ContextTask.CUSTOMER_RESPONSE,
-            task_context={
-                "channel": "comment",
-            },
+            task_context={"channel": "comment"},
         )
 
         decision = Decision(
             action=DecisionAction.RESPOND_TO_CUSTOMER,
             status=DecisionStatus.READY,
             reason="Reply to comment.",
-            inputs={
-                "channel": "comment",
-            },
+            inputs={"channel": "comment"},
         )
 
         result = self.permission_engine.check(
@@ -213,34 +183,23 @@ class PermissionEngineTests(TestCase):
             context=context,
         )
 
-        self.assertEqual(
-            result.status,
-            PermissionStatus.ALLOWED,
-        )
+        self.assertEqual(result.status, PermissionStatus.ALLOWED)
 
     def test_comment_reply_is_denied(self):
-        """Comment replies should be denied when disabled."""
-
-        BusinessPolicy.objects.create(
-            business=self.business,
-            allow_comment_replies=False,
-            allow_dm_replies=False,
-        )
+        self.policy.allow_comment_replies = False
+        self.policy.allow_dm_replies = False
+        self.policy.save()
 
         context = self.build_context(
             task=ContextTask.CUSTOMER_RESPONSE,
-            task_context={
-                "channel": "comment",
-            },
+            task_context={"channel": "comment"},
         )
 
         decision = Decision(
             action=DecisionAction.RESPOND_TO_CUSTOMER,
             status=DecisionStatus.READY,
             reason="Reply to comment.",
-            inputs={
-                "channel": "comment",
-            },
+            inputs={"channel": "comment"},
         )
 
         result = self.permission_engine.check(
@@ -248,34 +207,23 @@ class PermissionEngineTests(TestCase):
             context=context,
         )
 
-        self.assertEqual(
-            result.status,
-            PermissionStatus.DENIED,
-        )
+        self.assertEqual(result.status, PermissionStatus.DENIED)
 
     def test_dm_reply_is_allowed(self):
-        """DM replies should be allowed when explicitly enabled."""
-
-        BusinessPolicy.objects.create(
-            business=self.business,
-            allow_comment_replies=False,
-            allow_dm_replies=True,
-        )
+        self.policy.allow_comment_replies = False
+        self.policy.allow_dm_replies = True
+        self.policy.save()
 
         context = self.build_context(
             task=ContextTask.CUSTOMER_RESPONSE,
-            task_context={
-                "channel": "dm",
-            },
+            task_context={"channel": "dm"},
         )
 
         decision = Decision(
             action=DecisionAction.RESPOND_TO_CUSTOMER,
             status=DecisionStatus.READY,
             reason="Reply to DM.",
-            inputs={
-                "channel": "dm",
-            },
+            inputs={"channel": "dm"},
         )
 
         result = self.permission_engine.check(
@@ -283,34 +231,23 @@ class PermissionEngineTests(TestCase):
             context=context,
         )
 
-        self.assertEqual(
-            result.status,
-            PermissionStatus.ALLOWED,
-        )
+        self.assertEqual(result.status, PermissionStatus.ALLOWED)
 
     def test_dm_reply_is_denied(self):
-        """DM replies should be denied when disabled."""
-
-        BusinessPolicy.objects.create(
-            business=self.business,
-            allow_comment_replies=False,
-            allow_dm_replies=False,
-        )
+        self.policy.allow_comment_replies = False
+        self.policy.allow_dm_replies = False
+        self.policy.save()
 
         context = self.build_context(
             task=ContextTask.CUSTOMER_RESPONSE,
-            task_context={
-                "channel": "dm",
-            },
+            task_context={"channel": "dm"},
         )
 
         decision = Decision(
             action=DecisionAction.RESPOND_TO_CUSTOMER,
             status=DecisionStatus.READY,
             reason="Reply to DM.",
-            inputs={
-                "channel": "dm",
-            },
+            inputs={"channel": "dm"},
         )
 
         result = self.permission_engine.check(
@@ -318,23 +255,14 @@ class PermissionEngineTests(TestCase):
             context=context,
         )
 
-        self.assertEqual(
-            result.status,
-            PermissionStatus.DENIED,
-        )
+        self.assertEqual(result.status, PermissionStatus.DENIED)
 
     def test_product_management_is_allowed(self):
-        """Product management should be allowed when enabled."""
+        self.policy.allow_product_management = True
+        self.policy.allow_order_management = False
+        self.policy.save()
 
-        BusinessPolicy.objects.create(
-            business=self.business,
-            allow_product_management=True,
-            allow_order_management=False,
-        )
-
-        context = self.build_context(
-            task=ContextTask.COMMERCE,
-        )
+        context = self.build_context(task=ContextTask.COMMERCE)
 
         decision = Decision(
             action=DecisionAction.MANAGE_COMMERCE,
@@ -347,23 +275,14 @@ class PermissionEngineTests(TestCase):
             context=context,
         )
 
-        self.assertEqual(
-            result.status,
-            PermissionStatus.ALLOWED,
-        )
+        self.assertEqual(result.status, PermissionStatus.ALLOWED)
 
     def test_order_management_is_allowed(self):
-        """Order management should be allowed when enabled."""
+        self.policy.allow_product_management = False
+        self.policy.allow_order_management = True
+        self.policy.save()
 
-        BusinessPolicy.objects.create(
-            business=self.business,
-            allow_product_management=False,
-            allow_order_management=True,
-        )
-
-        context = self.build_context(
-            task=ContextTask.COMMERCE,
-        )
+        context = self.build_context(task=ContextTask.COMMERCE)
 
         decision = Decision(
             action=DecisionAction.MANAGE_COMMERCE,
@@ -376,23 +295,14 @@ class PermissionEngineTests(TestCase):
             context=context,
         )
 
-        self.assertEqual(
-            result.status,
-            PermissionStatus.ALLOWED,
-        )
+        self.assertEqual(result.status, PermissionStatus.ALLOWED)
 
     def test_commerce_is_denied_when_management_is_disabled(self):
-        """Commerce should be denied when neither management permission exists."""
+        self.policy.allow_product_management = False
+        self.policy.allow_order_management = False
+        self.policy.save()
 
-        BusinessPolicy.objects.create(
-            business=self.business,
-            allow_product_management=False,
-            allow_order_management=False,
-        )
-
-        context = self.build_context(
-            task=ContextTask.COMMERCE,
-        )
+        context = self.build_context(task=ContextTask.COMMERCE)
 
         decision = Decision(
             action=DecisionAction.MANAGE_COMMERCE,
@@ -405,18 +315,9 @@ class PermissionEngineTests(TestCase):
             context=context,
         )
 
-        self.assertEqual(
-            result.status,
-            PermissionStatus.DENIED,
-        )
+        self.assertEqual(result.status, PermissionStatus.DENIED)
 
     def test_unsupported_action_is_denied(self):
-        """Unsupported actions must fail closed."""
-
-        BusinessPolicy.objects.create(
-            business=self.business,
-        )
-
         context = self.build_context(
             task=ContextTask.CONTENT_CREATION,
         )
@@ -432,18 +333,11 @@ class PermissionEngineTests(TestCase):
             context=context,
         )
 
-        self.assertEqual(
-            result.status,
-            PermissionStatus.DENIED,
-        )
+        self.assertEqual(result.status, PermissionStatus.DENIED)
 
     def test_permission_check_does_not_modify_policy(self):
-        """Permission evaluation must be read-only."""
-
-        policy = BusinessPolicy.objects.create(
-            business=self.business,
-            allow_content_creation=True,
-        )
+        self.policy.allow_content_creation = True
+        self.policy.save()
 
         context = self.build_context(
             task=ContextTask.CONTENT_CREATION,
@@ -460,8 +354,5 @@ class PermissionEngineTests(TestCase):
             context=context,
         )
 
-        policy.refresh_from_db()
-
-        self.assertTrue(
-            policy.allow_content_creation
-        )
+        self.policy.refresh_from_db()
+        self.assertTrue(self.policy.allow_content_creation)

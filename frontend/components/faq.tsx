@@ -1,89 +1,53 @@
 const questions = [
   {
-    question: "What is Kova?",
+    question: "Do I need another online shop?",
     answer:
-      "Kova is an AI social media manager for small businesses. It helps you plan, create, publish, engage with customers, manage leads, and connect your social activity to commerce.",
+      "No. When you add a product, Kova publishes a public store for the catalog and a page for that product. Customers can open it and order on WhatsApp.",
   },
   {
-    question: "What can Kova manage?",
+    question: "What do I have to prepare?",
     answer:
-      "Kova is designed around the complete social-media workflow: planning, content creation, publishing, customer conversations, leads, analytics, and repeatable automation.",
+      "A photo and a price. Kova writes the listing from the photo and what it knows about your business. You can edit anything before you rely on it.",
   },
   {
-    question: "What is Kova Commerce?",
+    question: "How do customers pay or order?",
     answer:
-      "Kova Commerce connects your products to your social presence. With Snap to Sell, a product can become a structured listing, content, a customer conversation, and eventually a sale.",
+      "The product page includes an order button that opens WhatsApp with your business number, so the conversation continues where you already sell.",
   },
   {
-    question: "Can I control what Kova does?",
+    question: "What else can I ask Kova to do?",
     answer:
-      "Yes. Kova is designed to work with business-defined rules and permissions. You remain in control of important decisions while Kova handles the work you allow it to handle.",
+      "Write posts, answer from your products, and keep track of people who ask. You stay in control of what gets published and what Kova is allowed to do.",
   },
   {
-    question: "Which social platforms will Kova support?",
+    question: "Which businesses is this for?",
     answer:
-      "Kova is being built around major social and messaging platforms, starting with Meta platforms and WhatsApp. More integrations can be added as the product grows.",
+      "Small businesses that sell products or services and already talk to customers on social and WhatsApp. It is not only for online-only shops.",
   },
   {
-    question: "Is Kova only for online businesses?",
+    question: "What does the trial include?",
     answer:
-      "No. Kova is designed for small businesses that use social media to reach customers, whether they sell physical products, services, or both.",
+      "The full workspace for 7 days. After that the plan is KSh 1,300 a month, and you can cancel anytime.",
   },
 ];
 
 export default function FAQ() {
   return (
-    <section className="border-t border-kova-border bg-kova-white">
-      <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8 lg:py-32">
-        <div className="grid gap-16 lg:grid-cols-[0.7fr_1.3fr] lg:gap-24">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-kova-green">
-              FAQ
-            </p>
-
-            <h2 className="mt-5 text-4xl font-bold tracking-tight text-kova-dark sm:text-5xl">
-              Questions,
-              <span className="block text-kova-green">
-                answered.
-              </span>
-            </h2>
-
-            <p className="mt-6 max-w-md text-base leading-7 text-kova-dark/55">
-              A few things businesses usually want to know before getting
-              started with Kova.
-            </p>
-          </div>
-
-          <div className="border-t border-kova-border">
-            {questions.map((item, index) => (
-              <details
-                key={item.question}
-                className="group border-b border-kova-border"
-              >
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-6">
-                  <div className="flex items-start gap-5">
-                    <span className="pt-1 text-xs font-semibold text-kova-orange">
-                      0{index + 1}
-                    </span>
-
-                    <span className="text-base font-semibold text-kova-dark">
-                      {item.question}
-                    </span>
-                  </div>
-
-                  <span className="text-xl font-light text-kova-dark/40 transition-transform group-open:rotate-45">
-                    +
-                  </span>
-                </summary>
-
-                <div className="pb-6 pl-10 pr-10">
-                  <p className="max-w-2xl text-sm leading-7 text-kova-dark/55">
-                    {item.answer}
-                  </p>
-                </div>
-              </details>
-            ))}
-          </div>
+    <section className="border-t border-kova-border bg-white">
+      <div className="mx-auto max-w-6xl px-5 py-20 lg:px-8 lg:py-24">
+        <h2 className="text-3xl font-bold tracking-tight text-kova-dark sm:text-4xl">
+          Before you start
+        </h2>
+        <div className="mt-8 divide-y divide-kova-border border-y border-kova-border">
+          {questions.map((item) => (
+            <details key={item.question} className="group py-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 text-base font-semibold text-kova-dark">
+                {item.question}
+                <span className="text-xl font-light text-kova-dark/40 group-open:rotate-45">+</span>
+              </summary>
+              <p className="max-w-2xl pt-2 text-sm leading-7 text-kova-dark/65">{item.answer}</p>
+            </details>
+          ))}
         </div>
       </div>
     </section>

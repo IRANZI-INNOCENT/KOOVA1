@@ -11,22 +11,24 @@ import Link from "next/link";
 interface LogoProps {
   href?: string;
   showTagline?: boolean;
+  tone?: "dark" | "light";
 }
 
 
 export function Logo({
   href = "/",
   showTagline = false,
+  tone = "dark",
 }: LogoProps) {
   const content = (
     <div className="inline-flex flex-col">
 
-      <span className="text-xl font-bold tracking-[-0.03em] text-kova-dark">
-        Kova<span className="text-kova-green">.</span>
+      <span className={`text-xl font-bold tracking-[-0.03em] ${tone === "light" ? "text-white" : "text-kova-dark"}`}>
+        Kova<span className={tone === "light" ? "text-kova-orange" : "text-kova-green"}>.</span>
       </span>
 
       {showTagline && (
-        <span className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-gray-500">
+        <span className="mt-0.5 text-xs font-medium uppercase tracking-[0.16em] text-gray-500">
           From content to commerce
         </span>
       )}

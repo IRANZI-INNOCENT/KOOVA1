@@ -62,11 +62,12 @@ export function Input({
         }
         className={`
           w-full
+          rounded-md
           border
           bg-white
           px-4
           py-3
-          text-sm
+          text-base
           text-kova-dark
           outline-none
           transition-colors

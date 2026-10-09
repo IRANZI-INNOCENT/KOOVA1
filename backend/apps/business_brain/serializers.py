@@ -13,6 +13,7 @@ from .models import (
     BusinessAudience,
     BusinessBrand,
     BusinessGoal,
+    BusinessMarketBrief,
     BusinessPolicy,
     BusinessProfile,
 )
@@ -155,12 +156,47 @@ class BusinessGoalSerializer(serializers.ModelSerializer):
         ]
 
 
+class BusinessMarketBriefSerializer(serializers.ModelSerializer):
+    """The owner can edit the prose. Search results and the keep flag stay on their own endpoints."""
+
+    business = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = BusinessMarketBrief
+        fields = [
+            "id",
+            "business",
+            "status",
+            "kept",
+            "summary",
+            "competitors",
+            "gap",
+            "positioning",
+            "sources",
+            "researched_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "business",
+            "status",
+            "kept",
+            "competitors",
+            "sources",
+            "researched_at",
+            "created_at",
+            "updated_at",
+        ]
+
+
 class BusinessPolicySerializer(serializers.ModelSerializer):
     class Meta:
         model = BusinessPolicy
         fields = [
             "id",
             "business",
+            "social_operating_mode",
             "allow_content_creation",
             "allow_auto_publish",
             "allow_comment_replies",

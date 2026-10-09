@@ -1,23 +1,26 @@
 """
 Kova Create Content Tool.
 
-Creates a structured content asset from a model-approved content request.
+Creates a real Content record in the database. The content starts as a
+draft that the business owner can review, approve, and publish.
 
-The tool is responsible for validating and normalizing content creation
-inputs. It does not publish content to an external platform.
-
-Publishing is a separate capability and must pass its own permission
-and execution flow.
+This tool writes to the database. It does not return fake "accepted"
+responses.
 """
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
+from apps.content.models import Content
 from apps.kova_ai.context.types import BusinessContext
 from apps.kova_ai.decisions.types import DecisionAction, Decision
+
 from .base import Tool
 from .types import ToolResult, ToolStatus
+
+logger = logging.getLogger(__name__)
 
 
 class CreateContentTool(Tool):
@@ -25,14 +28,10 @@ class CreateContentTool(Tool):
 
     @property
     def action(self) -> str:
-        """Return the decision action supported by this tool."""
-
         return DecisionAction.CREATE_CONTENT
 
     @property
     def description(self) -> str:
-        """Describe the content creation capability to the model."""
-
         return (
             "Create a social media content asset for the current business. "
             "Use this when the business owner wants content drafted or "
@@ -41,23 +40,21 @@ class CreateContentTool(Tool):
 
     @property
     def parameters(self) -> dict[str, Any]:
-        """Return the model-facing tool schema."""
-
         return {
             "type": "object",
             "properties": {
                 "platform": {
                     "type": "string",
                     "description": (
-                        "The intended social platform, such as Instagram, "
-                        "Facebook, TikTok, or WhatsApp."
+                        "The intended social platform: instagram, "
+                        "facebook, tiktok, whatsapp, x, or other."
                     ),
                 },
                 "content_type": {
                     "type": "string",
                     "description": (
-                        "The content format, such as post, reel, story, "
-                        "carousel, or status."
+                        "The content format: post, reel, story, "
+                        "carousel, status, or other."
                     ),
                 },
                 "caption": {
@@ -88,100 +85,74 @@ class CreateContentTool(Tool):
         context: BusinessContext,
         arguments: dict[str, Any] | None = None,
     ) -> ToolResult:
-        """
-        Create and return a structured content asset.
-
-        The business identity comes from the authoritative execution
-        context rather than model-supplied business identifiers.
-        """
+        """Create a Content record in the database."""
 
         arguments = arguments or {}
 
-        platform = self._required_string(
-            arguments,
-            "platform",
-        )
-        content_type = self._required_string(
-            arguments,
-            "content_type",
-        )
-        caption = self._required_string(
-            arguments,
-            "caption",
-        )
+        platform = self._required_string(arguments, "platform")
+        content_type = self._required_string(arguments, "content_type")
+        caption = self._required_string(arguments, "caption")
 
         if not platform:
-            return self._failure(
-                "A target platform is required.",
-            )
+            return self._failure("A target platform is required.")
 
         if not content_type:
-            return self._failure(
-                "A content type is required.",
-            )
+            return self._failure("A content type is required.")
 
         if not caption:
-            return self._failure(
-                "Content cannot be created without a caption.",
-            )
+            return self._failure("Content cannot be created without a caption.")
 
-        call_to_action = arguments.get(
-            "call_to_action",
-            "",
-        )
-
-        if call_to_action is None:
-            call_to_action = ""
-
+        call_to_action = arguments.get("call_to_action", "")
         if not isinstance(call_to_action, str):
-            return self._failure(
-                "call_to_action must be a string.",
+            return self._failure("call_to_action must be a string.")
+
+        business_id = context.business["id"]
+
+        try:
+            content = Content.objects.create(
+                business_id=business_id,
+                platform=platform.lower(),
+                content_type=content_type.lower(),
+                caption=caption,
+                call_to_action=call_to_action.strip(),
+                status=Content.Status.DRAFT,
+                created_by_ai=True,
             )
+        except Exception as exc:
+            logger.error(
+                "Failed to create content for business %s: %s",
+                business_id,
+                exc,
+            )
+            return self._failure(f"Failed to save content: {exc}")
 
-        business = context.business
-
-        content = {
-            "business_id": business["id"],
-            "business_name": business.get(
-                "name",
-                "",
-            ),
-            "platform": platform,
-            "content_type": content_type,
-            "caption": caption,
-            "call_to_action": call_to_action.strip(),
-            "status": "draft",
-        }
+        # Verify the record was persisted
+        if not Content.objects.filter(pk=content.pk).exists():
+            return self._failure("Content was not persisted to the database.")
 
         return ToolResult(
             status=ToolStatus.SUCCESS,
-            message="Content draft created successfully.",
+            message="Content draft created and saved to database.",
             data={
-                "content": content,
+                "content_id": content.pk,
+                "business_id": business_id,
+                "platform": content.platform,
+                "content_type": content.content_type,
+                "caption": content.caption,
+                "call_to_action": content.call_to_action,
+                "status": content.status,
             },
         )
 
     @staticmethod
-    def _required_string(
-        arguments: dict[str, Any],
-        field: str,
-    ) -> str:
-        """Return a trimmed string argument or an empty string."""
-
-        value = arguments.get(
-            field,
-            "",
-        )
-
+    def _required_string(arguments: dict[str, Any], field: str) -> str:
+        value = arguments.get(field, "")
         if not isinstance(value, str):
             return ""
-
         return value.strip()
 
     @staticmethod
     def _failure(message: str) -> ToolResult:
-        """Create a standardized failed tool result."""
-
         return ToolResult(
             status=ToolStatus.FAILED,
             message=message,

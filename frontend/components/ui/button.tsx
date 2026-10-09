@@ -33,7 +33,7 @@ interface ButtonProps
  * Base styles shared by every Kova button.
  */
 const baseStyles =
-  "inline-flex items-center justify-center gap-2 border px-5 py-3 text-sm font-semibold transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-kova-green focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-md border px-5 py-3 text-sm font-semibold transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-kova-green focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 
 /**

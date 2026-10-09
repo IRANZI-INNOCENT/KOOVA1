@@ -3,12 +3,6 @@ const API_URL =
   "http://localhost:8000/api";
 
 
-/**
- * Structured error returned by the Kova API layer.
- *
- * Keeping the error format consistent means UI components do not
- * need to understand Django REST Framework's response structure.
- */
 export class ApiError extends Error {
   status: number;
   details: unknown;
@@ -27,21 +21,11 @@ export class ApiError extends Error {
 }
 
 
-/**
- * AuthProvider registers this callback so the API layer can
- * update the access token held in React memory after a refresh.
- */
 let updateAccessToken:
   | ((token: string | null) => void)
   | null = null;
 
 
-/**
- * Register the function used to update the access token.
- *
- * The returned cleanup function is used when AuthProvider
- * is unmounted.
- */
 export function registerAccessTokenUpdater(
   updater: (token: string | null) => void,
 ): () => void {
@@ -53,10 +37,6 @@ export function registerAccessTokenUpdater(
 }
 
 
-/**
- * Extract a human-readable message from a Django REST Framework
- * error response.
- */
 function extractApiErrorMessage(
   data: unknown,
 ): string {
@@ -65,7 +45,17 @@ function extractApiErrorMessage(
   }
 
   if (typeof data === "string") {
-    return data;
+    const trimmed = data.trim();
+    if (
+      trimmed.startsWith("<!DOCTYPE") ||
+      trimmed.startsWith("<html") ||
+      trimmed.includes("<head>")
+    ) {
+      return "Kova could not finish that request. Please try again.";
+    }
+    return trimmed.length > 400
+      ? "Kova could not finish that request. Please try again."
+      : trimmed;
   }
 
   if (
@@ -98,12 +88,6 @@ function extractApiErrorMessage(
 }
 
 
-/**
- * Safely read an API error response.
- *
- * We read the body only once. Django normally returns JSON,
- * but this also handles plain-text responses.
- */
 async function readErrorResponse(
   response: Response,
 ): Promise<unknown> {
@@ -121,12 +105,6 @@ async function readErrorResponse(
 }
 
 
-/**
- * Refresh the short-lived access token using Django's
- * HttpOnly refresh-token cookie.
- *
- * The refresh token itself is never exposed to JavaScript.
- */
 async function refreshAccessToken(): Promise<string | null> {
   try {
     const response = await fetch(
@@ -153,10 +131,9 @@ async function refreshAccessToken(): Promise<string | null> {
       return null;
     }
 
-    /**
-     * Keep AuthProvider synchronized with the new token.
-     */
-    updateAccessToken?.(data.access);
+    updateAccessToken?.(
+      data.access,
+    );
 
     return data.access;
 
@@ -166,38 +143,46 @@ async function refreshAccessToken(): Promise<string | null> {
 }
 
 
-/**
- * Make an HTTP request to the Kova API.
- *
- * credentials: "include" allows the browser to send Kova's
- * HttpOnly refresh-token cookie to Django.
- *
- * If the server returns 401, we attempt one access-token refresh
- * and retry the original request.
- */
 export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
 
-  /**
-   * Keep the actual fetch operation in one place so the same
-   * request can safely be retried after token refresh.
-   */
   async function makeRequest(
     requestOptions: RequestInit,
   ): Promise<Response> {
+
+    const isFormData =
+      requestOptions.body instanceof FormData;
+
+    const headers = new Headers(
+      requestOptions.headers,
+    );
+
+    /*
+     * Never manually set Content-Type for FormData.
+     *
+     * The browser must add the multipart boundary itself.
+     */
+    if (isFormData) {
+      headers.delete(
+        "Content-Type",
+      );
+    } else if (
+      !headers.has("Content-Type")
+    ) {
+      headers.set(
+        "Content-Type",
+        "application/json",
+      );
+    }
+
     return fetch(
       `${API_URL}${endpoint}`,
       {
         ...requestOptions,
-
         credentials: "include",
-
-        headers: {
-          "Content-Type": "application/json",
-          ...(requestOptions.headers || {}),
-        },
+        headers,
       },
     );
   }
@@ -207,13 +192,6 @@ export async function apiRequest<T>(
     await makeRequest(options);
 
 
-  /**
-   * If Django rejects the current access token, attempt to
-   * obtain a fresh token from the HttpOnly refresh cookie.
-   *
-   * We do not attempt this for the refresh endpoint itself,
-   * which prevents an infinite refresh loop.
-   */
   if (
     response.status === 401 &&
     endpoint !== "/auth/refresh/"
@@ -222,9 +200,6 @@ export async function apiRequest<T>(
       await refreshAccessToken();
 
     if (newAccessToken) {
-      /**
-       * Retry the original request with the newly issued token.
-       */
       response = await makeRequest({
         ...options,
 
@@ -238,28 +213,20 @@ export async function apiRequest<T>(
   }
 
 
-  /**
-   * Convert Django's error response into our consistent ApiError.
-   *
-   * The body is read exactly once, avoiding the
-   * "body stream already read" browser error.
-   */
   if (!response.ok) {
     const errorData =
       await readErrorResponse(response);
 
     throw new ApiError(
-      extractApiErrorMessage(errorData),
+      extractApiErrorMessage(
+        errorData,
+      ),
       response.status,
       errorData,
     );
   }
 
 
-  /**
-   * Some endpoints, such as logout, may intentionally return
-   * an empty response body.
-   */
   if (response.status === 204) {
     return undefined as T;
   }
@@ -269,12 +236,6 @@ export async function apiRequest<T>(
 }
 
 
-/**
- * Make an authenticated HTTP request to the Kova API.
- *
- * The short-lived access token is sent as a Bearer token.
- * The refresh token remains inside Django's HttpOnly cookie.
- */
 export async function authenticatedApiRequest<T>(
   endpoint: string,
   accessToken: string,

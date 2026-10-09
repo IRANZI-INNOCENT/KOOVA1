@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/workspace/app-shell";
 import { authenticatedApiRequest, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { SetupGuide } from "@/components/workspace/setup-guide";
+import { useSectionSetup } from "@/components/workspace/use-section-setup";
 
 interface BusinessPolicy {
   id: number;
@@ -160,6 +162,32 @@ export default function BusinessPolicyPage() {
   const [fieldErrors, setFieldErrors] = useState<
     Record<string, string[]>
   >({});
+
+  const setup = useSectionSetup({
+    section: "policy",
+    businessId,
+    accessToken,
+    form,
+    ready: !isLoading && businessId !== null,
+    save: async (current) => {
+      if (!accessToken || !businessId) return;
+      const discount = Number(current.max_auto_discount_percent);
+      if (Number.isNaN(discount)) {
+        throw new Error("Enter a valid discount.");
+      }
+      await authenticatedApiRequest(
+        `/business-brain/${businessId}/policy/`,
+        accessToken,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            ...current,
+            max_auto_discount_percent: discount,
+          }),
+        },
+      );
+    },
+  });
 
   useEffect(() => {
     if (authLoading) {
@@ -327,6 +355,11 @@ export default function BusinessPolicyPage() {
           policy.require_payment_approval,
       });
 
+      if (setup.isSetup) {
+        router.push(setup.nextPath || "/workspace");
+        return;
+      }
+
       setSuccess("Your policies have been saved.");
     } catch (err) {
       if (err instanceof ApiError) {
@@ -390,7 +423,7 @@ export default function BusinessPolicyPage() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-3xl px-6 py-10">
+      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
         <div>
           <p className="text-sm font-medium text-[#176B4D]">
             Business Brain
@@ -406,6 +439,26 @@ export default function BusinessPolicyPage() {
             business.
           </p>
         </div>
+
+        <SetupGuide
+          section="policy"
+          isSetup={setup.isSetup}
+          autoState={setup.autoState}
+          drafting={setup.drafting}
+          draftError={setup.draftError}
+          onDraft={() =>
+            setup.draft((fields) =>
+              setForm((current) => ({
+                ...current,
+                ...fields,
+                max_auto_discount_percent:
+                  fields.max_auto_discount_percent == null
+                    ? current.max_auto_discount_percent
+                    : String(fields.max_auto_discount_percent),
+              })),
+            )
+          }
+        />
 
         {error && (
           <div className="mt-8 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -578,7 +631,7 @@ export default function BusinessPolicyPage() {
               disabled={isSaving}
               className="rounded-lg bg-[#176B4D] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#12563D] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSaving ? "Saving..." : "Save policies"}
+              {isSaving ? "Saving..." : setup.isSetup ? "Continue" : "Save policies"}
             </button>
           </div>
         </form>

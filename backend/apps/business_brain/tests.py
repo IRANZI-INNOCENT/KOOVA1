@@ -47,15 +47,17 @@ class BusinessProfileModelTests(TestCase):
     def test_profile_can_be_created_for_business(self):
         """A business should be able to have one BusinessProfile."""
 
-        profile = BusinessProfile.objects.create(
+        profile = BusinessProfile.objects.get(
             business=self.business,
-            mission="Make quality products accessible.",
-            value_proposition="Quality products at fair prices.",
-            target_market="Young professionals in Kenya.",
-            business_model="Retail",
-            business_stage="Growing",
-            website="https://example.com",
         )
+
+        profile.mission = "Make quality products accessible."
+        profile.value_proposition = "Quality products at fair prices."
+        profile.target_market = "Young professionals in Kenya."
+        profile.business_model = "Retail"
+        profile.business_stage = "Growing"
+        profile.website = "https://example.com"
+        profile.save()
 
         self.assertEqual(
             profile.business,
@@ -73,10 +75,12 @@ class BusinessProfileModelTests(TestCase):
         related_name configured on the OneToOneField.
         """
 
-        profile = BusinessProfile.objects.create(
+        profile = BusinessProfile.objects.get(
             business=self.business,
-            mission="Help customers find better products.",
         )
+
+        profile.mission = "Help customers find better products."
+        profile.save()
 
         self.assertEqual(
             self.business.profile,
@@ -88,9 +92,10 @@ class BusinessProfileModelTests(TestCase):
         A business must not have multiple BusinessProfile records.
         """
 
-        BusinessProfile.objects.create(
-            business=self.business,
-            mission="First profile.",
+        self.assertTrue(
+            BusinessProfile.objects.filter(
+                business=self.business,
+            ).exists()
         )
 
         with self.assertRaises(IntegrityError):
@@ -104,9 +109,8 @@ class BusinessProfileModelTests(TestCase):
         Deleting a Business should delete its BusinessProfile.
         """
 
-        profile = BusinessProfile.objects.create(
+        profile = BusinessProfile.objects.get(
             business=self.business,
-            mission="Business profile.",
         )
 
         profile_id = profile.id
@@ -122,7 +126,7 @@ class BusinessProfileModelTests(TestCase):
     def test_profile_string_representation(self):
         """The profile string representation should identify its business."""
 
-        profile = BusinessProfile.objects.create(
+        profile = BusinessProfile.objects.get(
             business=self.business,
         )
 
@@ -137,7 +141,7 @@ class BusinessProfileModelTests(TestCase):
         Kova will progressively learn more about a business over time.
         """
 
-        profile = BusinessProfile.objects.create(
+        profile = BusinessProfile.objects.get(
             business=self.business,
         )
 
@@ -229,8 +233,9 @@ class BusinessProfileAPITests(TestCase):
 
         self.authenticate_as_owner()
 
-        BusinessProfile.objects.create(
+        BusinessProfile.objects.filter(
             business=self.business,
+        ).update(
             mission="Help customers discover quality products.",
             target_market="Young professionals.",
         )
@@ -256,15 +261,15 @@ class BusinessProfileAPITests(TestCase):
 
     def test_profile_is_created_automatically_when_missing(self):
         """
-        GET should create an empty profile when the business does not
-        have one yet.
+        GET should return the profile provisioned when the business
+        was created.
 
         This supports Kova's progressive Business Brain architecture.
         """
 
         self.authenticate_as_owner()
 
-        self.assertFalse(
+        self.assertTrue(
             BusinessProfile.objects.filter(
                 business=self.business,
             ).exists()
@@ -279,10 +284,9 @@ class BusinessProfileAPITests(TestCase):
             status.HTTP_200_OK,
         )
 
-        self.assertTrue(
-            BusinessProfile.objects.filter(
-                business=self.business,
-            ).exists()
+        self.assertEqual(
+            response.data["business"],
+            self.business.id,
         )
 
     def test_owner_can_update_profile(self):
@@ -333,8 +337,9 @@ class BusinessProfileAPITests(TestCase):
 
         self.authenticate_as_owner()
 
-        BusinessProfile.objects.create(
+        BusinessProfile.objects.filter(
             business=self.business,
+        ).update(
             mission="Original mission.",
             value_proposition="Original value proposition.",
             target_market="Original target market.",
@@ -444,10 +449,12 @@ class BusinessProfileAPITests(TestCase):
             user=self.owner,
         )
 
-        profile = BusinessProfile.objects.create(
+        profile = BusinessProfile.objects.get(
             business=self.business,
-            mission="Original mission.",
         )
+
+        profile.mission = "Original mission."
+        profile.save()
 
         response = self.client.patch(
             self.url,
@@ -965,7 +972,7 @@ class BusinessBrandAPITests(APITestCase):
             user=self.owner,
         )
 
-        self.assertFalse(
+        self.assertTrue(
             BusinessBrand.objects.filter(
                 business=self.business,
             ).exists()
@@ -1064,8 +1071,9 @@ class BusinessBrandAPITests(APITestCase):
             user=self.owner,
         )
 
-        BusinessBrand.objects.create(
+        BusinessBrand.objects.filter(
             business=self.business,
+        ).update(
             voice="Friendly and confident.",
             tone="Warm.",
             positioning="Affordable skincare.",
@@ -1145,10 +1153,12 @@ class BusinessBrandAPITests(APITestCase):
             user=self.owner,
         )
 
-        original_brand = BusinessBrand.objects.create(
+        original_brand = BusinessBrand.objects.get(
             business=self.business,
-            voice="Original voice.",
         )
+
+        original_brand.voice = "Original voice."
+        original_brand.save()
 
         response = self.client.patch(
             self.url,
@@ -1174,10 +1184,4 @@ class BusinessBrandAPITests(APITestCase):
         self.assertEqual(
             original_brand.voice,
             "Updated voice.",
-        )
-
-        self.assertFalse(
-            BusinessBrand.objects.filter(
-                business=self.other_business,
-            ).exists()
         )

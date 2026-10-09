@@ -270,10 +270,9 @@ class ToolRegistryTests(TestCase):
     def test_executes_allowed_tool(self):
         """An allowed decision should reach its registered tool."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
-            allow_content_creation=True,
-        )
+        ).update(allow_content_creation=True)
 
         self.registry.register(
             FakeContentTool(),
@@ -305,10 +304,9 @@ class ToolRegistryTests(TestCase):
     def test_denied_tool_does_not_execute(self):
         """A denied decision must not reach the tool."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
-            allow_content_creation=False,
-        )
+        ).update(allow_content_creation=False)
 
         self.registry.register(
             FakeContentTool(),
@@ -332,10 +330,9 @@ class ToolRegistryTests(TestCase):
     def test_customer_response_tool_can_execute(self):
         """Customer response tools should use the same execution path."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
-            allow_comment_replies=True,
-        )
+        ).update(allow_comment_replies=True)
 
         self.registry.register(
             FakeCustomerResponseTool(),
@@ -368,10 +365,9 @@ class ToolRegistryTests(TestCase):
     def test_commerce_tool_can_execute(self):
         """Commerce tools should use the same execution path."""
 
-        BusinessPolicy.objects.create(
+        BusinessPolicy.objects.filter(
             business=self.business,
-            allow_product_management=True,
-        )
+        ).update(allow_product_management=True)
 
         self.registry.register(
             FakeCommerceTool(),
@@ -406,10 +402,6 @@ class ToolRegistryTests(TestCase):
     def test_business_context_tool_can_execute(self):
         """Business context tools should be allowed to read context."""
 
-        BusinessPolicy.objects.create(
-            business=self.business,
-        )
-
         self.registry.register(
             FakeReadBusinessContextTool(),
         )
@@ -437,10 +429,6 @@ class ToolRegistryTests(TestCase):
 
     def test_execute_tool_call_creates_decision(self):
         """Tool-call execution should create a controlled decision."""
-
-        BusinessPolicy.objects.create(
-            business=self.business,
-        )
 
         self.registry.register(
             FakeReadBusinessContextTool(),

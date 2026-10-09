@@ -25,23 +25,45 @@ class OpenRouterError(Exception):
 class OpenRouterService:
     """Production OpenRouter client used by Kova."""
 
-    BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
+    BASE_URL = (
+        "https://openrouter.ai/api/v1/chat/completions"
+    )
 
     def __init__(
         self,
         *,
         api_key: str | None = None,
         model: str | None = None,
-        timeout: int = 60,
+        timeout: int = 90,
     ) -> None:
-        self.api_key = api_key or settings.OPENROUTER_API_KEY
-        self.model = model or settings.OPENROUTER_MODEL
+        self.api_key = (
+            api_key
+            if api_key is not None
+            else getattr(
+                settings,
+                "OPENROUTER_API_KEY",
+                "",
+            )
+        )
+
+        self.model = (
+            model
+            if model is not None
+            else getattr(
+                settings,
+                "OPENROUTER_MODEL",
+                "",
+            )
+        )
+
         self.timeout = timeout
         self.session = self._build_session()
 
     @staticmethod
     def _build_session() -> requests.Session:
-        """Create an HTTP session with safe transient retry behavior."""
+        """
+        Create an HTTP session with safe transient retry behavior.
+        """
 
         retry = Retry(
             total=2,
@@ -49,8 +71,15 @@ class OpenRouterService:
             read=2,
             status=2,
             backoff_factor=0.5,
-            status_forcelist=(429, 502, 503, 504),
-            allowed_methods=frozenset({"POST"}),
+            status_forcelist=(
+                429,
+                502,
+                503,
+                504,
+            ),
+            allowed_methods=frozenset(
+                {"POST"}
+            ),
             raise_on_status=False,
         )
 
@@ -59,7 +88,11 @@ class OpenRouterService:
         )
 
         session = requests.Session()
-        session.mount("https://", adapter)
+
+        session.mount(
+            "https://",
+            adapter,
+        )
 
         return session
 
@@ -68,11 +101,20 @@ class OpenRouterService:
         *,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
-        tool_choice: str | dict[str, Any] | None = None,
+        tool_choice: (
+            str
+            | dict[str, Any]
+            | None
+        ) = None,
         parallel_tool_calls: bool = False,
         temperature: float = 0.2,
         max_tokens: int = 4096,
-        response_format: dict[str, Any] | None = None,
+        response_format: (
+            dict[str, Any]
+            | None
+        ) = None,
+        plugins: list[dict[str, Any]] | None = None,
+        reasoning: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Send a chat completion request to OpenRouter.
@@ -89,13 +131,15 @@ class OpenRouterService:
             temperature: Model sampling temperature.
             max_tokens: Maximum generated tokens.
             response_format: Optional structured-output configuration.
+            plugins: Optional OpenRouter plugins, including web search.
 
         Returns:
             Parsed OpenRouter response.
 
         Raises:
-            OpenRouterError: If configuration, networking, or provider
-                response validation fails.
+            OpenRouterError:
+                If configuration, networking, or provider response
+                validation fails.
         """
 
         if not self.api_key:
@@ -108,12 +152,19 @@ class OpenRouterService:
                 "OPENROUTER_MODEL is not configured."
             )
 
+        if not messages:
+            raise OpenRouterError(
+                "At least one message is required."
+            )
+
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
-            "parallel_tool_calls": parallel_tool_calls,
+            "parallel_tool_calls": (
+                parallel_tool_calls
+            ),
         }
 
         if tools:
@@ -123,10 +174,20 @@ class OpenRouterService:
             payload["tool_choice"] = tool_choice
 
         if response_format is not None:
-            payload["response_format"] = response_format
+            payload["response_format"] = (
+                response_format
+            )
+
+        if plugins:
+            payload["plugins"] = plugins
+
+        if reasoning:
+            payload["reasoning"] = reasoning
 
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": (
+                f"Bearer {self.api_key}"
+            ),
             "Content-Type": "application/json",
         }
 
@@ -155,20 +216,26 @@ class OpenRouterService:
                 json=payload,
                 timeout=self.timeout,
             )
+
         except requests.RequestException as exc:
             raise OpenRouterError(
                 f"Unable to reach OpenRouter: {exc}"
             ) from exc
 
         if not response.ok:
+            detail = self._extract_error_detail(
+                response
+            )
+
             raise OpenRouterError(
                 "OpenRouter request failed "
                 f"with status {response.status_code}: "
-                f"{response.text[:1000]}"
+                f"{detail}"
             )
 
         try:
             data = response.json()
+
         except ValueError as exc:
             raise OpenRouterError(
                 "OpenRouter returned invalid JSON."
@@ -180,3 +247,41 @@ class OpenRouterService:
             )
 
         return data
+
+    @staticmethod
+    def _extract_error_detail(
+        response: requests.Response,
+    ) -> str:
+        """
+        Extract a useful provider error without exposing an enormous
+        response body.
+        """
+
+        try:
+            data = response.json()
+
+            if isinstance(data, dict):
+                error = data.get("error")
+
+                if isinstance(error, dict):
+                    message = error.get(
+                        "message"
+                    )
+
+                    if message:
+                        return str(message)
+
+                if isinstance(error, str):
+                    return error
+
+        except ValueError:
+            pass
+
+        text = (
+            response.text or ""
+        ).strip()
+
+        if not text:
+            return "No error details returned."
+
+        return text[:1000]

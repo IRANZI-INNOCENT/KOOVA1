@@ -18,10 +18,16 @@ const geistMono = Geist_Mono({
 });
 
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover" as const,
+};
+
 export const metadata: Metadata = {
   title: "Kova — From Content to Commerce",
   description:
-    "Kova is the AI social media manager that helps small businesses create, publish, engage with customers, generate leads, and sell.",
+    "Photograph a product. Kova publishes your store and a WhatsApp order page. Start a 7-day free trial.",
 };
 
 
