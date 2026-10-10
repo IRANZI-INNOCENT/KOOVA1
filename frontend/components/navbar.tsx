@@ -6,43 +6,42 @@ import { Logo } from "@/components/ui/logo";
 
 const links = [
   { label: "How it works", href: "/#how-it-works" },
-  { label: "Snap to Sell", href: "/#commerce" },
-  { label: "Kova", href: "/#social" },
-  { label: "Pricing", href: "/#pricing" },
+  { label: "Social", href: "/#social" },
+  { label: "Commerce", href: "/#commerce" },
 ];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 bg-kova-green pt-[env(safe-area-inset-top)]">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 lg:px-8">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-kova-green/95 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+      <div className="mx-auto flex h-[4.25rem] max-w-6xl items-center justify-between gap-3 px-4 lg:px-8">
         <Logo href="/" tone="light" />
 
-        <nav className="hidden items-center gap-7 md:flex">
+        <nav className="hidden items-center gap-8 md:flex">
           {links.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-white/90 transition-colors hover:text-kova-orange"
+              className="text-[13px] font-medium text-white/88 transition-colors hover:text-kova-orange"
             >
               {link.label}
             </a>
           ))}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <a
             href="/login"
-            className="hidden text-sm font-medium text-white/90 transition-colors hover:text-kova-orange sm:block"
+            className="hidden text-[13px] font-medium text-white/88 transition-colors hover:text-kova-orange sm:block"
           >
             Log in
           </a>
           <a
             href="/signup"
-            className="inline-flex h-9 shrink-0 items-center rounded-md bg-kova-orange px-3 text-sm font-semibold text-kova-dark transition-colors hover:bg-[#f0a46e] sm:px-4"
+            className="inline-flex h-9 shrink-0 items-center rounded-md bg-kova-orange px-3.5 text-[13px] font-semibold text-kova-dark transition-colors hover:bg-[#f0a46e] sm:px-4"
           >
-            Start free
+            Start free trial
           </a>
           <button
             type="button"
@@ -50,7 +49,15 @@ export default function Navbar() {
             aria-label={open ? "Close menu" : "Open menu"}
             onClick={() => setOpen((current) => !current)}
           >
-            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            >
               {open ? (
                 <>
                   <path d="M4 4l12 12" />

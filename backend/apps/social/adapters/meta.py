@@ -221,6 +221,34 @@ class MetaAdapter(ChannelAdapter):
             raw_response=data,
         )
 
+    def list_recent_posts(self, account: SocialAccount) -> list[dict[str, str]]:
+        """Read a short baseline of posts already on the account."""
+        if account.platform == SocialAccount.Platform.INSTAGRAM:
+            fields = "id,caption,timestamp"
+            edge = "media"
+        else:
+            fields = "id,message,created_time"
+            edge = "posts"
+        resp = requests.get(
+            f"{GRAPH_URL}/{account.platform_account_id}/{edge}",
+            params={
+                "fields": fields,
+                "limit": 5,
+                "access_token": account.access_token,
+            },
+            timeout=15,
+        )
+        payload = resp.json()
+        found: list[dict[str, str]] = []
+        for item in payload.get("data") or []:
+            text = (item.get("caption") or item.get("message") or "").strip()
+            found.append({
+                "id": str(item.get("id") or ""),
+                "text": text[:180],
+                "created_time": str(item.get("timestamp") or item.get("created_time") or ""),
+            })
+        return found
+
     def list_recent_comments(self, account: SocialAccount) -> list[dict[str, str]]:
         """Read recent comments on the Page or Instagram account."""
         if account.platform == SocialAccount.Platform.INSTAGRAM:
@@ -505,57 +533,97 @@ class MetaAdapter(ChannelAdapter):
         )
 
     @staticmethod
+    def _read_json(resp) -> dict:
+        try:
+            data = resp.json()
+        except ValueError:
+            return {}
+        return data if isinstance(data, dict) else {}
+
+    @staticmethod
+    def _insight_values(account: SocialAccount, post_id: str, metric: str) -> dict[str, int]:
+        resp = requests.get(
+            f"{GRAPH_URL}/{post_id}/insights",
+            params={"metric": metric, "access_token": account.access_token},
+            timeout=12,
+        )
+        data = MetaAdapter._read_json(resp)
+        if data.get("error"):
+            return {}
+        found: dict[str, int] = {}
+        for item in data.get("data") or []:
+            name = str(item.get("name") or "")
+            values = item.get("values") or [{}]
+            raw = values[0].get("value", 0) if values else 0
+            if isinstance(raw, dict):
+                raw = raw.get("value", 0)
+            try:
+                found[name] = int(raw or 0)
+            except (TypeError, ValueError):
+                found[name] = 0
+        return found
+
+    @staticmethod
     def _fb_metrics(account: SocialAccount, post_id: str) -> dict[str, int]:
         resp = requests.get(
             f"{GRAPH_URL}/{post_id}",
             params={
-                "fields": "likes.summary(true),comments.summary(true),"
-                          "shares,insights.metric(post_impressions,post_clicks)",
+                "fields": "likes.summary(true),comments.summary(true),shares,reactions.summary(true)",
                 "access_token": account.access_token,
             },
-            timeout=15,
+            timeout=12,
         )
-        data = resp.json()
-        likes = data.get("likes", {}).get("summary", {}).get("total_count", 0)
-        comments = data.get("comments", {}).get("summary", {}).get("total_count", 0)
-        shares = data.get("shares", {}).get("count", 0)
-        impressions = 0
-        clicks = 0
-        for item in data.get("insights", {}).get("data", []):
-            if item.get("name") == "post_impressions":
-                impressions = item.get("values", [{}])[0].get("value", 0)
-            elif item.get("name") == "post_clicks":
-                clicks = item.get("values", [{}])[0].get("value", 0)
+        data = MetaAdapter._read_json(resp)
+        likes = int(((data.get("likes") or {}).get("summary") or {}).get("total_count") or 0)
+        reactions = int(((data.get("reactions") or {}).get("summary") or {}).get("total_count") or 0)
+        comments = int(((data.get("comments") or {}).get("summary") or {}).get("total_count") or 0)
+        shares = int(((data.get("shares") or {}).get("count")) or 0)
+        insights = MetaAdapter._insight_values(
+            account,
+            post_id,
+            "post_media_view,post_clicks,post_impressions_unique",
+        )
+        if not insights:
+            insights = MetaAdapter._insight_values(
+                account,
+                post_id,
+                "post_impressions,post_impressions_unique,post_clicks",
+            )
         return {
-            "likes": likes,
+            "likes": likes or reactions,
             "comments_count": comments,
             "shares": shares,
-            "impressions": impressions,
-            "clicks": clicks,
+            "impressions": insights.get("post_media_view") or insights.get("post_impressions") or 0,
+            "reach": insights.get("post_impressions_unique") or 0,
+            "clicks": insights.get("post_clicks") or 0,
         }
 
     @staticmethod
     def _ig_metrics(account: SocialAccount, post_id: str) -> dict[str, int]:
-        resp = requests.get(
-            f"{GRAPH_URL}/{post_id}/insights",
+        media = MetaAdapter._read_json(requests.get(
+            f"{GRAPH_URL}/{post_id}",
             params={
-                "metric": "reach,impressions,likes,comments,shares",
+                "fields": "like_count,comments_count",
                 "access_token": account.access_token,
             },
-            timeout=15,
+            timeout=12,
+        ))
+        insights = MetaAdapter._insight_values(
+            account,
+            post_id,
+            "reach,views,likes,comments,shares",
         )
-        metrics: dict[str, int] = {}
-        for item in resp.json().get("data", []):
-            name = item.get("name", "")
-            value = item.get("values", [{}])[0].get("value", 0)
-            if name == "reach":
-                metrics["reach"] = value
-            elif name == "impressions":
-                metrics["impressions"] = value
-            elif name == "likes":
-                metrics["likes"] = value
-            elif name == "comments":
-                metrics["comments_count"] = value
-            elif name == "shares":
-                metrics["shares"] = value
-        return metrics
+        if not insights:
+            insights = MetaAdapter._insight_values(
+                account,
+                post_id,
+                "reach,impressions,likes,comments,shares",
+            )
+        return {
+            "likes": insights.get("likes", int(media.get("like_count") or 0)),
+            "comments_count": insights.get("comments", int(media.get("comments_count") or 0)),
+            "shares": insights.get("shares", 0),
+            "impressions": insights.get("views", insights.get("impressions", 0)),
+            "reach": insights.get("reach", 0),
+            "clicks": 0,
+        }

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { AppShell } from "@/components/workspace/app-shell";
@@ -13,6 +14,11 @@ import {
   type Business,
   type KovaToolCall,
 } from "@/lib/commerce";
+import {
+  getBusinessPolicy,
+  getSocialOverview,
+  type OperatingMode,
+} from "@/lib/social";
 
 interface ChatMessage {
   id: string;
@@ -56,6 +62,12 @@ export default function KovaChatPage() {
   const [error, setError] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(true);
+  const [desk, setDesk] = useState<{
+    mode: OperatingMode;
+    paused: boolean;
+    pauseReason: string;
+    plan: string;
+  } | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -70,10 +82,23 @@ export default function KovaChatPage() {
     getBusiness(accessToken)
       .then((current) => {
         setBusiness(current);
-        getKovaStarters(current.id, accessToken)
+        void getKovaStarters(current.id, accessToken)
           .then(setSuggestions)
           .catch(() => setSuggestions([]))
           .finally(() => setSuggestionsLoading(false));
+        void Promise.all([
+          getSocialOverview(current.id, accessToken),
+          getBusinessPolicy(current.id, accessToken),
+        ])
+          .then(([overview, policy]) => {
+            setDesk({
+              mode: policy.social_operating_mode,
+              paused: policy.automation_paused,
+              pauseReason: policy.automation_pause_reason,
+              plan: overview.command.plan,
+            });
+          })
+          .catch(() => setDesk(null));
       })
       .catch(() => router.replace("/workspace/setup"))
       .finally(() => setLoading(false));
@@ -156,6 +181,7 @@ export default function KovaChatPage() {
             {messages.length === 0 ? (
               <EmptyState
                 businessName={business?.name || "your business"}
+                desk={desk}
                 suggestions={suggestions}
                 loading={suggestionsLoading}
                 onSuggestion={handleSuggestion}
@@ -233,48 +259,83 @@ export default function KovaChatPage() {
 }
 
 
+const MODE_LABEL: Record<OperatingMode, string> = {
+  assist: "Assist",
+  approval: "Approval",
+  autopilot: "Autopilot",
+};
+
 function EmptyState({
   businessName,
+  desk,
   suggestions,
   loading,
   onSuggestion,
 }: {
   businessName: string;
+  desk: {
+    mode: OperatingMode;
+    paused: boolean;
+    pauseReason: string;
+    plan: string;
+  } | null;
   suggestions: string[];
   loading: boolean;
   onSuggestion: (text: string) => void;
 }) {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-kova-green/10">
-        <span className="text-2xl font-bold text-kova-green">K</span>
+    <div className="flex min-h-[60vh] flex-col items-center justify-center px-2 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-kova-green/10">
+        <span className="text-xl font-bold text-kova-green">K</span>
       </div>
 
-      <h2 className="mt-6 text-2xl font-semibold tracking-tight text-kova-dark">
+      <h2 className="mt-5 text-2xl font-semibold tracking-tight text-kova-dark">
         Talk to Kova
       </h2>
-      <p className="mt-2 max-w-md text-sm leading-6 text-gray-500">
-        Kova understands {businessName} through your Business Brain.
-        Ask questions, create content, manage products, or get analytics.
-      </p>
+      <p className="mt-1 text-sm text-gray-500">{businessName}</p>
 
-      <div className="mt-8 grid w-full max-w-lg gap-3 sm:grid-cols-2">
-        {loading && (
-          <p className="col-span-full text-sm text-gray-500">
-            Kova is reading {businessName} and what similar sellers are posting.
-          </p>
-        )}
-        {suggestions.map((text) => (
-          <button
-            key={text}
-            type="button"
-            onClick={() => onSuggestion(text)}
-            className="rounded-md border border-kova-border bg-white px-4 py-3 text-left text-sm text-gray-600 transition-colors hover:border-kova-green hover:text-kova-dark"
-          >
-            {text}
-          </button>
-        ))}
-      </div>
+      {desk && (
+        <div className="mt-4 flex max-w-md flex-col items-center gap-2">
+          <span className="rounded-full bg-kova-green/10 px-3 py-0.5 text-xs font-medium text-kova-green">
+            {MODE_LABEL[desk.mode]}
+          </span>
+          {desk.mode === "autopilot" && (
+            <Link
+              href="/workspace/social/autopilot"
+              className="text-xs font-medium text-kova-green hover:underline"
+            >
+              See what Kova is doing
+            </Link>
+          )}
+          {desk.paused && (
+            <p className="text-sm leading-6 text-amber-800">
+              {desk.pauseReason.trim() ||
+                "Scheduled publishing is paused until you resume it."}
+            </p>
+          )}
+          {desk.plan.trim() && (
+            <p className="text-sm leading-6 text-kova-dark/75">{desk.plan}</p>
+          )}
+        </div>
+      )}
+
+      {(loading || suggestions.length > 0) && (
+        <div className="mt-8 w-full max-w-md space-y-3 text-left">
+          {loading && (
+            <p className="text-sm text-gray-500">Finding a few questions to start with…</p>
+          )}
+          {suggestions.map((text) => (
+            <button
+              key={text}
+              type="button"
+              onClick={() => onSuggestion(text)}
+              className="block w-full text-left text-sm leading-6 text-kova-dark/80 transition-colors hover:text-kova-green"
+            >
+              {text}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

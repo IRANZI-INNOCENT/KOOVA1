@@ -41,8 +41,9 @@ export default function AiUsagePage() {
         </p>
         <p>
           Your business policy sets what Kova may do on its own and what waits
-          for your approval. Autopilot still follows that policy. You remain
-          responsible for what is published in your name.
+          for your approval. When Autopilot is on, Kova carries out the content,
+          the replies, the listing wording, the day's posts, and the report.
+          You remain responsible for what is published in your name.
         </p>
       </LegalSection>
 

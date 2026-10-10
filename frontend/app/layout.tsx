@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fraunces, Geist, Geist_Mono } from "next/font/google";
 
 import "./globals.css";
 
@@ -17,6 +17,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const fraunces = Fraunces({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+});
+
 
 export const viewport = {
   width: "device-width",
@@ -25,9 +31,9 @@ export const viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Kova — From Content to Commerce",
+  title: "Kova — Social media and sales for your business",
   description:
-    "Photograph a product. Kova publishes your store and a WhatsApp order page. Start a 7-day free trial.",
+    "Kova posts for you, replies to customers, and turns products into a live store with WhatsApp orders. Built for small businesses in Kenya. Start a 7-day free trial.",
 };
 
 
@@ -39,7 +45,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable}`}
+        className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable}`}
       >
         <AuthProvider>
           {children}

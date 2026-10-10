@@ -1,8 +1,9 @@
+import { Logo } from "@/components/ui/logo";
+
 const productLinks = [
   { label: "How it works", href: "/#how-it-works" },
-  { label: "Snap to Sell", href: "/#commerce" },
-  { label: "Talk to Kova", href: "/#social" },
-  { label: "Pricing", href: "/#pricing" },
+  { label: "Social", href: "/#social" },
+  { label: "Commerce", href: "/#commerce" },
 ];
 
 const companyLinks = [
@@ -14,27 +15,23 @@ const companyLinks = [
 
 export default function Footer() {
   return (
-    <footer className="border-t border-kova-border bg-kova-dark text-white">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
-        <div className="grid gap-12 lg:grid-cols-[1.5fr_1fr_1fr]">
+    <footer className="border-t border-white/10 bg-kova-dark text-white">
+      <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
+        <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr_1fr]">
           <div>
-            <a
-              href="/"
-              className="text-2xl font-bold tracking-tight"
-            >
-              KOVA
-            </a>
-
-            <p className="mt-5 max-w-sm text-sm leading-6 text-white/50">
-              Photograph a product, publish the store, and take the order on WhatsApp.
+            <div className="[&_span]:text-white [&_span_span]:text-kova-orange">
+              <Logo href="/" tone="light" />
+            </div>
+            <p className="mt-5 max-w-sm text-sm leading-6 text-white/52">
+              Social media, customer replies, and a WhatsApp-ready store for small businesses. Kova
+              keeps the daily work in one place.
             </p>
           </div>
 
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-kova-orange">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-kova-orange">
               Product
             </p>
-
             <nav className="mt-5 space-y-3">
               {productLinks.map((link) => (
                 <a
@@ -49,10 +46,9 @@ export default function Footer() {
           </div>
 
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-kova-orange">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-kova-orange">
               Company
             </p>
-
             <nav className="mt-5 space-y-3">
               {companyLinks.map((link) => (
                 <a
@@ -67,14 +63,9 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-16 flex flex-col gap-4 border-t border-white/10 pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-white/35">
-            © {new Date().getFullYear()} Kova. All rights reserved.
-          </p>
-
-          <p className="text-xs text-white/35">
-            From content to commerce.
-          </p>
+        <div className="mt-14 flex flex-col gap-3 border-t border-white/10 pt-8 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-white/35">© {new Date().getFullYear()} Kova</p>
+          <p className="text-xs text-white/35">Built for businesses that sell on social and WhatsApp</p>
         </div>
       </div>
     </footer>

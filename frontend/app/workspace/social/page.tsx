@@ -10,6 +10,7 @@ import { getBusiness } from "@/lib/commerce";
 import {
   getBusinessPolicy,
   getSocialOverview,
+  resumeScheduledPublishing,
   updateOperatingMode,
   type OperatingMode,
   type SocialOverview,
@@ -32,7 +33,7 @@ const MODE_META: Record<
   autopilot: {
     label: "Autopilot",
     description:
-      "Kova independently creates, schedules, publishes, and replies within your brand guidelines.",
+      "Kova has the company. It writes, replies, polishes listings, plans the day's posts, and files the report.",
   },
 };
 
@@ -86,6 +87,9 @@ export default function SocialOverviewPage() {
     try {
       const policy = await updateOperatingMode(businessId, next, accessToken);
       setMode(policy.social_operating_mode);
+      if (next === "autopilot") {
+        router.push("/workspace/social/autopilot");
+      }
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -182,25 +186,71 @@ export default function SocialOverviewPage() {
         {/* ──── Stat cards ──── */}
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-kova-border bg-kova-border sm:grid-cols-4">
           <StatCell
-            label="Channels"
-            value={o.channels.connected}
-            detail={`${o.channels.total} account${o.channels.total !== 1 ? "s" : ""} total`}
-            color="green"
-          />
-          <StatCell label="Drafts" value={o.content.drafts} detail="Ready to edit" color="default" />
-          <StatCell
-            label="Approved"
-            value={o.content.approved}
-            detail="Ready to publish"
+            label="Posts scheduled"
+            value={o.command?.scheduled_posts ?? 0}
+            detail="Waiting for their time"
             color="orange"
           />
           <StatCell
-            label="Published"
-            value={o.content.published}
-            detail="Recorded in Kova"
+            label="Conversations to review"
+            value={o.command?.conversations_to_review ?? 0}
+            detail="Comments and messages still waiting"
+            color="default"
+          />
+          <StatCell
+            label="Potential leads"
+            value={o.command?.potential_leads ?? 0}
+            detail="New buyers Kova has recorded"
+            color="green"
+          />
+          <StatCell
+            label="Actions verified today"
+            value={o.command?.actions_verified_today ?? 0}
+            detail="Completed on the platform today"
             color="green"
           />
         </div>
+
+        {o.command?.plan && (
+          <p className="text-sm leading-6 text-kova-dark">{o.command.plan}</p>
+        )}
+
+        {o.command?.automation_paused && (
+          <div className="flex flex-col gap-3 rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between">
+            <p>{o.command.pause_reason || "Scheduled publishing is paused."}</p>
+            <button
+              type="button"
+              className="inline-flex h-9 items-center rounded-md bg-kova-green px-4 text-xs font-bold text-white"
+              onClick={() => {
+                if (!businessId || !accessToken) return;
+                resumeScheduledPublishing(businessId, accessToken)
+                  .then(() => getSocialOverview(businessId, accessToken))
+                  .then(setOverview)
+                  .catch((err) => {
+                    setError(err instanceof ApiError ? err.message : "Could not resume scheduled publishing.");
+                  });
+              }}
+            >
+              Resume scheduled posts
+            </button>
+          </div>
+        )}
+
+        {o.command?.recommendations?.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold text-kova-dark">Kova recommends</h2>
+            {o.command.recommendations.map((item) => (
+              <Link
+                key={item.title}
+                href={item.href}
+                className="block rounded-lg border border-kova-border bg-white px-5 py-4 hover:border-kova-green"
+              >
+                <p className="text-sm font-bold text-kova-dark">{item.title}</p>
+                <p className="mt-1 text-sm leading-6 text-gray-600">{item.detail}</p>
+              </Link>
+            ))}
+          </section>
+        )}
 
         {/* ──── Pending actions ──── */}
         {o.pending_actions > 0 && (
@@ -228,10 +278,15 @@ export default function SocialOverviewPage() {
                 Autopilot is active
               </p>
               <p className="mt-1 text-sm leading-6 text-gray-600">
-                Kova is creating content, scheduling posts, and engaging with
-                comments within your brand guidelines. Everything is logged in
-                the activity feed below.
+                Kova is handling posts, replies, listings, and today's report.
+                Open Autopilot to see what it has done.
               </p>
+              <Link
+                href="/workspace/social/autopilot"
+                className="mt-3 inline-flex text-sm font-bold text-kova-green"
+              >
+                Watch the shift
+              </Link>
             </div>
           </div>
         )}

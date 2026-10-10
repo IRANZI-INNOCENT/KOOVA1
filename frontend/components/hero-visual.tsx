@@ -1,42 +1,38 @@
+import Image from "next/image";
+
+import { HeroConnection } from "@/components/landing/hero-connection";
+
 export default function HeroVisual() {
   return (
-    <div className="drop-shadow-md">
-      <div className="overflow-hidden rounded-lg border border-white/70 bg-white shadow-sm">
-        <div className="relative">
-          <img
-            src="/landing/sofa.jpg"
-            alt="Teal upholstered sofa listed on a Kova store"
-            className="aspect-[4/3] w-full object-cover"
+    <div className="relative mx-auto w-full max-w-md space-y-4 lg:max-w-none lg:justify-self-end">
+      <HeroConnection />
+
+      <div className="relative overflow-hidden rounded-lg border border-white/25 shadow-xl">
+        <div className="relative aspect-[5/4] w-full sm:aspect-[16/11]">
+          <Image
+            src="/landing/snap.jpg"
+            alt="Business owner photographing products for their store"
+            fill
+            className="object-cover"
+            sizes="(max-width: 1024px) 90vw, 440px"
+            priority
           />
-          <span className="absolute left-3 top-3 rounded-md bg-kova-green px-2 py-1 text-xs font-semibold text-white">
-            Live on your store
-          </span>
-        </div>
-        <div className="flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-kova-orange">
-              From one photo
-            </p>
-            <h3 className="mt-1 text-base font-semibold text-kova-dark">
-              Upholstered living room sofa
-            </h3>
-            <p className="mt-1 text-sm font-bold text-kova-orange">KES 23,000</p>
-          </div>
-          <span className="inline-flex h-9 shrink-0 items-center rounded-md bg-kova-orange px-3 text-xs font-bold text-kova-dark">
-            Order on WhatsApp
-          </span>
+          <div className="absolute inset-0 bg-gradient-to-t from-kova-dark/60 via-kova-dark/10 to-transparent" />
+          <p className="absolute bottom-3 left-3 right-3 text-sm font-medium leading-snug text-white">
+            Snap a product in the shop. Kova lists it and shares it on social.
+          </p>
         </div>
       </div>
 
-      <div className="mt-3 overflow-hidden rounded-lg border border-kova-border bg-white p-3 shadow-sm">
-        <p className="px-1 text-xs font-semibold uppercase tracking-[0.14em] text-kova-green">
+      <div className="rounded-lg border border-white/25 bg-white/95 p-4 shadow-lg backdrop-blur-sm">
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-kova-green">
           Talk to Kova
         </p>
-        <p className="mt-2 ml-auto w-fit max-w-[85%] rounded-md bg-kova-green px-3 py-2 text-xs leading-5 text-white">
-          List this sofa and write a post.
+        <p className="mt-3 text-right text-xs leading-5 text-kova-green">
+          Draft tonight&apos;s post for the sofa.
         </p>
-        <p className="mt-2 max-w-[90%] rounded-md border border-kova-orange/40 bg-kova-orange/25 px-3 py-2 text-xs leading-5 text-kova-dark">
-          It is live. Customers can order on WhatsApp, and the post is ready to publish.
+        <p className="mt-2 text-xs leading-5 text-kova-dark/80">
+          Caption is ready. I tied it to the live product page and kept your price at KES 23,000.
         </p>
       </div>
     </div>

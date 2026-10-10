@@ -90,7 +90,9 @@ class MetaOAuthURLView(APIView):
         chosen = request.query_params.get("platform", "facebook")
         if chosen not in {"facebook", "instagram"}:
             chosen = "facebook"
-        scopes = "pages_show_list,pages_manage_posts,pages_read_engagement"
+        from .services.capabilities import REQUESTED_SCOPES
+
+        scopes = ",".join(REQUESTED_SCOPES)
         url = (
             f"https://www.facebook.com/v21.0/dialog/oauth"
             f"?client_id={app_id}"
@@ -256,6 +258,8 @@ class SocialOverviewView(APIView):
             many=True,
         ).data
 
+        from .services.command import build_social_command
+
         return Response({
             "channels": {
                 "connected": connected,
@@ -269,7 +273,65 @@ class SocialOverviewView(APIView):
             },
             "pending_actions": pending_actions,
             "recent_actions": recent_actions,
+            "command": build_social_command(business),
         })
+
+
+class AutopilotShiftView(APIView):
+    """Show the current Autopilot shift, and start one when asked."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, business_id):
+        business = get_object_or_404(Business, id=business_id, owner=request.user)
+        return Response(_autopilot_payload(business))
+
+    def post(self, request, business_id):
+        business = get_object_or_404(Business, id=business_id, owner=request.user)
+        from .services.autopilot import run_shift
+
+        try:
+            run_shift(business, force=bool(request.data.get("force")))
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(_autopilot_payload(business))
+
+
+def _autopilot_payload(business):
+    from apps.business_brain.models import BusinessPolicy
+    from .services.autopilot import business_picture, latest_shift, shift_work
+    from .services.publish import refresh_due_metrics
+
+    policy = BusinessPolicy.objects.filter(business=business).first()
+    active = bool(
+        policy and policy.social_operating_mode == BusinessPolicy.OperatingMode.AUTOPILOT
+    )
+    shift = latest_shift(business)
+    refresh_due_metrics(business.id)
+    return {
+        "active": active,
+        "shift": None
+        if shift is None
+        else {
+            "id": shift.id,
+            "status": shift.status,
+            "started_at": shift.started_at.isoformat(),
+            "finished_at": shift.finished_at.isoformat() if shift.finished_at else None,
+        },
+        "work": shift_work(business, shift) if shift is not None else _empty_work(),
+        "picture": business_picture(business),
+    }
+
+
+def _empty_work():
+    return {
+        "summary": {"posts": "—", "replies": "—", "listings": "—", "report": "—"},
+        "posts": [],
+        "replies": [],
+        "listings": [],
+        "report": [],
+        "stopped": "",
+    }
 
 
 class SocialDispatchView(APIView):
@@ -352,7 +414,7 @@ class SocialMessageListView(APIView):
         from .services.inbox import pull_recent_comments
 
         pull_recent_comments(business)
-        messages = SocialMessage.objects.filter(business=business).order_by("-created_at")[:100]
+        messages = SocialMessage.objects.filter(business=business).order_by("-created_at")[:200]
         return Response(SocialMessageSerializer(messages, many=True).data)
 
     def post(self, request, business_id):

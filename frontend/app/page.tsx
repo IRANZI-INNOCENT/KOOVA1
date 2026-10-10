@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import Navbar from "@/components/navbar";
 import HeroVisual from "@/components/hero-visual";
 import Problem from "@/components/problem";
@@ -5,7 +7,6 @@ import HowItWorks from "@/components/how-it-works";
 import ProductShowcase from "@/components/product-showcase";
 import KovaSocial from "@/components/kova-social";
 import KovaCommerce from "@/components/kova-commerce";
-import Pricing from "@/components/pricing";
 import FAQ from "@/components/faq";
 import FinalCTA from "@/components/final-cta";
 import Footer from "@/components/footer";
@@ -15,41 +16,59 @@ export default function Home() {
     <main className="min-h-screen bg-kova-background">
       <Navbar />
 
-      <section className="relative overflow-hidden">
-        <img
+      <section className="relative min-h-[min(100vh,920px)] overflow-hidden">
+        <Image
           src="/landing/shop.jpg"
           alt=""
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+          fill
+          className="object-cover object-center"
+          sizes="100vw"
+          priority
         />
-        <div className="absolute inset-0 bg-[#fafaf8]/90 lg:bg-transparent lg:bg-gradient-to-r lg:from-[#fafaf8] lg:via-[#fafaf8]/88 lg:via-42% lg:to-[#fafaf8]/15" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-[calc(7rem+env(safe-area-inset-top))] sm:px-5 sm:pb-20 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16 lg:px-8 lg:pb-28 lg:pt-[calc(8rem+env(safe-area-inset-top))]">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
-              AI social media + commerce
+        <div
+          className="pointer-events-none absolute inset-0 bg-kova-dark/55"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-kova-dark/75 via-kova-dark/45 to-kova-dark/35"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-kova-background to-transparent"
+          aria-hidden
+        />
+
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pb-20 pt-[calc(6.5rem+env(safe-area-inset-top))] sm:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:gap-10 lg:px-8 lg:pb-24 lg:pt-[calc(7rem+env(safe-area-inset-top))]">
+          <div className="max-w-xl lg:max-w-none">
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-kova-orange backdrop-blur-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-kova-orange" />
+              Social · store · WhatsApp
             </p>
-            <h1 className="mt-3 max-w-xl text-[2rem] font-bold leading-[1.05] tracking-tight text-kova-dark sm:text-5xl lg:text-6xl">
-              Photograph a product.
-              <span className="mt-1 block text-kova-green">Sell it today.</span>
+            <h1 className="font-display mt-6 text-[2.35rem] font-semibold leading-[1.06] tracking-tight text-white sm:text-[3.15rem] lg:text-[3.55rem]">
+              One agent for the posts,
+              <span className="mt-1 block text-[#a8dcc8]">the replies, and the sale.</span>
             </h1>
-            <p className="mt-5 max-w-lg text-base leading-7 text-kova-dark/70 sm:text-lg">
-              Kova reads the photo, writes the listing, and publishes a public store with a WhatsApp order button. Ask Kova for the post, the reply, and the follow-up.
+            <p className="mt-6 max-w-lg text-[1.05rem] leading-[1.65] text-white/82 sm:text-lg">
+              Connect Facebook and Instagram, capture leads from the inbox, and send buyers to your
+              store page and WhatsApp — with Kova drafting every step from your real products and
+              prices.
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a
                 href="/signup"
-                className="inline-flex h-11 items-center justify-center rounded-md bg-kova-green px-6 text-sm font-semibold text-white transition-colors hover:bg-[#12583f]"
+                className="inline-flex h-12 items-center justify-center rounded-md bg-kova-orange px-7 text-sm font-semibold text-kova-dark shadow-sm transition-colors hover:bg-[#f0a46e]"
               >
-                Start free trial
+                Start 7-day free trial
               </a>
               <a
-                href="#commerce"
-                className="inline-flex h-11 items-center justify-center rounded-md border border-kova-border bg-white px-6 text-sm font-semibold text-kova-dark transition-colors hover:border-kova-orange"
+                href="#how-it-works"
+                className="inline-flex h-12 items-center justify-center rounded-md border border-white/35 bg-white/10 px-7 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/20"
               >
-                See Snap to Sell
+                See how it works
               </a>
             </div>
-            <p className="mt-5 text-sm text-kova-dark/50">
-              7 days free. Then KSh 1,300 a month. Cancel anytime.
+            <p className="mt-6 text-sm leading-6 text-white/55">
+              7-day free trial on the full workspace · cancel anytime
             </p>
           </div>
 
@@ -59,10 +78,9 @@ export default function Home() {
 
       <Problem />
       <HowItWorks />
-      <KovaCommerce />
       <KovaSocial />
+      <KovaCommerce />
       <ProductShowcase />
-      <Pricing />
       <FAQ />
       <FinalCTA />
       <Footer />

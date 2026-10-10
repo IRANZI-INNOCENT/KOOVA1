@@ -5,6 +5,12 @@ from .models import SocialAccount, SocialAction, SocialMessage, SocialPost
 
 class SocialAccountSerializer(serializers.ModelSerializer):
     is_healthy = serializers.BooleanField(read_only=True)
+    capabilities = serializers.SerializerMethodField()
+
+    def get_capabilities(self, obj):
+        from .services.capabilities import account_capabilities
+
+        return account_capabilities(obj)
 
     class Meta:
         model = SocialAccount
@@ -23,6 +29,7 @@ class SocialAccountSerializer(serializers.ModelSerializer):
             "last_verified_at",
             "metadata",
             "is_healthy",
+            "capabilities",
             "created_at",
             "updated_at",
         ]
@@ -37,6 +44,7 @@ class SocialAccountSerializer(serializers.ModelSerializer):
             "last_verified_at",
             "metadata",
             "is_healthy",
+            "capabilities",
             "created_at",
             "updated_at",
         ]
@@ -130,6 +138,8 @@ class SocialMessageSerializer(serializers.ModelSerializer):
             "external_id",
             "reply_target_id",
             "intent",
+            "confidence",
+            "needs_review",
             "lead",
             "reply_error",
             "delivery_status",

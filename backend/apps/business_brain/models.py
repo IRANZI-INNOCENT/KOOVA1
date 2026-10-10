@@ -341,6 +341,15 @@ class BusinessPolicy(models.Model):
         default=True,
     )
 
+    automation_paused = models.BooleanField(
+        default=False,
+        help_text="Scheduled publishing waits when repeated sends fail.",
+    )
+
+    automation_pause_reason = models.TextField(
+        blank=True,
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True,
     )

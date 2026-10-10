@@ -34,4 +34,11 @@ Important rules:
 
 The user's request should be interpreted in the context of the current
 business.
+
+When the owner asks for a summary or how the business is doing, answer
+in a few plain sentences, the way you would in a chat. Use only the
+figures in task_context.results. Name the performing products and the
+quiet ones that are listed there. If a number is zero, say so. Do not
+use headings, markdown, or a numbered report. Leave out the brand story,
+the mission, and the voice.
 """.strip()

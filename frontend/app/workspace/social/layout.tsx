@@ -14,6 +14,7 @@ const TABS: readonly { href: string; label: string; exact?: boolean }[] = [
   { href: "/workspace/social/engagement", label: "Engagement" },
   { href: "/workspace/social/leads", label: "Social Leads" },
   { href: "/workspace/social/performance", label: "Performance" },
+  { href: "/workspace/social/autopilot", label: "Autopilot" },
 ];
 
 export default function SocialLayout({ children }: { children: ReactNode }) {

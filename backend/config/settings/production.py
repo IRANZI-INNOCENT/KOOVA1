@@ -1,7 +1,12 @@
 import os
 from urllib.parse import unquote, urlparse
 
+from django.core.exceptions import ImproperlyConfigured
+
 from .base import *
+
+if not SECRET_KEY:
+    raise ImproperlyConfigured("Set DJANGO_SECRET_KEY on the API service before deploying.")
 
 
 DEBUG = False
@@ -44,10 +49,15 @@ if public_domain:
 # cookie has to travel on a cross-site request.
 REFRESH_COOKIE_SECURE = True
 REFRESH_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 
 database_url = os.getenv("DATABASE_URL", "").strip()
 if database_url:
     parsed = urlparse(database_url)
+    db_options: dict[str, str] = {}
+    if parsed.hostname and "railway" in parsed.hostname:
+        db_options["sslmode"] = "require"
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -57,8 +67,13 @@ if database_url:
             "HOST": parsed.hostname or "",
             "PORT": str(parsed.port or 5432),
             "CONN_MAX_AGE": 60,
+            "OPTIONS": db_options,
         }
     }
+else:
+    raise ImproperlyConfigured(
+        "Attach Postgres to the API service so Railway provides DATABASE_URL."
+    )
 
 STORAGES = {
     "default": {
@@ -74,3 +89,5 @@ MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
 media_root = os.getenv("MEDIA_ROOT", "").strip()
 if media_root:
     MEDIA_ROOT = media_root
+elif os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_SERVICE_ID"):
+    MEDIA_ROOT = "/data/media"

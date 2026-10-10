@@ -9,15 +9,17 @@ retried up to three times.
 
 from __future__ import annotations
 
-from datetime import datetime
+import re
+from datetime import datetime, timedelta
 
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from apps.commerce.services.storefront import append_product_link
 from apps.content.models import Content
 from apps.social.adapters.meta import MetaAdapter
-from apps.social.models import SocialAccount, SocialAction, SocialMessage, SocialPost
+from apps.social.models import SocialAccount, SocialAction, SocialLesson, SocialMessage, SocialPost
 
 MAX_ATTEMPTS = 3
 
@@ -113,6 +115,8 @@ def dispatch_due(business_id: int | None = None) -> int:
             continue
         if post.publishing_status == SocialPost.PublishingStatus.PUBLISHED:
             continue
+        if _automation_paused(post.social_account.business_id):
+            continue
         dispatch_post(post)
         attempted += 1
     return attempted
@@ -133,6 +137,14 @@ def dispatch_post(post: SocialPost) -> SocialPost:
     content = post.content
     account = post.social_account
     caption = outgoing_text(content)
+    price_error = price_conflict(content, caption)
+    if price_error:
+        post.publishing_status = SocialPost.PublishingStatus.FAILED
+        post.publishing_error = price_error
+        post.save(update_fields=["publishing_status", "publishing_error", "updated_at"])
+        _record_publish_action(account, content, post, False, price_error, {})
+        _maybe_pause(account.business_id)
+        raise PublishError(price_error)
     image_url = ""
     if isinstance(content.media_urls, list) and content.media_urls:
         image_url = str(content.media_urls[0] or "")
@@ -163,13 +175,11 @@ def dispatch_post(post: SocialPost) -> SocialPost:
         content.status = Content.Status.PUBLISHED
         content.published_at = post.published_at
         content.save(update_fields=["status", "published_at", "updated_at"])
-        action_status = SocialAction.ActionStatus.COMPLETED
         action_result = f"Published to {account.account_name or account.platform}."
     else:
         post.publishing_status = SocialPost.PublishingStatus.FAILED
         post.publishing_error = error or "Publishing failed."
         post.platform_response = raw
-        action_status = SocialAction.ActionStatus.FAILED
         action_result = post.publishing_error
 
     post.save(update_fields=[
@@ -180,11 +190,24 @@ def dispatch_post(post: SocialPost) -> SocialPost:
         "platform_response",
         "updated_at",
     ])
+    _record_publish_action(account, content, post, result_ok, action_result, raw)
+    _remember_outcome(post, result_ok, action_result)
+    if not result_ok:
+        _maybe_pause(account.business_id)
+        raise PublishError(post.publishing_error)
+    return post
+
+
+def _record_publish_action(account, content, post, result_ok, action_result, raw):
     SocialAction.objects.create(
         business=account.business,
         social_account=account,
         action_type=SocialAction.ActionType.PUBLISH,
-        action_status=action_status,
+        action_status=(
+            SocialAction.ActionStatus.COMPLETED
+            if result_ok
+            else SocialAction.ActionStatus.FAILED
+        ),
         intent=f"Publish content {content.id}.",
         result=action_result,
         platform_response=raw,
@@ -193,9 +216,75 @@ def dispatch_post(post: SocialPost) -> SocialPost:
         target_type="post",
         target_id=str(post.id),
     )
-    if not result_ok:
-        raise PublishError(post.publishing_error)
-    return post
+
+
+def _remember_outcome(post, result_ok, action_result):
+    product = post.content.product.name if post.content.product_id else ""
+    SocialLesson.objects.create(
+        business=post.social_account.business,
+        kind=SocialLesson.Kind.VERIFIED if result_ok else SocialLesson.Kind.OBSERVATION,
+        summary=action_result,
+        evidence={
+            "post_id": post.id,
+            "product": product,
+            "platform": post.social_account.platform,
+            "status": post.publishing_status,
+        },
+    )
+
+
+def _automation_paused(business_id: int) -> bool:
+    from apps.business_brain.models import BusinessPolicy
+
+    policy = BusinessPolicy.objects.filter(business_id=business_id).first()
+    if policy and policy.social_operating_mode == policy.OperatingMode.AUTOPILOT:
+        return False
+    return bool(policy and policy.automation_paused)
+
+
+def _maybe_pause(business_id: int) -> None:
+    from apps.business_brain.models import BusinessPolicy
+
+    since = timezone.now() - timedelta(hours=24)
+    failures = SocialPost.objects.filter(
+        social_account__business_id=business_id,
+        publishing_status=SocialPost.PublishingStatus.FAILED,
+        last_attempt_at__gte=since,
+    ).count()
+    if failures < 3:
+        return
+    policy = BusinessPolicy.objects.filter(business_id=business_id).first()
+    if policy is None or policy.automation_paused:
+        return
+    policy.automation_paused = True
+    policy.automation_pause_reason = (
+        "Publishing failed three times in a day. "
+        "Scheduled sends are paused until you retry a post or reconnect the account."
+    )
+    policy.save(update_fields=["automation_paused", "automation_pause_reason", "updated_at"])
+
+
+def price_conflict(content, caption: str) -> str:
+    """Stop a post that names a different price from the product record."""
+
+    product = getattr(content, "product", None)
+    if product is None or product.price is None:
+        return ""
+    amounts = re.findall(
+        r"(?:ksh|kes)\s*([0-9][0-9,]*)",
+        caption or "",
+        flags=re.IGNORECASE,
+    )
+    if not amounts:
+        return ""
+    expected = f"{product.price:.0f}" if product.price == int(product.price) else f"{product.price:.2f}"
+    normalized = {amount.replace(",", "") for amount in amounts}
+    if expected in normalized:
+        return ""
+    return (
+        f"The caption price does not match {product.name} at "
+        f"{product.currency} {product.price}. Kova will not publish a different price."
+    )
 
 
 def refresh_metrics(post: SocialPost) -> SocialPost:
@@ -208,6 +297,8 @@ def refresh_metrics(post: SocialPost) -> SocialPost:
             post.external_post_id,
         )
     except Exception:
+        post.metrics_updated_at = timezone.now()
+        post.save(update_fields=["metrics_updated_at", "updated_at"])
         return post
     for field in ("reach", "impressions", "likes", "comments_count", "shares", "clicks"):
         if field in metrics:
@@ -215,6 +306,22 @@ def refresh_metrics(post: SocialPost) -> SocialPost:
     post.metrics_updated_at = timezone.now()
     post.save()
     return post
+
+
+def refresh_due_metrics(business_id: int, *, limit: int = 6, max_age_minutes: int = 20) -> int:
+    """Refresh published posts whose counts are missing or older than the window."""
+    cutoff = timezone.now() - timedelta(minutes=max_age_minutes)
+    due = SocialPost.objects.filter(
+        social_account__business_id=business_id,
+        publishing_status=SocialPost.PublishingStatus.PUBLISHED,
+    ).exclude(external_post_id="").filter(
+        Q(metrics_updated_at__isnull=True) | Q(metrics_updated_at__lt=cutoff)
+    ).select_related("social_account").order_by("-published_at")[:limit]
+    refreshed = 0
+    for post in due:
+        refresh_metrics(post)
+        refreshed += 1
+    return refreshed
 
 
 def outgoing_text(content) -> str:

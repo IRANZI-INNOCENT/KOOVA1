@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "apps.leads",
     "apps.social",
     "apps.brief",
+    "apps.kova_ai",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
@@ -95,7 +96,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

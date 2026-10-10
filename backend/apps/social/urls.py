@@ -7,6 +7,7 @@ from .views import (
     MetaWebhookView,
     SocialAccountDetailView,
     SocialAccountListView,
+    AutopilotShiftView,
     SocialAccountVerifyView,
     SocialActionListView,
     SocialDispatchView,
@@ -27,6 +28,11 @@ urlpatterns = [
         "<int:business_id>/overview/",
         SocialOverviewView.as_view(),
         name="social-overview",
+    ),
+    path(
+        "<int:business_id>/autopilot/",
+        AutopilotShiftView.as_view(),
+        name="social-autopilot",
     ),
     path(
         "<int:business_id>/accounts/",

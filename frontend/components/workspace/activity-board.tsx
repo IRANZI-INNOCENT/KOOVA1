@@ -38,6 +38,7 @@ export function ActivityBoard({
         ["New leads", String(snapshot.leads.new)],
         ["New orders", String(snapshot.orders.new)],
         ["Buying messages", String(snapshot.messages.buying)],
+        ["Enquiries that became orders", String(snapshot.converted_leads ?? 0)],
       ]
     : [];
 
@@ -64,6 +65,33 @@ export function ActivityBoard({
             </div>
           ))}
         </div>
+      )}
+      {snapshot?.plan && (
+        <p className="text-sm leading-6 text-kova-dark">{snapshot.plan}</p>
+      )}
+      {snapshot?.evidence && snapshot.evidence.length > 0 && (
+        <section>
+          <h2 className="text-lg font-semibold text-kova-dark">Verified</h2>
+          <ul className="mt-3 space-y-2">
+            {snapshot.evidence.map((line) => (
+              <li key={line} className="rounded-lg border border-kova-border bg-white px-4 py-3 text-sm text-kova-dark">
+                {line}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {snapshot?.observations && snapshot.observations.length > 0 && (
+        <section>
+          <h2 className="text-lg font-semibold text-kova-dark">Observed, not confirmed</h2>
+          <ul className="mt-3 space-y-2">
+            {snapshot.observations.map((line) => (
+              <li key={line} className="rounded-lg border border-kova-border bg-white px-4 py-3 text-sm text-gray-600">
+                {line}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </div>
   );

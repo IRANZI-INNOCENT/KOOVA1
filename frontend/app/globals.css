@@ -31,6 +31,11 @@
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display);
+}
+
+.font-display {
+  font-family: var(--font-display), var(--font-geist-sans), ui-serif, Georgia, serif;
 }
 
 * {

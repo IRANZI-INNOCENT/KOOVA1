@@ -361,6 +361,24 @@ export async function getKovaStarters(
   return result.prompts || [];
 }
 
+export interface KovaTurn {
+  id: number;
+  request: string;
+  response: string;
+  created_at: string;
+}
+
+export async function getKovaExchanges(
+  businessId: number,
+  token: string,
+): Promise<KovaTurn[]> {
+  const result = await authenticatedApiRequest<{ turns: KovaTurn[] }>(
+    `/kova/exchanges/?business_id=${businessId}`,
+    token,
+  );
+  return result.turns || [];
+}
+
 export async function sendKovaMessage(
   businessId: number,
   token: string,

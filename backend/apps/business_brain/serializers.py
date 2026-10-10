@@ -191,6 +191,12 @@ class BusinessMarketBriefSerializer(serializers.ModelSerializer):
 
 
 class BusinessPolicySerializer(serializers.ModelSerializer):
+    def update(self, instance, validated_data):
+        if validated_data.get("social_operating_mode") == "autopilot":
+            validated_data["automation_paused"] = False
+            validated_data["automation_pause_reason"] = ""
+        return super().update(instance, validated_data)
+
     class Meta:
         model = BusinessPolicy
         fields = [
@@ -208,6 +214,8 @@ class BusinessPolicySerializer(serializers.ModelSerializer):
             "max_auto_discount_percent",
             "require_refund_approval",
             "require_payment_approval",
+            "automation_paused",
+            "automation_pause_reason",
             "created_at",
             "updated_at",
         ]

@@ -1,54 +1,83 @@
+import Image from "next/image";
+
+import { SectionHeader } from "@/components/landing/section-header";
+
 const steps = [
   {
-    number: "1",
-    title: "Snap the product",
-    description: "Take a photo and enter the price. That is the only setup.",
+    number: "01",
+    title: "Tell Kova your business",
+    description:
+      "Profile, products, and how you want to operate. Kova uses this on every post and reply.",
   },
   {
-    number: "2",
-    title: "Kova publishes the store",
-    description: "The listing, the catalog, and the product page go live together.",
+    number: "02",
+    title: "Connect Meta and list products",
+    description:
+      "Link Facebook or Instagram, snap a product with a price, and publish your store page.",
   },
   {
-    number: "3",
-    title: "Customers order",
-    description: "They open the page and continue the order on WhatsApp.",
+    number: "03",
+    title: "Inbox to leads to WhatsApp",
+    description:
+      "Kova drafts replies, saves buying interest as leads, and sends customers to your product page to order.",
   },
 ];
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="mx-auto max-w-6xl px-5 py-20 lg:px-8 lg:py-24">
-      <div className="max-w-2xl">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
-          How it works
-        </p>
-        <h2 className="mt-3 text-3xl font-bold tracking-tight text-kova-dark sm:text-4xl">
-          Three steps from a photo to an order.
-        </h2>
-      </div>
-      <div className="mt-10 grid items-center gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="relative overflow-hidden rounded-lg">
-          <img
-            src="/landing/snap.jpg"
-            alt="A shop owner photographing clothes and a bag to list them on Kova"
-            className="aspect-[4/3] w-full object-cover"
-          />
-          <span className="absolute bottom-3 left-3 rounded-md bg-white/95 px-2.5 py-1 text-xs font-bold text-kova-dark">
-            One photo. One price.
-          </span>
+    <section id="how-it-works" className="overflow-hidden bg-white">
+      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+        <div className="grid gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+          <div className="relative aspect-[4/5] overflow-hidden rounded-lg sm:aspect-[3/4] lg:order-2">
+            <Image
+              src="/landing/auth.jpg"
+              alt="Business owner at work in their shop"
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 480px"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-kova-dark/40 to-transparent" />
+          </div>
+
+          <div className="lg:order-1">
+            <SectionHeader
+              eyebrow="How it works"
+              title="Set up once. Kova carries the daily rhythm."
+              lead="You stay in control of prices, approvals, and what goes live. Kova handles the repeat work that eats your evenings."
+            />
+            <ol className="mt-10 space-y-5">
+              {steps.map((step) => (
+                <li
+                  key={step.number}
+                  className="flex gap-5 border-l-2 border-kova-orange/60 pl-5"
+                >
+                  <span className="font-display shrink-0 text-2xl font-semibold text-kova-green/35">
+                    {step.number}
+                  </span>
+                  <div>
+                    <h3 className="text-lg font-semibold text-kova-dark">{step.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-kova-dark/65">{step.description}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
         </div>
-      <ol className="grid gap-4">
-        {steps.map((step) => (
-          <li key={step.number} className="rounded-lg border border-kova-border bg-white p-5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-kova-green text-sm font-semibold text-white">
-              {step.number}
-            </span>
-            <h3 className="mt-4 text-lg font-semibold text-kova-dark">{step.title}</h3>
-            <p className="mt-2 text-sm leading-6 text-kova-dark/65">{step.description}</p>
-          </li>
-        ))}
-      </ol>
+
+        <div className="mt-14 flex flex-col items-start justify-between gap-6 rounded-lg bg-kova-green px-6 py-8 sm:flex-row sm:items-center lg:px-10">
+          <div className="max-w-xl">
+            <p className="text-sm font-semibold text-kova-orange">Snap to Sell</p>
+            <p className="mt-2 text-lg font-semibold leading-snug text-white">
+              Connect social, capture leads from the inbox, and close on WhatsApp from one workspace.
+            </p>
+          </div>
+          <a
+            href="/signup"
+            className="inline-flex h-11 shrink-0 items-center rounded-md bg-kova-orange px-6 text-sm font-semibold text-kova-dark transition-colors hover:bg-[#f0a46e]"
+          >
+            Start free trial
+          </a>
+        </div>
       </div>
     </section>
   );

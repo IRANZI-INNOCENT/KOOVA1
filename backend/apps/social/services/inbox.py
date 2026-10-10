@@ -5,6 +5,7 @@ Read customer comments and messages with the model, then send the reply.
 from __future__ import annotations
 
 import json
+from decimal import Decimal, InvalidOperation
 
 from apps.kova_ai.services.openrouter import OpenRouterError, OpenRouterService
 from apps.leads.models import Lead
@@ -17,11 +18,16 @@ _SYSTEM = (
     "You are Kova, the operator for a small business. "
     "Read one customer comment or direct message and answer as that business. "
     "Use only facts in the business context. Do not invent prices, stock, or delivery promises. "
+    "If stock or price is missing, say you will confirm with the shop. "
     "Write a short reply in the customer's language, ready to post as a comment or chat message. "
-    'Return JSON with keys intent ("buying", "question", or "other"), '
-    "draft_reply (string), and create_lead (boolean). "
+    "Return JSON with keys intent, draft_reply, create_lead, confidence, needs_review, product_name. "
+    'intent is one of "buying", "question", "complaint", "compliment", "spam", "other". '
+    "confidence is a number from 0 to 1. "
+    "needs_review is true for complaints, refunds, discounts, legal issues, abuse, "
+    "or whenever a fact is missing. "
     "create_lead is true when the person wants to buy, asks the price, checks availability, "
-    "or asks about delivery."
+    "or asks about delivery. "
+    "product_name is the product they mean, or an empty string."
 )
 
 
@@ -53,16 +59,25 @@ def understand_customer(business, body: str, *, kind: str, channel: str) -> dict
     except (KeyError, IndexError, TypeError) as exc:
         raise OpenRouterError("Kova could not read that customer message.") from exc
     parsed = _parse_json(raw if isinstance(raw, str) else "")
+    allowed = {choice for choice, _label in SocialMessage.Intent.choices}
     intent = parsed.get("intent")
-    if intent not in {
-        SocialMessage.Intent.BUYING,
-        SocialMessage.Intent.QUESTION,
-        SocialMessage.Intent.OTHER,
-    }:
+    if intent not in allowed:
         intent = SocialMessage.Intent.OTHER
     draft = str(parsed.get("draft_reply") or "").strip()
     create_lead = bool(parsed.get("create_lead")) or intent == SocialMessage.Intent.BUYING
-    return {"intent": intent, "draft_reply": draft, "create_lead": create_lead}
+    confidence = _confidence(parsed.get("confidence"))
+    sensitive = intent in {SocialMessage.Intent.COMPLAINT, SocialMessage.Intent.SPAM}
+    needs_review = bool(parsed.get("needs_review")) or sensitive
+    if confidence is not None and confidence < Decimal("0.70"):
+        needs_review = True
+    return {
+        "intent": intent,
+        "draft_reply": draft,
+        "create_lead": create_lead and intent != SocialMessage.Intent.SPAM,
+        "confidence": confidence,
+        "needs_review": needs_review,
+        "product_name": str(parsed.get("product_name") or "").strip(),
+    }
 
 
 def pull_recent_comments(business) -> int:
@@ -149,9 +164,11 @@ def record_inbound(
 
     message.intent = reading["intent"]
     message.draft_reply = reading["draft_reply"]
-    message.save(update_fields=["intent", "draft_reply"])
+    message.confidence = reading.get("confidence")
+    message.needs_review = bool(reading.get("needs_review"))
+    message.save(update_fields=["intent", "draft_reply", "confidence", "needs_review"])
     if reading["create_lead"]:
-        _attach_lead(message)
+        _attach_lead(message, reading.get("product_name") or "")
     _autopilot_send(message)
     return message
 
@@ -166,10 +183,14 @@ def draft_reply(message: SocialMessage) -> SocialMessage:
     )
     message.intent = reading["intent"]
     message.draft_reply = reading["draft_reply"]
+    message.confidence = reading.get("confidence")
+    message.needs_review = bool(reading.get("needs_review"))
     message.reply_error = ""
-    message.save(update_fields=["intent", "draft_reply", "reply_error"])
+    message.save(update_fields=[
+        "intent", "draft_reply", "confidence", "needs_review", "reply_error",
+    ])
     if reading["create_lead"] and message.lead_id is None:
-        _attach_lead(message)
+        _attach_lead(message, reading.get("product_name") or "")
     return message
 
 
@@ -220,10 +241,12 @@ def send_reply(message: SocialMessage, body: str) -> SocialMessage:
     )
 
 
-def _attach_lead(message: SocialMessage) -> None:
+def _attach_lead(message: SocialMessage, product_name: str = "") -> None:
     source = message.channel if message.channel in Lead.Source.values else Lead.Source.OTHER
+    product = _match_product(message.business, product_name or message.body)
     lead = Lead.objects.create(
         business=message.business,
+        product=product,
         customer_name=message.customer_name or "",
         customer_id=message.external_id or "",
         source=source,
@@ -233,6 +256,21 @@ def _attach_lead(message: SocialMessage) -> None:
     )
     message.lead = lead
     message.save(update_fields=["lead"])
+    if product is not None and product.stock is None:
+        message.needs_review = True
+        message.save(update_fields=["needs_review"])
+
+
+def _match_product(business, text: str):
+    from apps.commerce.models import Product
+
+    haystack = (text or "").lower()
+    if not haystack.strip():
+        return None
+    for product in Product.objects.filter(business=business, status=Product.Status.ACTIVE):
+        if product.name and product.name.lower() in haystack:
+            return product
+    return None
 
 
 def _autopilot_send(message: SocialMessage) -> None:
@@ -241,13 +279,21 @@ def _autopilot_send(message: SocialMessage) -> None:
     policy = BusinessPolicy.objects.filter(business=message.business).first()
     if policy is None or policy.social_operating_mode != BusinessPolicy.OperatingMode.AUTOPILOT:
         return
-    if message.kind == SocialMessage.Kind.COMMENT and not policy.allow_comment_replies:
-        return
-    if message.kind == SocialMessage.Kind.MESSAGE and not policy.allow_dm_replies:
-        return
     if not (message.draft_reply or "").strip():
         return
     send_reply(message, message.draft_reply)
+
+
+def _confidence(value):
+    if value is None or value == "":
+        return None
+    try:
+        number = Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return None
+    if number < 0 or number > 1:
+        return None
+    return number.quantize(Decimal("0.01"))
 
 
 def _business_context(business) -> dict:

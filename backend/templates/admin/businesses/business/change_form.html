@@ -1,0 +1,233 @@
+{% extends "admin/change_form.html" %}
+
+{% block form_top %}
+{% if dossier %}
+<style>
+  .kova-file { margin: 0 0 28px; }
+  .kova-file h2 { margin: 22px 0 8px; font-size: 15px; }
+  .kova-file table { width: 100%; border-collapse: collapse; background: #fff; }
+  .kova-file th, .kova-file td {
+    border-bottom: 1px solid #e4e4e4;
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top;
+    font-size: 13px;
+  }
+  .kova-file th { width: 140px; color: #444; font-weight: 600; }
+  .kova-file .muted { color: #666; }
+  .kova-file img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; }
+  .kova-file ul { margin: 6px 0 0; padding-left: 18px; }
+</style>
+<div class="kova-file">
+  <h2>Store</h2>
+  <table>
+    <tr><th>Published</th><td>{% if dossier.store_published %}Yes{% else %}No{% endif %}</td></tr>
+    <tr><th>Address</th><td>{% if dossier.store_url %}<a href="{{ dossier.store_url }}">{{ dossier.store_url }}</a>{% else %}No public store address yet.{% endif %}</td></tr>
+    <tr><th>Slug</th><td>{{ dossier.store_slug|default:"—" }}</td></tr>
+    <tr><th>WhatsApp</th><td>{{ dossier.whatsapp|default:"—" }}</td></tr>
+  </table>
+
+  <h2>How Kova is allowed to work</h2>
+  <ul>
+    {% for line in dossier.policy_lines %}<li>{{ line }}</li>{% endfor %}
+  </ul>
+
+  <h2>What Kova knows about this business</h2>
+  {% if dossier.brain %}
+  <table>
+    {% for item in dossier.brain %}
+    <tr><th>{{ item.label }}</th><td>{{ item.text }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">The profile, audience, brand, and goals are still empty.</p>
+  {% endif %}
+
+  <h2>Market</h2>
+  <table>
+    <tr><th>Status</th><td>{{ dossier.market.status }}{% if dossier.market.kept %} · kept for writing{% endif %}</td></tr>
+    <tr><th>Summary</th><td>{{ dossier.market.summary|default:"No market summary yet." }}</td></tr>
+    <tr><th>Gap</th><td>{{ dossier.market.gap|default:"—" }}</td></tr>
+    <tr><th>Positioning</th><td>{{ dossier.market.positioning|default:"—" }}</td></tr>
+    <tr><th>Competitors</th><td>{% if dossier.market.competitors %}{{ dossier.market.competitors|join:", " }}{% else %}—{% endif %}</td></tr>
+    <tr><th>Ask prompts</th><td>{% if dossier.market.prompts %}<ul>{% for prompt in dossier.market.prompts %}<li>{{ prompt }}</li>{% endfor %}</ul>{% else %}—{% endif %}</td></tr>
+  </table>
+
+  <h2>Products</h2>
+  {% if dossier.products %}
+  <table>
+    <tr><th></th><th>Product</th><th>Price</th><th>Stock</th><th>Content</th><th>Public page</th></tr>
+    {% for product in dossier.products %}
+    <tr>
+      <td>{% if product.image %}<img src="{{ product.image }}" alt="">{% endif %}</td>
+      <td><a href="{{ product.href }}">{{ product.name }}</a><div class="muted">{{ product.status }}{% if product.category %} · {{ product.category }}{% endif %}</div></td>
+      <td>{% if product.has_price %}{{ product.currency }} {{ product.price }}{% else %}—{% endif %}</td>
+      <td>{{ product.stock|default:"—" }}</td>
+      <td>{{ product.drafts }} draft · {{ product.published }} published{% if product.scheduled %} · scheduled{% endif %}</td>
+      <td>{% if product.url %}<a href="{{ product.url }}">{{ product.url }}</a>{% else %}—{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No products yet.</p>
+  {% endif %}
+
+  <h2>Channels</h2>
+  {% if dossier.channels %}
+  <table>
+    {% for channel in dossier.channels %}
+    <tr>
+      <th><a href="{{ channel.href }}">{{ channel.platform }}</a></th>
+      <td>
+        {{ channel.name }} · {{ channel.status }}
+        {% if channel.token %} · token on file{% endif %}
+        {% if channel.scopes %}<div class="muted">{{ channel.scopes }}</div>{% endif %}
+        {% if channel.error %}<div>{{ channel.error }}</div>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No Facebook or Instagram account is connected.</p>
+  {% endif %}
+
+  <h2>Content</h2>
+  {% if dossier.contents %}
+  <table>
+    {% for piece in dossier.contents %}
+    <tr>
+      <th><a href="{{ piece.href }}">{{ piece.platform }} {{ piece.kind }}</a></th>
+      <td>
+        {{ piece.status }}{% if piece.product %} · {{ piece.product }}{% endif %}
+        {% if piece.slides %} · {{ piece.slides }} slides{% endif %}
+        <div>{{ piece.caption }}</div>
+        {% if piece.call_to_action %}<div class="muted">{{ piece.call_to_action }}</div>{% endif %}
+        {% if piece.hashtags %}<div class="muted">{{ piece.hashtags }}</div>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No content has been written.</p>
+  {% endif %}
+
+  <h2>Posts</h2>
+  {% if dossier.posts %}
+  <table>
+    {% for post in dossier.posts %}
+    <tr>
+      <th><a href="{{ post.href }}">{{ post.platform }}</a></th>
+      <td>
+        {{ post.account }} · {{ post.status }} · {{ post.when }}
+        <div>{{ post.caption }}</div>
+        <div class="muted">{{ post.likes }} likes · {{ post.comments }} comments · {{ post.reach }} reach · {{ post.attempts }} attempts</div>
+        {% if post.error %}<div>{{ post.error }}</div>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No posts have been sent or scheduled.</p>
+  {% endif %}
+
+  <h2>Inbox</h2>
+  {% if dossier.messages %}
+  <table>
+    {% for message in dossier.messages %}
+    <tr>
+      <th><a href="{{ message.href }}">{{ message.channel }}</a></th>
+      <td>
+        {{ message.kind }} · {{ message.direction }} · {{ message.intent }} · {{ message.delivery }}
+        {% if message.customer %} · {{ message.customer }}{% endif %}
+        <div>{{ message.body }}</div>
+        {% if message.draft %}<div class="muted">Draft: {{ message.draft }}</div>{% endif %}
+        {% if message.error %}<div>{{ message.error }}</div>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No comments or messages have arrived.</p>
+  {% endif %}
+
+  <h2>Leads</h2>
+  {% if dossier.leads %}
+  <table>
+    {% for lead in dossier.leads %}
+    <tr>
+      <th><a href="{{ lead.href }}">{{ lead.name }}</a></th>
+      <td>{{ lead.source }} · {{ lead.status }}<div>{{ lead.interest }}</div></td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No leads yet.</p>
+  {% endif %}
+
+  <h2>Orders</h2>
+  {% if dossier.orders %}
+  <table>
+    {% for order in dossier.orders %}
+    <tr>
+      <th><a href="{{ order.href }}">#{{ order.id }}</a></th>
+      <td>
+        {{ order.product|default:"Order" }} · {{ order.quantity }} · {{ order.status }} · {{ order.source }}
+        <div>{{ order.customer }} {{ order.phone }}</div>
+        {% if order.note %}<div class="muted">{{ order.note }}</div>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No orders yet.</p>
+  {% endif %}
+
+  <h2>Morning brief</h2>
+  {% if dossier.brief.date %}
+  <p>{% if dossier.brief.href %}<a href="{{ dossier.brief.href }}">{{ dossier.brief.date }}</a>{% else %}{{ dossier.brief.date }}{% endif %} · {{ dossier.brief.status }}</p>
+  {% if dossier.brief.greeting %}<p>{{ dossier.brief.greeting }}</p>{% endif %}
+  {% if dossier.brief.error %}<p>{{ dossier.brief.error }}</p>{% endif %}
+  {% for block in dossier.brief.blocks %}
+  <h3>{{ block.title }}</h3>
+  <ul>{% for line in block.lines %}<li>{{ line }}</li>{% endfor %}</ul>
+  {% endfor %}
+  {% else %}
+  <p class="muted">No morning brief has been generated.</p>
+  {% endif %}
+
+  <h2>Ask Kova</h2>
+  {% if dossier.exchanges %}
+  <table>
+    {% for turn in dossier.exchanges %}
+    <tr>
+      <th><a href="{{ turn.href }}">{{ turn.status }}</a></th>
+      <td>
+        {{ turn.when }} · {{ turn.task }}{% if turn.who %} · {{ turn.who }}{% endif %}{% if turn.model %} · {{ turn.model }}{% endif %}
+        <div>{{ turn.request }}</div>
+        {% if turn.response %}<div class="muted">{{ turn.response }}</div>{% endif %}
+        {% if turn.tools %}<div class="muted">Tools: {{ turn.tools }}</div>{% endif %}
+        {% if turn.error %}<div>{{ turn.error }}</div>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No one has talked to Kova for this business yet. New conversations are stored from here on.</p>
+  {% endif %}
+
+  <h2>Action log</h2>
+  {% if dossier.actions %}
+  <table>
+    {% for action in dossier.actions %}
+    <tr>
+      <th><a href="{{ action.href }}">{{ action.type }}</a></th>
+      <td>{{ action.status }}<div>{{ action.intent }}</div>{% if action.result %}<div class="muted">{{ action.result }}</div>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">Kova has no recorded actions for this business.</p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

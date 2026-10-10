@@ -44,6 +44,14 @@ class Lead(models.Model):
         related_name="leads",
     )
 
+    product = models.ForeignKey(
+        "commerce.Product",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="leads",
+    )
+
     customer_name = models.CharField(
         max_length=200,
         blank=True,

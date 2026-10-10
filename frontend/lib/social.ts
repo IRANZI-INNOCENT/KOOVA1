@@ -25,8 +25,15 @@ export interface SocialAccount {
   last_verified_at: string | null;
   metadata: Record<string, unknown>;
   is_healthy: boolean;
+  capabilities: SocialCapability[];
   created_at: string;
   updated_at: string;
+}
+
+export interface SocialCapability {
+  scope: string;
+  label: string;
+  available: boolean;
 }
 
 export interface SocialOverview {
@@ -42,6 +49,26 @@ export interface SocialOverview {
   };
   pending_actions: number;
   recent_actions: SocialActionRecord[];
+  command: SocialCommand;
+}
+
+export interface SocialRecommendation {
+  title: string;
+  detail: string;
+  href: string;
+}
+
+export interface SocialCommand {
+  scheduled_posts: number;
+  conversations_to_review: number;
+  potential_leads: number;
+  actions_verified_today: number;
+  automation_paused: boolean;
+  pause_reason: string;
+  response_hours: number | null;
+  recommendations: SocialRecommendation[];
+  plan: string;
+  lessons: { kind: string; summary: string }[];
 }
 
 export interface SocialActionRecord {
@@ -172,6 +199,8 @@ export interface BusinessPolicy {
   max_auto_discount_percent: string;
   require_refund_approval: boolean;
   require_payment_approval: boolean;
+  automation_paused: boolean;
+  automation_pause_reason: string;
   created_at: string;
   updated_at: string;
 }
@@ -186,22 +215,145 @@ export async function getBusinessPolicy(
   );
 }
 
-export async function updateOperatingMode(
+export interface AutopilotShiftRecord {
+  id: number;
+  status: "running" | "finished" | "failed";
+  started_at: string;
+  finished_at: string | null;
+}
+
+export type AutopilotWorkState =
+  | "done"
+  | "scheduled"
+  | "sent"
+  | "filed"
+  | "clear"
+  | "failed";
+
+export interface AutopilotWorkItem {
+  id: string;
+  title: string;
+  detail: string;
+  when: string;
+  state: AutopilotWorkState;
+  href: string;
+}
+
+export interface AutopilotWork {
+  summary: {
+    posts: string;
+    replies: string;
+    listings: string;
+    report: string;
+  };
+  posts: AutopilotWorkItem[];
+  replies: AutopilotWorkItem[];
+  listings: AutopilotWorkItem[];
+  report: AutopilotWorkItem[];
+  stopped: string;
+}
+
+export interface AutopilotMetricPost {
+  id: number;
+  product: string;
+  platform: string;
+  status: string;
+  likes: number;
+  impressions: number;
+  reach: number;
+  comments: number;
+  shares: number;
+  clicks: number;
+  when: string;
+  highlight: boolean;
+  band: "high" | "low";
+}
+
+export interface AutopilotProductResult {
+  name: string;
+  likes: number;
+  impressions: number;
+  reach: number;
+  comments: number;
+  shares: number;
+  clicks: number;
+  posts: number;
+  highlight: boolean;
+  band: "high" | "low";
+}
+
+export interface AutopilotPicture {
+  likes: number;
+  impressions: number;
+  reach: number;
+  comments: number;
+  shares: number;
+  clicks: number;
+  published: number;
+  scheduled: number;
+  leads: number;
+  orders: number;
+  posts: AutopilotMetricPost[];
+  products: AutopilotProductResult[];
+}
+
+export interface AutopilotDesk {
+  active: boolean;
+  shift: AutopilotShiftRecord | null;
+  work: AutopilotWork;
+  picture: AutopilotPicture;
+}
+
+export function getAutopilot(businessId: number, token: string) {
+  return authenticatedApiRequest<AutopilotDesk>(
+    `/social/${businessId}/autopilot/`,
+    token,
+  );
+}
+
+export function startAutopilotShift(
   businessId: number,
-  mode: OperatingMode,
+  token: string,
+  force = false,
+) {
+  return authenticatedApiRequest<AutopilotDesk>(
+    `/social/${businessId}/autopilot/`,
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify({ force }),
+    },
+  );
+}
+
+export async function resumeScheduledPublishing(
+  businessId: number,
   token: string,
 ): Promise<BusinessPolicy> {
-  const body: Record<string, unknown> = { social_operating_mode: mode };
-  if (mode === "autopilot") {
-    body.allow_auto_publish = true;
-    body.allow_comment_replies = true;
-  }
   return authenticatedApiRequest<BusinessPolicy>(
     `/business-brain/${businessId}/policy/`,
     token,
     {
       method: "PATCH",
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        automation_paused: false,
+        automation_pause_reason: "",
+      }),
+    },
+  );
+}
+
+export async function updateOperatingMode(
+  businessId: number,
+  mode: OperatingMode,
+  token: string,
+): Promise<BusinessPolicy> {
+  return authenticatedApiRequest<BusinessPolicy>(
+    `/business-brain/${businessId}/policy/`,
+    token,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ social_operating_mode: mode }),
     },
   );
 }

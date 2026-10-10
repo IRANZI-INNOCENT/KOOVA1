@@ -29,7 +29,8 @@ export interface SocialMessageRecord {
   customer_name: string;
   body: string;
   draft_reply: string;
-  intent: "question" | "buying" | "other";
+  intent: "question" | "buying" | "complaint" | "compliment" | "spam" | "other";
+  needs_review?: boolean;
   lead: number | null;
   reply_error: string;
   reply_target_id: string;
@@ -53,7 +54,11 @@ export interface ActivitySnapshot {
   };
   leads: { total: number; new: number; by_source: Record<string, number> };
   orders: { total: number; new: number; fulfilled: number };
-  messages: { inbound: number; buying: number };
+  messages: { inbound: number; buying: number; complaints?: number; needs_review?: number };
+  converted_leads?: number;
+  evidence?: string[];
+  observations?: string[];
+  plan?: string;
 }
 
 export interface OrderRecord {

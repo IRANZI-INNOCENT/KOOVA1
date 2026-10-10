@@ -18,6 +18,19 @@ from apps.social.adapters.meta import MetaAdapter, MetaAdapterError
 from apps.social.models import SocialAccount, SocialAction
 
 
+def _store_baseline(adapter: MetaAdapter, account: SocialAccount) -> None:
+    try:
+        recent = adapter.list_recent_posts(account)
+    except Exception:
+        return
+    if not isinstance(recent, list):
+        return
+    metadata = dict(account.metadata or {})
+    metadata["recent_posts"] = recent[:5]
+    account.metadata = metadata
+    account.save(update_fields=["metadata", "updated_at"])
+
+
 def get_adapter(platform: str) -> ChannelAdapter:
     """Return the adapter for a platform string."""
     if platform in (
@@ -74,6 +87,7 @@ def connect_meta(
             "account_name": fb_account.account_name,
             "connection_status": fb_account.connection_status,
         })
+        _store_baseline(adapter, fb_account)
         SocialAction.objects.create(
             business=business,
             social_account=fb_account,
@@ -107,6 +121,7 @@ def connect_meta(
             "connection_status": ig_account.connection_status,
         })
 
+        _store_baseline(adapter, ig_account)
         SocialAction.objects.create(
             business=business,
             social_account=ig_account,

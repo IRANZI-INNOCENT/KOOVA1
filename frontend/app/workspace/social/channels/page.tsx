@@ -381,6 +381,18 @@ export default function ChannelsPage() {
                       {account.connection_error}
                     </div>
                   )}
+                  {account.capabilities?.length > 0 && (
+                    <ul className="border-t border-kova-border px-5 py-3 text-sm">
+                      {account.capabilities.map((item) => (
+                        <li key={item.scope} className="flex items-center justify-between gap-3 py-1">
+                          <span className="text-kova-dark">{item.label}</span>
+                          <span className={item.available ? "font-semibold text-kova-green" : "text-gray-400"}>
+                            {item.available ? "Available" : "Reconnect to allow"}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               );
             })}

@@ -9,7 +9,8 @@ from django.db.models import Sum
 from apps.commerce.models import Order
 from apps.content.models import Content
 from apps.leads.models import Lead
-from apps.social.models import SocialMessage, SocialPost
+from apps.social.models import SocialLesson, SocialMessage, SocialPost
+from apps.social.services.command import build_social_command, converted_lead_count
 
 
 def performance_snapshot(business) -> dict:
@@ -69,5 +70,23 @@ def performance_snapshot(business) -> dict:
         "messages": {
             "inbound": messages.filter(direction=SocialMessage.Direction.INBOUND).count(),
             "buying": messages.filter(intent=SocialMessage.Intent.BUYING).count(),
+            "complaints": messages.filter(intent=SocialMessage.Intent.COMPLAINT).count(),
+            "needs_review": messages.filter(needs_review=True).count(),
         },
+        "converted_leads": converted_lead_count(business),
+        "evidence": [
+            lesson.summary
+            for lesson in SocialLesson.objects.filter(
+                business=business,
+                kind=SocialLesson.Kind.VERIFIED,
+            )[:5]
+        ],
+        "observations": [
+            lesson.summary
+            for lesson in SocialLesson.objects.filter(
+                business=business,
+                kind=SocialLesson.Kind.OBSERVATION,
+            )[:5]
+        ],
+        "plan": build_social_command(business)["plan"],
     }

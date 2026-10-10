@@ -348,6 +348,9 @@ class SocialMessage(models.Model):
     class Intent(models.TextChoices):
         QUESTION = "question", "Question"
         BUYING = "buying", "Buying"
+        COMPLAINT = "complaint", "Complaint"
+        COMPLIMENT = "compliment", "Compliment"
+        SPAM = "spam", "Spam"
         OTHER = "other", "Other"
 
     class Kind(models.TextChoices):
@@ -409,6 +412,16 @@ class SocialMessage(models.Model):
         choices=Intent.choices,
         default=Intent.OTHER,
     )
+    confidence = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    needs_review = models.BooleanField(
+        default=False,
+        help_text="Complaints, low confidence, and unknown facts wait for the owner.",
+    )
     lead = models.ForeignKey(
         "leads.Lead",
         on_delete=models.SET_NULL,
@@ -424,3 +437,90 @@ class SocialMessage(models.Model):
 
     def __str__(self):
         return f"{self.get_channel_display()} {self.direction}: {self.body[:40]}"
+
+
+class SocialLesson(models.Model):
+    """
+    A verified outcome or an observation Kova can use next time.
+
+    A published post is verified only after the platform accepts it.
+    A failed send is an observation, not a success.
+    """
+
+    class Kind(models.TextChoices):
+        VERIFIED = "verified", "Verified"
+        OBSERVATION = "observation", "Observation"
+
+    business = models.ForeignKey(
+        Business,
+        on_delete=models.CASCADE,
+        related_name="social_lessons",
+    )
+    kind = models.CharField(max_length=20, choices=Kind.choices)
+    summary = models.TextField()
+    evidence = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.summary[:80]
+
+
+class AutopilotShift(models.Model):
+    """One stretch of work after the owner hands Kova the business."""
+
+    class Status(models.TextChoices):
+        RUNNING = "running", "Running"
+        FINISHED = "finished", "Finished"
+        FAILED = "failed", "Failed"
+
+    business = models.ForeignKey(
+        Business,
+        on_delete=models.CASCADE,
+        related_name="autopilot_shifts",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.RUNNING,
+    )
+    briefing = models.TextField(blank=True)
+    plan = models.TextField(blank=True)
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+
+    def __str__(self):
+        return f"{self.business.name} autopilot {self.started_at:%Y-%m-%d %H:%M}"
+
+
+class AutopilotEvent(models.Model):
+    """One thing Kova did, or tried to do, during a shift."""
+
+    class Status(models.TextChoices):
+        DONE = "done", "Done"
+        FAILED = "failed", "Failed"
+
+    shift = models.ForeignKey(
+        AutopilotShift,
+        on_delete=models.CASCADE,
+        related_name="events",
+    )
+    title = models.CharField(max_length=200)
+    detail = models.TextField(blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.DONE,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return self.title

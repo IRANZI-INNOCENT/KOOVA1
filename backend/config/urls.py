@@ -7,7 +7,35 @@ from django.views.static import serve
 
 
 def health(request):
+    from django.db import connection
+
+    try:
+        connection.ensure_connection()
+    except Exception:
+        return JsonResponse(
+            {"status": "degraded", "database": "unavailable"},
+            status=503,
+        )
     return JsonResponse({"status": "ok"})
+
+
+admin.site.site_header = "Kova"
+admin.site.site_title = "Kova admin"
+admin.site.index_title = "Operations"
+admin.site.index_template = "admin/kova_index.html"
+
+_original_admin_index = admin.site.index
+
+
+def _kova_admin_index(request, extra_context=None):
+    from .admin_dashboard import kova_stats
+
+    extra_context = dict(extra_context or {})
+    extra_context["kova_stats"] = kova_stats()
+    return _original_admin_index(request, extra_context)
+
+
+admin.site.index = _kova_admin_index
 
 
 urlpatterns = [

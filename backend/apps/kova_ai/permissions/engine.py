@@ -50,6 +50,15 @@ class PermissionEngine:
                 ),
             )
 
+        if policy.get("social_operating_mode") == "autopilot":
+            return PermissionResult(
+                status=PermissionStatus.ALLOWED,
+                reason=(
+                    "The owner handed Kova the business. "
+                    "Autopilot runs content, replies, products, and reports."
+                ),
+            )
+
         if decision.requires_approval:
             return PermissionResult(
                 status=PermissionStatus.REQUIRES_APPROVAL,

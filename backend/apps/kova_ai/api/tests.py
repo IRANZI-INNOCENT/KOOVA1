@@ -93,6 +93,13 @@ class KovaAgentAPITests(TestCase):
         )
 
         mock_run.assert_called_once()
+        results = mock_run.call_args.kwargs["context"].task_context["results"]
+        self.assertIn("likes", results)
+        self.assertIn("performing_products", results)
+
+        history = self.client.get(f"/api/kova/exchanges/?business_id={self.business.id}")
+        self.assertEqual(history.status_code, 200)
+        self.assertEqual(history.data["turns"][0]["response"], "Your primary goal is growth.")
 
     def test_unauthenticated_user_is_rejected(self):
         """Unauthenticated requests must not invoke Kova."""
@@ -316,3 +323,39 @@ class KovaAgentAPITests(TestCase):
             response.status_code,
             502,
         )
+
+    @patch(
+        "apps.kova_ai.api.views.KovaAgent.run",
+    )
+    def test_each_ask_is_stored_for_admins(self, mock_run):
+        from apps.kova_ai.models import KovaExchange
+
+        self.authenticate()
+        mock_run.return_value = AgentResult(
+            message="Post the sofa this afternoon.",
+            model="google/gemini-3.8-flash",
+            tool_calls=(
+                AgentToolCall(
+                    tool_name="create_content",
+                    tool_call_id="call-1",
+                    arguments={"product": "sofa"},
+                    result={"status": "completed"},
+                ),
+            ),
+        )
+
+        response = self.client.post(
+            self.url,
+            {
+                "business_id": self.business.id,
+                "message": "Write a post for the sofa.",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        exchange = KovaExchange.objects.get(business=self.business)
+        self.assertEqual(exchange.request_text, "Write a post for the sofa.")
+        self.assertEqual(exchange.response_text, "Post the sofa this afternoon.")
+        self.assertEqual(exchange.tool_calls[0]["tool_name"], "create_content")
+        self.assertEqual(exchange.status, KovaExchange.Status.COMPLETED)

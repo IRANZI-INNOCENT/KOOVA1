@@ -1,43 +1,80 @@
+import { SectionHeader } from "@/components/landing/section-header";
+
+const pillars = [
+  {
+    title: "Content studio",
+    detail: "Draft posts from your catalog, approve what goes live, and schedule around your day.",
+  },
+  {
+    title: "Inbox",
+    detail: "Facebook and Instagram comments and DMs with a draft reply ready to send or save.",
+  },
+  {
+    title: "Autopilot",
+    detail: "Hand Kova the day — posts, replies, listing polish, and the morning report in one view.",
+  },
+];
+
 export default function KovaSocial() {
   return (
-    <section id="social" className="border-t border-kova-border bg-kova-background">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-20 lg:grid-cols-[0.9fr_1.1fr] lg:px-8 lg:py-24">
-        <div className="rounded-lg border border-kova-border bg-white p-4 sm:p-5">
-          <div className="flex items-center gap-2 border-b border-kova-border pb-3">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-kova-green text-xs font-bold text-white">
-              K
-            </span>
-            <p className="text-sm font-semibold text-kova-dark">Talk to Kova</p>
-          </div>
-          <div className="space-y-3 py-4">
-            <p className="ml-auto w-fit max-w-[80%] rounded-md bg-kova-green px-3 py-2 text-sm leading-6 text-white">
-              Write a caption for the sofa and tell me who asked about delivery.
-            </p>
-            <div className="max-w-[88%] rounded-md border border-kova-orange/40 bg-kova-orange/25 px-3 py-3 text-sm leading-6 text-kova-dark">
-              <p className="font-semibold">Caption</p>
-              <p className="mt-1">A sofa that holds the whole evening. Now on the store, with delivery in Nairobi.</p>
-              <p className="mt-3 font-semibold">Lead</p>
-              <p>Amina asked about delivery this morning. She is saved under Leads.</p>
-            </div>
-          </div>
+    <section id="social" className="border-y border-kova-green/20 bg-[#125a42]">
+      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+        <div className="max-w-2xl">
+          <SectionHeader
+            theme="dark"
+            eyebrow="Social workspace"
+            title="Your pages stay active while you run the shop."
+            lead="Kova drafts from your real products and policies, publishes when you allow it, and shows what performed so you know what to push next."
+          />
         </div>
 
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
-            Talk to Kova
-          </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-kova-dark sm:text-4xl">
-            Ask for the post, the reply, or the next customer.
-          </h2>
-          <p className="mt-4 max-w-md text-base leading-7 text-kova-dark/70">
-            Kova already knows your products and your business. Use the chat for content, customer questions, and leads instead of starting from a blank page.
-          </p>
-          <a
-            href="/signup"
-            className="mt-8 inline-flex h-11 items-center rounded-md bg-kova-green px-6 text-sm font-semibold text-white transition-colors hover:bg-[#12583f]"
-          >
-            Talk to Kova
-          </a>
+        <div className="mt-12 grid gap-4 lg:grid-cols-3">
+          {pillars.map((item) => (
+            <article
+              key={item.title}
+              className="rounded-lg border border-white/15 bg-white/[0.07] p-6 backdrop-blur-sm"
+            >
+              <h3 className="text-base font-semibold text-white">{item.title}</h3>
+              <p className="mt-3 text-sm leading-6 text-white/70">{item.detail}</p>
+            </article>
+          ))}
+        </div>
+
+        <div className="mt-10 grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-stretch">
+          <div className="rounded-lg border border-white/15 bg-kova-dark/40 p-6 sm:p-8">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-kova-orange">
+              Operating modes
+            </p>
+            <ul className="mt-6 space-y-4">
+              {[
+                { name: "Assist", text: "Kova suggests; you publish and send." },
+                { name: "Approval", text: "Kova prepares; you approve each action." },
+                { name: "Autopilot", text: "Kova runs the day within your rules and prices." },
+              ].map((mode) => (
+                <li key={mode.name} className="flex gap-4 border-b border-white/10 pb-4 last:border-0 last:pb-0">
+                  <span className="w-20 shrink-0 text-sm font-bold text-[#a8dcc8]">{mode.name}</span>
+                  <span className="text-sm leading-6 text-white/75">{mode.text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="flex flex-col justify-between rounded-lg bg-kova-orange/90 p-6 text-kova-dark">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-kova-dark/70">
+                Talk to Kova
+              </p>
+              <p className="font-display mt-4 text-xl font-semibold leading-snug">
+                Ask for the caption, the reply, or what to push next.
+              </p>
+            </div>
+            <a
+              href="/signup"
+              className="mt-8 inline-flex h-11 items-center justify-center rounded-md bg-kova-green px-5 text-sm font-semibold text-white transition-colors hover:bg-[#12583f]"
+            >
+              Open the workspace
+            </a>
+          </div>
         </div>
       </div>
     </section>

@@ -44,6 +44,9 @@ class DecisionEngine:
             ValueError: If the task is not supported by the Decision Engine.
         """
 
+        if context.policy and context.policy.get("social_operating_mode") == "autopilot":
+            return self._decide_autopilot(context)
+
         if context.task == ContextTask.CONTENT_CREATION:
             return self._decide_content_creation(context)
 
@@ -55,6 +58,20 @@ class DecisionEngine:
 
         raise ValueError(
             f"Decision making is not supported for task: {context.task}"
+        )
+
+    @staticmethod
+    def _decide_autopilot(context: BusinessContext) -> Decision:
+        action = {
+            ContextTask.CONTENT_CREATION: DecisionAction.CREATE_CONTENT,
+            ContextTask.CUSTOMER_RESPONSE: DecisionAction.RESPOND_TO_CUSTOMER,
+            ContextTask.COMMERCE: DecisionAction.MANAGE_COMMERCE,
+        }.get(context.task, DecisionAction.READ_BUSINESS_CONTEXT)
+        return Decision(
+            action=action,
+            status=DecisionStatus.READY,
+            reason="Autopilot is on. Kova runs this part of the business.",
+            inputs=context.task_context or {},
         )
 
     @staticmethod
