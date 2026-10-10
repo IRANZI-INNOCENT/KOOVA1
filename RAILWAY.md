@@ -1,5 +1,20 @@
 # Deploy Kova on Railway
 
+## Fix: “Railpack could not determine how to build the app”
+
+If deploy logs show the repo root as `backend/`, `frontend/`, and `manage.py` together, the service **Root Directory** is wrong. Railpack must run inside **`backend`** or **`frontend`**, not the parent `kova` folder.
+
+| What you see at the top of the log | Set Root Directory to |
+| --- | --- |
+| `backend/`, `frontend/`, `RAILWAY.md` | **`backend`** (API) or **`frontend`** (site) |
+| `kova/backend/`, `kova/frontend/` | **`kova/backend`** or **`kova/frontend`** |
+
+In Railway: open the service → **Settings** → **Root Directory** → save → redeploy.
+
+Each service only loads `railway.toml` from that root (for example `backend/railway.toml`).
+
+---
+
 Kova runs as two Railway services from this folder, plus a Postgres database.
 
 | Service | Root directory | What it does |
@@ -20,7 +35,7 @@ Use the public `https://` address Railway gives each service. The examples below
 2. Create a new project.
 3. Connect the Git repository that contains this `kova` folder, or deploy from this machine with the Railway CLI.
 
-Railway reads `railway.toml` from each service root. The API root must be `kova/backend`. The site root must be `kova/frontend`.
+Railway reads `railway.toml` from each service **Root Directory**. If the connected Git repo is the **`kova`** folder, use **`backend`** and **`frontend`**. If the repo is the parent monorepo, use **`kova/backend`** and **`kova/frontend`**.
 
 ## 2. Add Postgres
 
