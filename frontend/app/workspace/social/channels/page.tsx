@@ -26,6 +26,20 @@ const PLATFORM_SHORT: Record<string, string> = {
   instagram: "IG",
 };
 
+function oauthPlatformForAccount(
+  platform: SocialAccount["platform"],
+): "facebook" | "instagram" {
+  return platform === "instagram" ? "instagram" : "facebook";
+}
+
+function permissionSummary(account: SocialAccount) {
+  const caps = account.capabilities ?? [];
+  const granted = caps.filter((item) => item.available).length;
+  const total = caps.length;
+  const missing = caps.filter((item) => !item.available);
+  return { granted, total, missing, hasGap: missing.length > 0 };
+}
+
 const STATUS_CONFIG: Record<
   string,
   { label: string; dot: string; bg: string; text: string }
@@ -207,11 +221,22 @@ export default function ChannelsPage() {
       setAccounts((current) =>
         current.map((a) => (a.id === updated.id ? updated : a)),
       );
-      setVerifyNote(
-        updated.connection_status === "connected"
-          ? `${updated.account_name || "This account"} is still connected. Facebook accepted the token.`
-          : `${updated.account_name || "This account"} needs to be connected again.`,
-      );
+      const summary = permissionSummary(updated);
+      if (updated.connection_status === "connected") {
+        if (summary.hasGap) {
+          setVerifyNote(
+            `${updated.account_name || "This account"} is connected, but only ${summary.granted} of ${summary.total} permissions are granted. Use “Allow missing permissions” so Kova can reply to comments and messages.`,
+          );
+        } else {
+          setVerifyNote(
+            `${updated.account_name || "This account"} is connected with all ${summary.total} permissions Kova needs.`,
+          );
+        }
+      } else {
+        setVerifyNote(
+          `${updated.account_name || "This account"} needs to be connected again.`,
+        );
+      }
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "Could not verify account.",
@@ -318,6 +343,7 @@ export default function ChannelsPage() {
                 text: "text-gray-500",
               };
               const busy = actionLoading === account.id;
+              const permissions = permissionSummary(account);
 
               return (
                 <li
@@ -354,8 +380,15 @@ export default function ChannelsPage() {
                             <span
                               className={`inline-block h-1.5 w-1.5 rounded-full ${status.dot}`}
                             />
-                            {status.label}
+                            {permissions.hasGap && account.connection_status === "connected"
+                              ? "Partial access"
+                              : status.label}
                           </span>
+                          {permissions.total > 0 && (
+                            <span className="text-gray-400">
+                              {permissions.granted}/{permissions.total} permissions
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -363,14 +396,12 @@ export default function ChannelsPage() {
                     <div className="flex flex-wrap gap-2">
                       {account.connection_status !== "revoked" && (
                         <>
-                          {account.capabilities?.some((item) => !item.available) && (
+                          {permissions.hasGap && (
                             <button
                               type="button"
                               onClick={() =>
                                 connectMeta(
-                                  account.platform === "instagram"
-                                    ? "instagram"
-                                    : "facebook",
+                                  oauthPlatformForAccount(account.platform),
                                   true,
                                 )
                               }
@@ -407,16 +438,55 @@ export default function ChannelsPage() {
                     </div>
                   )}
                   {account.capabilities?.length > 0 && (
-                    <ul className="border-t border-kova-border px-5 py-3 text-sm">
-                      {account.capabilities.map((item) => (
-                        <li key={item.scope} className="flex items-center justify-between gap-3 py-1">
-                          <span className="text-kova-dark">{item.label}</span>
-                          <span className={item.available ? "font-semibold text-kova-green" : "text-gray-400"}>
-                            {item.available ? "Available" : "Reconnect to allow"}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="border-t border-kova-border px-5 py-4">
+                      {permissions.hasGap && (
+                        <div className="mb-4 rounded-lg border border-kova-orange/35 bg-kova-orange/10 px-4 py-3 text-sm leading-6 text-kova-dark">
+                          <p className="font-semibold">
+                            Kova needs a few more Facebook permissions
+                          </p>
+                          <p className="mt-1 text-gray-700">
+                            Publishing and reading comments work today. To reply
+                            to comments and Page messages, open Facebook again
+                            and approve the remaining permissions.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              connectMeta(
+                                oauthPlatformForAccount(account.platform),
+                                true,
+                              )
+                            }
+                            disabled={busy}
+                            className="mt-3 inline-flex h-9 items-center rounded-md bg-kova-orange px-4 text-sm font-semibold text-kova-dark hover:bg-[#f0a46e] disabled:opacity-60"
+                          >
+                            Allow missing permissions
+                          </button>
+                        </div>
+                      )}
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                        What Kova can do on this account
+                      </p>
+                      <ul className="mt-3 space-y-1 text-sm">
+                        {account.capabilities.map((item) => (
+                          <li
+                            key={item.scope}
+                            className="flex items-center justify-between gap-3 rounded-md px-2 py-2 even:bg-kova-background/80"
+                          >
+                            <span className="text-kova-dark">{item.label}</span>
+                            <span
+                              className={
+                                item.available
+                                  ? "font-semibold text-kova-green"
+                                  : "font-medium text-kova-orange"
+                              }
+                            >
+                              {item.available ? "Granted" : "Not granted yet"}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </li>
               );
