@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Kova">
+  <rect width="512" height="512" fill="#176B4D"/>
+  <text
+    x="256"
+    y="338"
+    text-anchor="middle"
+    font-family="Segoe UI, system-ui, -apple-system, sans-serif"
+    font-size="300"
+    font-weight="700"
+    fill="#F4B183"
+  >K</text>
+</svg>

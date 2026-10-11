@@ -186,16 +186,25 @@ export function PwaProvider({ children }: PwaProviderProps) {
             className="w-full max-w-md border border-[#E5E7E5] bg-white p-6 shadow-2xl sm:rounded-lg"
             onClick={(event) => event.stopPropagation()}
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#176B4D]">
-              Install Kova
-            </p>
-
-            <h2
-              id="kova-install-title"
-              className="mt-2 text-xl font-semibold text-[#17211D]"
+          <div className="flex items-center gap-3">
+            <span
+              className="flex h-12 w-12 items-center justify-center bg-[#176B4D] text-2xl font-bold text-[#F4B183]"
+              aria-hidden="true"
             >
-              Open Kova like an app
-            </h2>
+              K
+            </span>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#176B4D]">
+                Install Kova
+              </p>
+              <h2
+                id="kova-install-title"
+                className="text-xl font-semibold text-[#17211D]"
+              >
+                Open Kova like an app
+              </h2>
+            </div>
+          </div>
 
             <p className="mt-2 text-sm leading-6 text-gray-500">
               Add Kova to your home screen for quick access, full-screen
