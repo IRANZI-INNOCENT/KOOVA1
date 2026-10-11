@@ -127,6 +127,7 @@ export function WorkspaceProvider({
     }
 
     const userId = user.id;
+    const token = accessToken;
     let cancelled = false;
 
     async function loadWorkspace() {
@@ -135,7 +136,7 @@ export function WorkspaceProvider({
 
       try {
         const current = await getBusiness(
-          accessToken,
+          token,
           { userId },
         );
 
@@ -146,7 +147,7 @@ export function WorkspaceProvider({
         setBusiness(current);
         prefetchWorkspaceData(
           current.id,
-          accessToken,
+          token,
         );
       } catch (error) {
         if (cancelled) {

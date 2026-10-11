@@ -34,13 +34,15 @@ export default function ProductsPage() {
       return;
     }
 
+    const token = accessToken;
+    const bizId = businessId;
     let cancelled = false;
 
     async function load() {
       try {
         const list = await getProducts(
-          businessId,
-          accessToken,
+          bizId,
+          token,
         );
         if (!cancelled) {
           setProducts(list);

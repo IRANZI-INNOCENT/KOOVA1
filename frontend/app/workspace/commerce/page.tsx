@@ -39,6 +39,8 @@ export default function CommerceWorkspacePage() {
       return;
     }
 
+    const token = accessToken;
+    const bizId = businessId;
     let cancelled = false;
 
     async function loadCommerce() {
@@ -46,10 +48,10 @@ export default function CommerceWorkspacePage() {
         setError("");
         const [businessProducts, contentPlans] =
           await Promise.all([
-            getProducts(businessId, accessToken),
+            getProducts(bizId, token),
             getProductContentPlans(
-              businessId,
-              accessToken,
+              bizId,
+              token,
             ).catch(
               () => [] as ProductContentPlan[],
             ),

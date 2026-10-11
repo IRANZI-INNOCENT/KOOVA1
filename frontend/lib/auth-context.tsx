@@ -136,15 +136,13 @@ export function AuthProvider({
          */
         setAccessToken(null);
         setUser(null);
-      } finally {
-
-        /**
-         * Protected routes may now safely evaluate
-         * isAuthenticated.
-         */
-        setIsLoading(false);
-
       }
+
+      /**
+       * Protected routes may now safely evaluate
+       * isAuthenticated.
+       */
+      setIsLoading(false);
     }
 
 

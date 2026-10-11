@@ -81,6 +81,8 @@ export default function OverviewPage() {
       return;
     }
 
+    const token = accessToken;
+    const bizId = businessId;
     let cancelled = false;
 
     async function loadOverview() {
@@ -90,12 +92,12 @@ export default function OverviewPage() {
 
         const [prods, page, contentList, leadList] =
           await Promise.all([
-            getProducts(businessId, accessToken),
-            getCommercePage(businessId, accessToken),
-            getContents(businessId, accessToken).catch(
+            getProducts(bizId, token),
+            getCommercePage(bizId, token),
+            getContents(bizId, token).catch(
               () => [] as Content[],
             ),
-            getLeads(businessId, accessToken).catch(
+            getLeads(bizId, token).catch(
               () => [] as Lead[],
             ),
           ]);
@@ -109,8 +111,8 @@ export default function OverviewPage() {
         setContents(contentList);
         setLeads(leadList);
         void ensureTodayBrief(
-          businessId,
-          accessToken,
+          bizId,
+          token,
         );
       } catch (err) {
         if (cancelled) {

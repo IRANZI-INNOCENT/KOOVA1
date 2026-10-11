@@ -62,13 +62,15 @@ export default function SocialOverviewPage() {
       return;
     }
 
+    const token = accessToken;
+    const bizId = businessId;
     let cancelled = false;
 
     async function load() {
       try {
         const [data, policy] = await Promise.all([
-          getSocialOverview(businessId, accessToken),
-          getBusinessPolicy(businessId, accessToken),
+          getSocialOverview(bizId, token),
+          getBusinessPolicy(bizId, token),
         ]);
         if (cancelled) {
           return;
