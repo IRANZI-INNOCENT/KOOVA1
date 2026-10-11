@@ -1,24 +1,18 @@
-from django.conf import settings
+from django.contrib.auth import get_user_model
 from rest_framework import generics, status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import (
-    LoginSerializer,
-    SignupSerializer,
-)
-from rest_framework.permissions import (
-    AllowAny,
-    IsAuthenticated,
-)
-
+from .cookies import clear_refresh_cookie, set_refresh_cookie
 from .serializers import (
     CurrentUserSerializer,
     LoginSerializer,
     SignupSerializer,
 )
+
+User = get_user_model()
 
 
 class SignupView(generics.CreateAPIView):
@@ -76,21 +70,9 @@ class LoginView(generics.GenericAPIView):
             status=status.HTTP_200_OK,
         )
 
-        # Keep the long-lived refresh credential out of JavaScript.
-        #
-        # HttpOnly prevents frontend JavaScript from reading the cookie.
-        # This provides a stronger security boundary than storing the
-        # refresh token in localStorage.
-        #
-        # Local HTTP leaves the cookie insecure.
-        # Production settings mark it Secure for HTTPS.
-        response.set_cookie(
-            key="kova_refresh_token",
-            value=str(refresh),
-            httponly=True,
-            secure=settings.REFRESH_COOKIE_SECURE,
-            samesite=settings.REFRESH_COOKIE_SAMESITE,
-            max_age=7 * 24 * 60 * 60,
+        set_refresh_cookie(
+            response,
+            str(refresh),
         )
 
         return response
@@ -100,9 +82,8 @@ class RefreshTokenView(generics.GenericAPIView):
     """
     Issue a new access token using Kova's HttpOnly refresh cookie.
 
-    The refresh token is intentionally read from the cookie rather
-    than from the request body so that frontend JavaScript never
-    needs direct access to the long-lived refresh credential.
+    Each successful refresh also renews the HttpOnly refresh cookie so
+    active PWA users stay signed in without visiting the login screen.
     """
 
     permission_classes = [AllowAny]
@@ -126,21 +107,32 @@ class RefreshTokenView(generics.GenericAPIView):
 
         try:
             refresh = RefreshToken(refresh_token)
-
-            return Response(
-                {
-                    "access": str(refresh.access_token),
-                },
-                status=status.HTTP_200_OK,
+            user = User.objects.get(
+                pk=refresh["user_id"],
             )
-
-        except TokenError:
+        except (TokenError, User.DoesNotExist, KeyError):
             return Response(
                 {
                     "detail": "Authentication session has expired.",
                 },
                 status=status.HTTP_401_UNAUTHORIZED,
             )
+
+        new_refresh = RefreshToken.for_user(user)
+
+        response = Response(
+            {
+                "access": str(new_refresh.access_token),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+        set_refresh_cookie(
+            response,
+            str(new_refresh),
+        )
+
+        return response
 
 
 class CurrentUserView(generics.RetrieveAPIView):
@@ -163,17 +155,12 @@ class CurrentUserView(generics.RetrieveAPIView):
         """
         return self.request.user
 
+
 class LogoutView(generics.GenericAPIView):
     """
     Log out the currently authenticated Kova user.
 
     Logout removes the refresh-token cookie from the browser.
-    The short-lived access token remains valid until it expires,
-    but the browser can no longer restore a new session through
-    the refresh endpoint.
-
-    Refresh-token blacklisting can be added later as an additional
-    authentication security layer.
     """
 
     permission_classes = [IsAuthenticated]
@@ -187,13 +174,6 @@ class LogoutView(generics.GenericAPIView):
             status=status.HTTP_204_NO_CONTENT,
         )
 
-        # Remove the refresh credential from the browser.
-        #
-        # The cookie name and security attributes must match the
-        # cookie created by LoginView.
-        response.delete_cookie(
-            key="kova_refresh_token",
-            samesite=settings.REFRESH_COOKIE_SAMESITE,
-        )
+        clear_refresh_cookie(response)
 
         return response

@@ -279,6 +279,28 @@ class LoginAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(response.cookies["kova_refresh_token"]["max-age"], 0)
 
+    def test_refresh_renews_refresh_cookie(self):
+        """Token refresh should issue a new access token and renew the cookie."""
+
+        login_response = self.client.post(
+            self.login_url,
+            {
+                "email": "login@example.com",
+                "password": "StrongPassword123!",
+            },
+            format="json",
+        )
+
+        self.assertEqual(login_response.status_code, status.HTTP_200_OK)
+
+        refresh_response = self.client.post(
+            "/api/auth/refresh/",
+        )
+
+        self.assertEqual(refresh_response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", refresh_response.data)
+        self.assertIn("kova_refresh_token", refresh_response.cookies)
+
     def test_unauthenticated_user_cannot_logout(self):
         """Logout requires authentication."""
 

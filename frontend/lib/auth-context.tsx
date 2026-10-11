@@ -18,9 +18,13 @@ import {
 } from "./auth";
 
 import {
-  apiRequest,
   registerAccessTokenUpdater,
 } from "./api";
+
+import {
+  renewSession,
+  startSessionKeepAlive,
+} from "./session-keep-alive";
 
 
 /**
@@ -116,44 +120,22 @@ export function AuthProvider({
 
     async function restoreSession(): Promise<void> {
 
-      try {
+      const restored = await renewSession();
 
-        const response =
-          await apiRequest<{
-            access: string;
-          }>(
-            "/auth/refresh/",
-            {
-              method: "POST",
-            },
-          );
-
-
-        const restoredUser =
-          await getCurrentUser(
-            response.access,
-          );
-
-
-        setAccessToken(
-          response.access,
+      if (restored.ok) {
+        const restoredUser = await getCurrentUser(
+          restored.access,
         );
 
-        setUser(
-          restoredUser,
-        );
-
-      } catch (error) {
-
+        setAccessToken(restored.access);
+        setUser(restoredUser);
+      } else {
         /**
          * A missing refresh session is normal for a new
          * or signed-out visitor.
-         *
-         * Do not treat this as an application error.
          */
         setAccessToken(null);
         setUser(null);
-
       } finally {
 
         /**
@@ -169,6 +151,27 @@ export function AuthProvider({
     restoreSession();
 
   }, []);
+
+
+  /**
+   * While signed in, renew tokens in the background so the installed PWA
+   * and browser tab stay authenticated without manual login.
+   */
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    return startSessionKeepAlive(
+      (token) => {
+        setAccessToken(token);
+      },
+      () => {
+        setAccessToken(null);
+        setUser(null);
+      },
+    );
+  }, [user]);
 
 
   /**

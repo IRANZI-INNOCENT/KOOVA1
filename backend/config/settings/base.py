@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pathlib import Path
 import os
 
@@ -138,6 +139,16 @@ CORS_ALLOW_CREDENTIALS = True
 # Production turns Secure on and widens SameSite for the public site.
 REFRESH_COOKIE_SECURE = False
 REFRESH_COOKIE_SAMESITE = "Lax"
+REFRESH_COOKIE_PATH = "/"
+# Keep owners signed in on installed PWAs; renewed on each token refresh.
+REFRESH_COOKIE_MAX_AGE = 90 * 24 * 60 * 60
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=90),
+    "ROTATE_REFRESH_TOKENS": False,
+    "UPDATE_LAST_LOGIN": True,
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {

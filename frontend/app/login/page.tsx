@@ -205,6 +205,11 @@ export default function LoginPage() {
         )}
 
 
+        <p className="text-xs leading-5 text-gray-500">
+          After you sign in, Kova keeps you logged in on this device
+          (including the installed app). Sign out anytime from settings.
+        </p>
+
         <Button
           type="submit"
           loading={loading}
