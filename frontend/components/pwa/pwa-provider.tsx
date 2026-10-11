@@ -104,10 +104,37 @@ export function PwaProvider({ children }: PwaProviderProps) {
     );
     window.addEventListener("appinstalled", handleInstalled);
 
-    const timer = window.setTimeout(openInstallPopup, 800);
+    const schedulePopup = () => {
+      openInstallPopup();
+    };
+
+    const idleCallback = (
+      window as Window & {
+        requestIdleCallback?: (
+          callback: () => void,
+          options?: { timeout: number },
+        ) => number;
+      }
+    ).requestIdleCallback;
+
+    const timer = idleCallback
+      ? idleCallback(schedulePopup, { timeout: 2500 })
+      : window.setTimeout(schedulePopup, 1500);
 
     return () => {
-      window.clearTimeout(timer);
+      const cancelIdle = (
+        window as Window & {
+          cancelIdleCallback?: (id: number) => void;
+        }
+      ).cancelIdleCallback;
+
+      if (typeof timer === "number") {
+        if (cancelIdle) {
+          cancelIdle(timer);
+        } else {
+          window.clearTimeout(timer);
+        }
+      }
       window.removeEventListener(
         "beforeinstallprompt",
         handleBeforeInstall,

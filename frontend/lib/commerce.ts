@@ -1,4 +1,24 @@
 import { authenticatedApiRequest } from "@/lib/api";
+import {
+  cachedResource,
+  invalidateResourceCache,
+} from "@/lib/resource-cache";
+
+const BUSINESS_CACHE_TTL_MS = 10 * 60 * 1000;
+const LIST_CACHE_TTL_MS = 2 * 60 * 1000;
+
+export function invalidateCommerceCaches(
+  businessId: number,
+  userId?: number,
+): void {
+  invalidateResourceCache(`products:${businessId}`);
+  invalidateResourceCache(`commerce-page:${businessId}`);
+  if (userId !== undefined) {
+    invalidateResourceCache(
+      `business:uid:${userId}`,
+    );
+  }
+}
 
 export interface ProductImage {
   id: number;
@@ -89,17 +109,33 @@ export interface Business {
  */
 export async function getBusiness(
   token: string,
+  options?: {
+    userId?: number;
+    revalidate?: boolean;
+  },
 ): Promise<Business> {
-  const businesses = await authenticatedApiRequest<Business[]>(
-    "/businesses/",
-    token,
+  const cacheKey = options?.userId
+    ? `business:uid:${options.userId}`
+    : `business:token:${token.slice(-12)}`;
+
+  return cachedResource(
+    cacheKey,
+    BUSINESS_CACHE_TTL_MS,
+    async () => {
+      const businesses =
+        await authenticatedApiRequest<Business[]>(
+          "/businesses/",
+          token,
+        );
+
+      if (!businesses.length) {
+        throw new Error("No business is configured.");
+      }
+
+      return businesses[0];
+    },
+    { revalidate: options?.revalidate },
   );
-
-  if (!businesses.length) {
-    throw new Error("No business is configured.");
-  }
-
-  return businesses[0];
 }
 
 /**
@@ -108,10 +144,17 @@ export async function getBusiness(
 export async function getProducts(
   businessId: number,
   token: string,
+  options?: { revalidate?: boolean },
 ): Promise<Product[]> {
-  return authenticatedApiRequest<Product[]>(
-    `/commerce/${businessId}/products/`,
-    token,
+  return cachedResource(
+    `products:${businessId}`,
+    LIST_CACHE_TTL_MS,
+    () =>
+      authenticatedApiRequest<Product[]>(
+        `/commerce/${businessId}/products/`,
+        token,
+      ),
+    { revalidate: options?.revalidate },
   );
 }
 
@@ -121,10 +164,17 @@ export async function getProducts(
 export async function getCommercePage(
   businessId: number,
   token: string,
+  options?: { revalidate?: boolean },
 ): Promise<CommercePage> {
-  return authenticatedApiRequest<CommercePage>(
-    `/commerce/${businessId}/page/`,
-    token,
+  return cachedResource(
+    `commerce-page:${businessId}`,
+    LIST_CACHE_TTL_MS,
+    () =>
+      authenticatedApiRequest<CommercePage>(
+        `/commerce/${businessId}/page/`,
+        token,
+      ),
+    { revalidate: options?.revalidate },
   );
 }
 

@@ -11,6 +11,7 @@ import {
 import {
   Product,
   SnapToSellBatchError,
+  invalidateCommerceCaches,
   snapToSell,
   snapToSellBatch,
   updateProduct,
@@ -482,6 +483,7 @@ export default function SnapToSellModal({
 
         setBatchProducts(batchResult.products);
         setBatchErrors(batchResult.errors || []);
+        invalidateCommerceCaches(businessId);
         setStep("batchReview");
         return;
       }
@@ -493,6 +495,7 @@ export default function SnapToSellModal({
       );
 
       setProduct(createdProduct);
+      invalidateCommerceCaches(businessId);
 
       setName(createdProduct.name || "");
       setCategory(createdProduct.category || "");

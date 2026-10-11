@@ -1,77 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
-import { AppShell } from "@/components/workspace/app-shell";
-import SnapToSellModal from "@/components/commerce/snap-to-sell-modal";
-import { useAuth } from "@/lib/auth-context";
-import { getBusiness, type Business } from "@/lib/commerce";
+import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
+import { useWorkspace } from "@/lib/workspace-context";
+
+const SnapToSellModal = dynamic(
+  () =>
+    import("@/components/commerce/snap-to-sell-modal"),
+  {
+    ssr: false,
+    loading: () => null,
+  },
+);
 
 export default function SnapToSellPage() {
   const router = useRouter();
-
   const {
+    business,
+    businessId,
     accessToken,
-    isAuthenticated,
-    isLoading: authLoading,
-  } = useAuth();
-
-  const [business, setBusiness] = useState<Business | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (authLoading) {
-      return;
-    }
-
-    if (!isAuthenticated || !accessToken) {
-      router.replace("/login");
-      return;
-    }
-
-    const token = accessToken;
-
-    async function loadBusiness() {
-      try {
-        setLoading(true);
-        setError("");
-
-        const currentBusiness = await getBusiness(token);
-
-        setBusiness(currentBusiness);
-      } catch (err) {
-        console.error(
-          "Kova Snap-to-Sell business loading failed:",
-          err,
-        );
-
-        if (
-          err instanceof Error &&
-          err.message === "No business is configured."
-        ) {
-          router.replace("/workspace/setup");
-          return;
-        }
-
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Unable to load your business.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadBusiness();
-  }, [
-    authLoading,
-    isAuthenticated,
-    accessToken,
-    router,
-  ]);
+    workspaceLoading,
+    workspaceError,
+  } = useWorkspace();
 
   function handleCreated() {
     router.push("/workspace/commerce");
@@ -81,37 +33,25 @@ export default function SnapToSellPage() {
     router.push("/workspace/commerce");
   }
 
-  if (authLoading || loading) {
+  if (
+    !workspaceLoading &&
+    (workspaceError ||
+      !business ||
+      !businessId ||
+      !accessToken)
+  ) {
     return (
-      <AppShell>
-        <div className="p-6 sm:p-8">
-          <div className="mx-auto max-w-5xl">
-            <div className="border border-[#E5E7E5] bg-white p-8">
-              <p className="text-sm text-gray-500">
-                Loading Snap-to-Sell...
-              </p>
-            </div>
-          </div>
-        </div>
-      </AppShell>
-    );
-  }
-
-  if (error || !business || !accessToken) {
-    return (
-      <AppShell>
+      <WorkspacePageFrame loading={false}>
         <div className="p-6 sm:p-8">
           <div className="mx-auto max-w-5xl">
             <div className="border border-[#E5E7E5] bg-white p-8">
               <p className="text-sm font-semibold text-[#17211D]">
                 Unable to open Snap-to-Sell
               </p>
-
               <p className="mt-2 text-sm leading-6 text-gray-500">
-                {error ||
+                {workspaceError ||
                   "We could not load the business required for this workflow."}
               </p>
-
               <button
                 type="button"
                 onClick={() =>
@@ -124,19 +64,23 @@ export default function SnapToSellPage() {
             </div>
           </div>
         </div>
-      </AppShell>
+      </WorkspacePageFrame>
     );
   }
 
   return (
-    <AppShell>
-      <SnapToSellModal
-        open={true}
-        onClose={handleClose}
-        businessId={business.id}
-        accessToken={accessToken}
-        onCreated={handleCreated}
-      />
-    </AppShell>
+    <WorkspacePageFrame loading={workspaceLoading}>
+      {!workspaceLoading &&
+        businessId &&
+        accessToken && (
+          <SnapToSellModal
+            open={true}
+            onClose={handleClose}
+            businessId={businessId}
+            accessToken={accessToken}
+            onCreated={handleCreated}
+          />
+        )}
+    </WorkspacePageFrame>
   );
 }

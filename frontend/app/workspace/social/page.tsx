@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { ApiError } from "@/lib/api";
-import { useAuth } from "@/lib/auth-context";
-import { getBusiness } from "@/lib/commerce";
+import { PageSkeleton } from "@/components/workspace/page-skeleton";
+import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
+import { useWorkspace } from "@/lib/workspace-context";
 import {
   getBusinessPolicy,
   getSocialOverview,
@@ -41,45 +42,61 @@ const MODES: OperatingMode[] = ["assist", "approval", "autopilot"];
 
 export default function SocialOverviewPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading, accessToken } = useAuth();
+  const {
+    businessId,
+    accessToken,
+    workspaceLoading,
+  } = useWorkspace();
   const [overview, setOverview] = useState<SocialOverview | null>(null);
   const [mode, setMode] = useState<OperatingMode>("assist");
   const [modeUpdating, setModeUpdating] = useState(false);
-  const [businessId, setBusinessId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!isAuthenticated || !accessToken) {
-      router.replace("/login");
+    if (
+      workspaceLoading ||
+      !businessId ||
+      !accessToken
+    ) {
       return;
     }
-    const token = accessToken;
+
+    let cancelled = false;
 
     async function load() {
       try {
-        const business = await getBusiness(token);
-        setBusinessId(business.id);
         const [data, policy] = await Promise.all([
-          getSocialOverview(business.id, token),
-          getBusinessPolicy(business.id, token),
+          getSocialOverview(businessId, accessToken),
+          getBusinessPolicy(businessId, accessToken),
         ]);
+        if (cancelled) {
+          return;
+        }
         setOverview(data);
         setMode(policy.social_operating_mode);
       } catch (err) {
+        if (cancelled) {
+          return;
+        }
         setError(
           err instanceof ApiError
             ? err.message
             : "Could not load social overview.",
         );
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
-    load();
-  }, [authLoading, isAuthenticated, accessToken, router]);
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceLoading, businessId, accessToken]);
 
   async function handleModeChange(next: OperatingMode) {
     if (!businessId || !accessToken || next === mode) return;
@@ -101,12 +118,8 @@ export default function SocialOverviewPage() {
     }
   }
 
-  if (authLoading || loading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-kova-green border-t-transparent" />
-      </div>
-    );
+  if (workspaceLoading || loading) {
+    return <PageSkeleton />;
   }
 
   if (error && !overview) {

@@ -5,22 +5,25 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { CatalogContentModal } from "@/components/workspace/catalog-content";
-import { AppShell } from "@/components/workspace/app-shell";
-import { useAuth } from "@/lib/auth-context";
+import { PageSkeleton } from "@/components/workspace/page-skeleton";
+import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
 import { ApiError } from "@/lib/api";
 import {
-  getBusiness,
   getProductContentPlans,
   getProducts,
-  type Business,
   type Product,
   type ProductContentPlan,
 } from "@/lib/commerce";
+import { useWorkspace } from "@/lib/workspace-context";
 
 export default function CommerceWorkspacePage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading, accessToken } = useAuth();
-  const [business, setBusiness] = useState<Business | null>(null);
+  const {
+    business,
+    businessId,
+    accessToken,
+    workspaceLoading,
+  } = useWorkspace();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -28,35 +31,66 @@ export default function CommerceWorkspacePage() {
   const [plans, setPlans] = useState<Record<number, ProductContentPlan>>({});
 
   useEffect(() => {
-    if (authLoading || !isAuthenticated || !accessToken) return;
-    const token = accessToken;
+    if (
+      workspaceLoading ||
+      !businessId ||
+      !accessToken
+    ) {
+      return;
+    }
+
+    let cancelled = false;
 
     async function loadCommerce() {
       try {
-        setLoading(true);
         setError("");
-        const currentBusiness = await getBusiness(token);
-        setBusiness(currentBusiness);
-        const [businessProducts, contentPlans] = await Promise.all([
-          getProducts(currentBusiness.id, token),
-          getProductContentPlans(currentBusiness.id, token).catch(() => [] as ProductContentPlan[]),
-        ]);
-        setProducts(businessProducts);
-        setPlans(Object.fromEntries(contentPlans.map((plan) => [plan.product_id, plan])));
-      } catch (err) {
-        if (err instanceof Error && err.message === "No business is configured.") {
-          setBusiness(null);
-          setProducts([]);
+        const [businessProducts, contentPlans] =
+          await Promise.all([
+            getProducts(businessId, accessToken),
+            getProductContentPlans(
+              businessId,
+              accessToken,
+            ).catch(
+              () => [] as ProductContentPlan[],
+            ),
+          ]);
+
+        if (cancelled) {
           return;
         }
-        setError(err instanceof ApiError ? err.message : "Could not load your Commerce workspace.");
+
+        setProducts(businessProducts);
+        setPlans(
+          Object.fromEntries(
+            contentPlans.map((plan) => [
+              plan.product_id,
+              plan,
+            ]),
+          ),
+        );
+      } catch (err) {
+        if (cancelled) {
+          return;
+        }
+
+        setError(
+          err instanceof ApiError
+            ? err.message
+            : "Could not load your Commerce workspace.",
+        );
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
-    loadCommerce();
-  }, [authLoading, isAuthenticated, accessToken]);
+    void loadCommerce();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceLoading, businessId, accessToken]);
 
   function openSnapToSell() {
     if (!business) {
@@ -66,26 +100,14 @@ export default function CommerceWorkspacePage() {
     router.push("/workspace/commerce/snap-to-sell");
   }
 
-  if (authLoading || loading) {
-    return (
-      <AppShell>
-        <div className="flex min-h-[50vh] items-center justify-center">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-kova-green border-t-transparent" />
-        </div>
-      </AppShell>
-    );
-  }
-
-  if (!isAuthenticated) {
-    router.replace("/login");
-    return null;
-  }
-
   const draftCount = products.filter((p) => p.status === "draft").length;
   const activeCount = products.filter((p) => p.status === "active").length;
 
   return (
-    <AppShell>
+    <WorkspacePageFrame
+      loading={workspaceLoading || loading}
+      skeleton={<PageSkeleton />}
+    >
       <main className="min-h-screen bg-kova-background">
         <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
           {/* ──── Header ──── */}
@@ -287,7 +309,7 @@ export default function CommerceWorkspacePage() {
           />
         )}
       </main>
-    </AppShell>
+    </WorkspacePageFrame>
   );
 }
 

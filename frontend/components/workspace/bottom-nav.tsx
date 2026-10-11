@@ -52,6 +52,7 @@ export function BottomNav() {
         <li>
           <Link
             href="/workspace/commerce"
+            prefetch={true}
             aria-current={snapActive ? "page" : undefined}
             className="flex h-full flex-col items-center justify-center gap-1"
           >
@@ -102,6 +103,7 @@ function SideLink({
     <li>
       <Link
         href={item.href}
+        prefetch={true}
         aria-current={active ? "page" : undefined}
         className={`flex h-full flex-col items-center justify-center gap-1 text-xs font-semibold ${
           active ? "text-kova-orange" : "text-white"

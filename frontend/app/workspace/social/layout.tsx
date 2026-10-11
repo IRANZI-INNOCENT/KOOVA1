@@ -37,6 +37,7 @@ export default function SocialLayout({ children }: { children: ReactNode }) {
                   <li key={tab.href}>
                     <Link
                       href={tab.href}
+                      prefetch={true}
                       className={`inline-flex items-center whitespace-nowrap border-b-2 px-3.5 py-3 text-sm font-medium transition-colors ${
                         active
                           ? "border-kova-orange text-kova-dark"

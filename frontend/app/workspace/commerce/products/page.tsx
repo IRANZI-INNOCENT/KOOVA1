@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { AppShell } from "@/components/workspace/app-shell";
+import { ListSkeleton } from "@/components/workspace/page-skeleton";
+import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
 import { ApiError } from "@/lib/api";
-import { getBusiness, getProducts, type Product } from "@/lib/commerce";
-import { useAuth } from "@/lib/auth-context";
+import { getProducts, type Product } from "@/lib/commerce";
+import { useWorkspace } from "@/lib/workspace-context";
 
 const STATUS_BADGE: Record<string, { bg: string; text: string }> = {
   draft: { bg: "bg-gray-100", text: "text-gray-600" },
@@ -15,45 +16,70 @@ const STATUS_BADGE: Record<string, { bg: string; text: string }> = {
 };
 
 export default function ProductsPage() {
-  const { isAuthenticated, isLoading: authLoading, accessToken } = useAuth();
+  const {
+    businessId,
+    accessToken,
+    workspaceLoading,
+  } = useWorkspace();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (authLoading || !accessToken || !isAuthenticated) return;
-    const token = accessToken;
+    if (
+      workspaceLoading ||
+      !businessId ||
+      !accessToken
+    ) {
+      return;
+    }
+
+    let cancelled = false;
 
     async function load() {
       try {
-        const business = await getBusiness(token);
-        setProducts(await getProducts(business.id, token));
-      } catch (err) {
-        setError(
-          err instanceof ApiError ? err.message : "Could not load products.",
+        const list = await getProducts(
+          businessId,
+          accessToken,
         );
+        if (!cancelled) {
+          setProducts(list);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof ApiError
+              ? err.message
+              : "Could not load products.",
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
-    load();
-  }, [authLoading, accessToken, isAuthenticated]);
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceLoading, businessId, accessToken]);
 
   const storePath = products.find((item) => item.store_path)?.store_path;
 
-  if (authLoading || loading) {
-    return (
-      <AppShell>
-        <div className="flex min-h-[50vh] items-center justify-center">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-kova-green border-t-transparent" />
-        </div>
-      </AppShell>
-    );
-  }
-
   return (
-    <AppShell>
+    <WorkspacePageFrame
+      loading={workspaceLoading || loading}
+      skeleton={
+        <div className="p-4 sm:p-8">
+          <div className="mx-auto max-w-6xl space-y-6">
+            <ListSkeleton rows={8} />
+          </div>
+        </div>
+      }
+    >
       <div className="p-4 sm:p-8">
         <div className="mx-auto max-w-6xl space-y-6">
           {/* ──── Header ──── */}
@@ -186,6 +212,6 @@ export default function ProductsPage() {
           )}
         </div>
       </div>
-    </AppShell>
+    </WorkspacePageFrame>
   );
 }

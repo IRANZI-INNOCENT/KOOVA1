@@ -4,22 +4,22 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import { AppShell } from "@/components/workspace/app-shell";
-import { useAuth } from "@/lib/auth-context";
+import { PageSkeleton } from "@/components/workspace/page-skeleton";
+import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
 import { ApiError } from "@/lib/api";
 import { generateBrief, getLatestBrief } from "@/lib/brief";
 import {
-  getBusiness,
   getProducts,
   getCommercePage,
   getContents,
   getLeads,
-  type Business,
   type Product,
   type CommercePage,
   type Content,
   type Lead,
 } from "@/lib/commerce";
+import { useAuth } from "@/lib/auth-context";
+import { useWorkspace } from "@/lib/workspace-context";
 
 function localDate() {
   const now = new Date();
@@ -56,14 +56,14 @@ function formatName(name: string) {
 
 export default function OverviewPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const {
-    isAuthenticated,
-    isLoading: authLoading,
+    business,
+    businessId,
     accessToken,
-    user,
-  } = useAuth();
+    workspaceLoading,
+  } = useWorkspace();
 
-  const [business, setBusiness] = useState<Business | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [commercePage, setCommercePage] = useState<CommercePage | null>(null);
   const [contents, setContents] = useState<Content[]>([]);
@@ -73,33 +73,50 @@ export default function OverviewPage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!isAuthenticated || !accessToken) {
-      router.replace("/login");
+    if (
+      workspaceLoading ||
+      !businessId ||
+      !accessToken
+    ) {
       return;
     }
-    const token = accessToken;
+
+    let cancelled = false;
 
     async function loadOverview() {
       try {
         setLoading(true);
         setError("");
-        const biz = await getBusiness(token);
-        setBusiness(biz);
 
-        const [prods, page, contentList, leadList] = await Promise.all([
-          getProducts(biz.id, token),
-          getCommercePage(biz.id, token),
-          getContents(biz.id, token).catch(() => [] as Content[]),
-          getLeads(biz.id, token).catch(() => [] as Lead[]),
-        ]);
+        const [prods, page, contentList, leadList] =
+          await Promise.all([
+            getProducts(businessId, accessToken),
+            getCommercePage(businessId, accessToken),
+            getContents(businessId, accessToken).catch(
+              () => [] as Content[],
+            ),
+            getLeads(businessId, accessToken).catch(
+              () => [] as Lead[],
+            ),
+          ]);
+
+        if (cancelled) {
+          return;
+        }
 
         setProducts(prods);
         setCommercePage(page);
         setContents(contentList);
         setLeads(leadList);
-        void ensureTodayBrief(biz.id, token);
+        void ensureTodayBrief(
+          businessId,
+          accessToken,
+        );
       } catch (err) {
+        if (cancelled) {
+          return;
+        }
+
         if (err instanceof ApiError && err.status === 404) {
           router.replace("/workspace/setup");
           return;
@@ -117,12 +134,23 @@ export default function OverviewPage() {
             : "Could not load your workspace.",
         );
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
-    loadOverview();
-  }, [authLoading, isAuthenticated, accessToken, router]);
+    void loadOverview();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    workspaceLoading,
+    businessId,
+    accessToken,
+    router,
+  ]);
 
   function copyStoreLink() {
     if (!commercePage?.slug) return;
@@ -133,25 +161,15 @@ export default function OverviewPage() {
     });
   }
 
-  if (authLoading || loading) {
-    return (
-      <AppShell>
-        <div className="flex min-h-[50vh] items-center justify-center">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-kova-green border-t-transparent" />
-        </div>
-      </AppShell>
-    );
-  }
-
   if (error) {
     return (
-      <AppShell>
+      <WorkspacePageFrame loading={false}>
         <div className="p-4 sm:p-8">
           <div className="mx-auto max-w-5xl rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
             {error}
           </div>
         </div>
-      </AppShell>
+      </WorkspacePageFrame>
     );
   }
 
@@ -166,7 +184,10 @@ export default function OverviewPage() {
     : null;
 
   return (
-    <AppShell>
+    <WorkspacePageFrame
+      loading={workspaceLoading || loading}
+      skeleton={<PageSkeleton />}
+    >
       <div className="p-4 sm:p-8">
         <div className="mx-auto max-w-5xl space-y-6">
           {/* ──── Header ──── */}
@@ -377,7 +398,7 @@ export default function OverviewPage() {
           )}
         </div>
       </div>
-    </AppShell>
+    </WorkspacePageFrame>
   );
 }
 
