@@ -7,12 +7,19 @@ import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { getBusiness } from "@/lib/commerce";
 import {
+  InstagramProfessionalGuide,
+  instagramNotLinkedPageName,
+  isInstagramNotLinkedError,
+} from "@/components/social/instagram-professional-guide";
+import {
   disconnectSocialAccount,
+  getInstagramReadiness,
   getMetaOAuthURL,
   getSocialAccounts,
   metaOAuthRedirectUri,
   submitMetaOAuthCode,
   verifySocialAccount,
+  type InstagramReadiness,
   type SocialAccount,
 } from "@/lib/social";
 
@@ -79,6 +86,14 @@ export default function ChannelsPage() {
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [verifyNote, setVerifyNote] = useState("");
+  const [instagramReadiness, setInstagramReadiness] =
+    useState<InstagramReadiness | null>(null);
+  const [showInstagramGuide, setShowInstagramGuide] =
+    useState(false);
+  const [instagramGuideVariant, setInstagramGuideVariant] =
+    useState<"error" | "setup">("setup");
+  const [instagramGuidePage, setInstagramGuidePage] =
+    useState<string | undefined>();
   const finishingMeta = useRef(false);
 
   useEffect(() => {
@@ -95,6 +110,22 @@ export default function ChannelsPage() {
         setBusinessId(business.id);
         const list = await getSocialAccounts(business.id, token);
         setAccounts(list);
+        const readiness = await getInstagramReadiness(
+          business.id,
+          token,
+        ).catch(() => null);
+        setInstagramReadiness(readiness);
+        if (
+          readiness?.facebook_connected &&
+          !readiness.instagram_linked_to_page &&
+          !readiness.instagram_connected_in_kova
+        ) {
+          setShowInstagramGuide(true);
+          setInstagramGuideVariant("setup");
+          setInstagramGuidePage(
+            readiness.facebook_page_name,
+          );
+        }
       } catch (err) {
         setError(
           err instanceof ApiError ? err.message : "Could not load channels.",
@@ -146,11 +177,21 @@ export default function ChannelsPage() {
         setError("");
       })
       .catch((err) => {
-        setError(
-          err instanceof ApiError
-            ? err.message
-            : "Could not finish connecting the account.",
-        );
+        if (isInstagramNotLinkedError(err)) {
+          setShowInstagramGuide(true);
+          setInstagramGuideVariant("error");
+          setInstagramGuidePage(
+            instagramNotLinkedPageName(err) ||
+              instagramReadiness?.facebook_page_name,
+          );
+          setError("");
+        } else {
+          setError(
+            err instanceof ApiError
+              ? err.message
+              : "Could not finish connecting the account.",
+          );
+        }
       })
       .finally(() => {
         window.history.replaceState({}, "", "/workspace/social/channels");
@@ -298,13 +339,24 @@ export default function ChannelsPage() {
           </p>
         )}
 
-        {error && (
+        {error && !showInstagramGuide && (
           <div
             role="alert"
             className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
           >
             {error}
           </div>
+        )}
+
+        {showInstagramGuide && (
+          <InstagramProfessionalGuide
+            variant={instagramGuideVariant}
+            pageName={
+              instagramGuidePage ||
+              instagramReadiness?.facebook_page_name
+            }
+            onRetry={() => void connectMeta("instagram")}
+          />
         )}
 
         {/* ──── Account list ──── */}

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 
+import { WorkspaceAuthGate } from "@/components/workspace/workspace-auth-gate";
 import { WorkspaceProvider } from "@/lib/workspace-context";
 
 export default function WorkspaceLayout({
@@ -10,6 +11,8 @@ export default function WorkspaceLayout({
   children: ReactNode;
 }) {
   return (
-    <WorkspaceProvider>{children}</WorkspaceProvider>
+    <WorkspaceAuthGate>
+      <WorkspaceProvider>{children}</WorkspaceProvider>
+    </WorkspaceAuthGate>
   );
 }

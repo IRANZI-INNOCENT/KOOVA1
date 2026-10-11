@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    MetaInstagramReadinessView,
     MetaOAuthCallbackView,
     MetaOAuthReturnView,
     MetaOAuthURLView,
@@ -48,6 +49,11 @@ urlpatterns = [
         "<int:business_id>/accounts/<int:pk>/verify/",
         SocialAccountVerifyView.as_view(),
         name="social-account-verify",
+    ),
+    path(
+        "<int:business_id>/meta/instagram-readiness/",
+        MetaInstagramReadinessView.as_view(),
+        name="meta-instagram-readiness",
     ),
     path(
         "<int:business_id>/meta/oauth-url/",

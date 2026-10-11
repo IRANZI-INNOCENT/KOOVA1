@@ -310,6 +310,46 @@ class SocialAPITests(TestCase):
         )
         self.assertEqual(resp.status_code, 400)
 
+    @patch("apps.social.services.connection.MetaAdapter")
+    def test_meta_callback_instagram_requires_linked_professional(
+        self,
+        MockAdapter,
+    ):
+        instance = MockAdapter.return_value
+        instance.exchange_code.return_value = TokenExchange(
+            access_token="long-lived-tok",
+            expires_in=5184000,
+            scopes=["pages_show_list"],
+            page_id="pg-meta-1",
+            page_name="COVA IA AGENT",
+            page_access_token="page-tok",
+            instagram_account_id="",
+            instagram_username="",
+        )
+        resp = self.client.post(
+            f"/api/social/{self.business.id}/meta/callback/",
+            {
+                "code": "mock-auth-code",
+                "redirect_uri": "http://localhost/callback",
+                "platform": "instagram",
+            },
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(
+            resp.data["error_code"],
+            "INSTAGRAM_NOT_LINKED_TO_PAGE",
+        )
+        self.assertEqual(resp.data["page_name"], "COVA IA AGENT")
+
+    def test_instagram_readiness_without_facebook(self):
+        resp = self.client.get(
+            f"/api/social/{self.business.id}/meta/instagram-readiness/",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.data["facebook_connected"])
+        self.assertFalse(resp.data["instagram_linked_to_page"])
+
     def test_actions_list(self):
         SocialAction.objects.create(
             business=self.business,

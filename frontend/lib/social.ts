@@ -135,6 +135,25 @@ export async function verifySocialAccount(
   );
 }
 
+export interface InstagramReadiness {
+  facebook_connected: boolean;
+  facebook_page_name: string;
+  facebook_page_id?: string;
+  instagram_linked_to_page: boolean;
+  instagram_username: string;
+  instagram_connected_in_kova: boolean;
+}
+
+export async function getInstagramReadiness(
+  businessId: number,
+  token: string,
+): Promise<InstagramReadiness> {
+  return authenticatedApiRequest<InstagramReadiness>(
+    `/social/${businessId}/meta/instagram-readiness/`,
+    token,
+  );
+}
+
 export async function getMetaOAuthURL(
   businessId: number,
   token: string,

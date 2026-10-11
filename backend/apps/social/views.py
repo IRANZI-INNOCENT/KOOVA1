@@ -25,7 +25,12 @@ from .serializers import (
     SocialMessageSerializer,
     SocialPostSerializer,
 )
-from .services.connection import connect_meta, disconnect_account, verify_account
+from .services.connection import (
+    connect_meta,
+    disconnect_account,
+    instagram_link_status,
+    verify_account,
+)
 
 
 # ------------------------------------------------------------------ #
@@ -139,11 +144,33 @@ class MetaOAuthCallbackView(APIView):
         try:
             result = connect_meta(business, code, redirect_uri, platform=platform)
         except MetaAdapterError as exc:
+            payload = {
+                "detail": str(exc),
+                "error_code": exc.code,
+                **exc.details,
+            }
             return Response(
-                {"detail": str(exc)},
+                payload,
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return Response(result, status=status.HTTP_201_CREATED)
+
+
+class MetaInstagramReadinessView(APIView):
+    """
+    Check whether Instagram Professional is linked to the business's
+    connected Facebook Page before running another OAuth flow.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, business_id):
+        business = get_object_or_404(
+            Business,
+            id=business_id,
+            owner=request.user,
+        )
+        return Response(instagram_link_status(business))
 
 
 class MetaOAuthReturnView(APIView):

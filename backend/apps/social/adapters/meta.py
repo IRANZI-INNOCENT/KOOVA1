@@ -66,7 +66,18 @@ def _app_secret() -> str:
 
 
 class MetaAdapterError(Exception):
-    pass
+    """Meta Graph / Login error with a stable code for the Channels UI."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "META_ADAPTER_ERROR",
+        details: dict[str, Any] | None = None,
+    ):
+        super().__init__(message)
+        self.code = code
+        self.details = details or {}
 
 
 class MetaAdapter(ChannelAdapter):

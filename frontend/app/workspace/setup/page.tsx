@@ -242,8 +242,6 @@ export default function BusinessSetupPage() {
 
 
   if (!isAuthenticated) {
-    router.replace("/login");
-
     return (
       <main className="flex min-h-screen items-center justify-center bg-kova-background">
         <p className="text-sm text-gray-500">

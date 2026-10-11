@@ -34,9 +34,13 @@ export async function renewSession(): Promise<RenewSessionResult> {
   }
 }
 
+/**
+ * Periodically refresh the session. Never signs the user out on failure —
+ * a failed background refresh must not kick someone to login while they
+ * are actively working.
+ */
 export function startSessionKeepAlive(
   onAccessToken: (token: string) => void,
-  onSessionLost: () => void,
 ): () => void {
   if (typeof window === "undefined") {
     return () => {};
@@ -51,35 +55,18 @@ export function startSessionKeepAlive(
 
     const result = await renewSession();
 
-    if (!result.ok) {
-      if (result.reason === "unauthorized") {
-        onSessionLost();
-      }
-      return;
-    }
-
-    onAccessToken(result.access);
-  }
-
-  const intervalId = window.setInterval(tick, REFRESH_INTERVAL_MS);
-
-  function handleVisibility() {
-    if (document.visibilityState === "visible") {
-      void tick();
+    if (result.ok) {
+      onAccessToken(result.access);
     }
   }
 
-  function handleFocus() {
-    void tick();
-  }
-
-  document.addEventListener("visibilitychange", handleVisibility);
-  window.addEventListener("focus", handleFocus);
+  const intervalId = window.setInterval(
+    tick,
+    REFRESH_INTERVAL_MS,
+  );
 
   return () => {
     stopped = true;
     window.clearInterval(intervalId);
-    document.removeEventListener("visibilitychange", handleVisibility);
-    window.removeEventListener("focus", handleFocus);
   };
 }

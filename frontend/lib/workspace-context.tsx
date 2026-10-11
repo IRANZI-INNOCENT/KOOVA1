@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -110,24 +111,21 @@ export function WorkspaceProvider({
     }
   }, [accessToken, user]);
 
+  const accessTokenRef = useRef(accessToken);
+  accessTokenRef.current = accessToken;
+
   useEffect(() => {
     if (authLoading) {
       return;
     }
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user?.id) {
       setBusiness(null);
       setWorkspaceLoading(false);
-      router.replace("/login");
-      return;
-    }
-
-    if (!accessToken || !user?.id) {
       return;
     }
 
     const userId = user.id;
-    const token = accessToken;
     let cancelled = false;
 
     async function loadWorkspace() {
@@ -135,6 +133,12 @@ export function WorkspaceProvider({
       setWorkspaceError(null);
 
       try {
+        const token = accessTokenRef.current;
+
+        if (!token) {
+          return;
+        }
+
         const current = await getBusiness(
           token,
           { userId },
@@ -175,9 +179,7 @@ export function WorkspaceProvider({
   }, [
     authLoading,
     isAuthenticated,
-    accessToken,
     user?.id,
-    router,
   ]);
 
   useEffect(() => {

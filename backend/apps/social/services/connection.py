@@ -63,7 +63,15 @@ def connect_meta(
 
     if want_instagram and not exchange.instagram_account_id:
         raise MetaAdapterError(
-            "No Instagram Professional account is linked to this Facebook Page."
+            "No Instagram Professional account is linked to this Facebook Page. "
+            "Switch the Instagram account to Professional (Business or Creator), "
+            "link it to this Page in Meta Business Suite, then try Connect "
+            "Instagram again.",
+            code="INSTAGRAM_NOT_LINKED_TO_PAGE",
+            details={
+                "page_name": exchange.page_name,
+                "page_id": exchange.page_id,
+            },
         )
 
     if want_facebook:
@@ -133,6 +141,58 @@ def connect_meta(
         )
 
     return {"accounts": connected}
+
+
+def instagram_link_status(business: Business) -> dict:
+    """
+    Report whether the connected Facebook Page has a linked Instagram
+    Professional account (via Graph API), and whether Kova already stores IG.
+    """
+
+    fb_account = (
+        SocialAccount.objects.filter(
+            business=business,
+            platform=SocialAccount.Platform.FACEBOOK_PAGE,
+            connection_status=SocialAccount.ConnectionStatus.CONNECTED,
+        )
+        .order_by("-updated_at")
+        .first()
+    )
+
+    ig_connected = SocialAccount.objects.filter(
+        business=business,
+        platform=SocialAccount.Platform.INSTAGRAM,
+        connection_status=SocialAccount.ConnectionStatus.CONNECTED,
+    ).exists()
+
+    if not fb_account or not fb_account.access_token:
+        return {
+            "facebook_connected": False,
+            "instagram_linked_to_page": False,
+            "instagram_connected_in_kova": ig_connected,
+            "facebook_page_name": "",
+            "instagram_username": "",
+        }
+
+    adapter = MetaAdapter()
+    ig_id = ""
+    ig_username = ""
+    try:
+        ig_id, ig_username = adapter._get_instagram_account(
+            fb_account.platform_account_id,
+            fb_account.access_token,
+        )
+    except Exception:
+        pass
+
+    return {
+        "facebook_connected": True,
+        "facebook_page_name": fb_account.account_name,
+        "facebook_page_id": fb_account.platform_account_id,
+        "instagram_linked_to_page": bool(ig_id),
+        "instagram_username": ig_username,
+        "instagram_connected_in_kova": ig_connected,
+    }
 
 
 def disconnect_account(account: SocialAccount) -> None:

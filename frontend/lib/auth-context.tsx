@@ -18,6 +18,7 @@ import {
 } from "./auth";
 
 import {
+  ApiError,
   registerAccessTokenUpdater,
 } from "./api";
 
@@ -119,30 +120,47 @@ export function AuthProvider({
 
 
     async function restoreSession(): Promise<void> {
+      try {
+        let restored = await renewSession();
 
-      const restored = await renewSession();
+        if (
+          !restored.ok &&
+          restored.reason === "network"
+        ) {
+          await new Promise((resolve) => {
+            window.setTimeout(resolve, 400);
+          });
+          restored = await renewSession();
+        }
 
-      if (restored.ok) {
-        const restoredUser = await getCurrentUser(
-          restored.access,
-        );
+        if (restored.ok) {
+          try {
+            const restoredUser = await getCurrentUser(
+              restored.access,
+            );
 
-        setAccessToken(restored.access);
-        setUser(restoredUser);
-      } else {
-        /**
-         * A missing refresh session is normal for a new
-         * or signed-out visitor.
-         */
-        setAccessToken(null);
-        setUser(null);
+            setAccessToken(restored.access);
+            setUser(restoredUser);
+          } catch (profileError) {
+            if (
+              profileError instanceof ApiError &&
+              profileError.status === 401
+            ) {
+              setAccessToken(null);
+              setUser(null);
+            } else {
+              setAccessToken(restored.access);
+            }
+          }
+        } else if (
+          restored.reason === "unauthorized"
+        ) {
+          setAccessToken(null);
+          setUser(null);
+        }
+      } finally {
+        setIsLoading(false);
       }
-
-      /**
-       * Protected routes may now safely evaluate
-       * isAuthenticated.
-       */
-      setIsLoading(false);
     }
 
 
@@ -160,15 +178,9 @@ export function AuthProvider({
       return;
     }
 
-    return startSessionKeepAlive(
-      (token) => {
-        setAccessToken(token);
-      },
-      () => {
-        setAccessToken(null);
-        setUser(null);
-      },
-    );
+    return startSessionKeepAlive((token) => {
+      setAccessToken(token);
+    });
   }, [user]);
 
 
