@@ -24,7 +24,12 @@ import {
 
 import {
   ApiError,
+  authenticatedApiRequest,
 } from "@/lib/api";
+
+import {
+  type BrainProgress,
+} from "@/lib/setup-flow";
 
 import {
   createBusiness,
@@ -61,6 +66,24 @@ const initialForm: BusinessForm = {
   phone: "",
 };
 
+async function nextSetupHref(
+  accessToken: string,
+  businessId: number,
+): Promise<string> {
+  try {
+    const progress = await authenticatedApiRequest<BrainProgress>(
+      `/business-brain/${businessId}/progress/`,
+      accessToken,
+    );
+    if (progress.next_href) {
+      return progress.next_href;
+    }
+  } catch {
+    // Fall through to the first Business Brain step.
+  }
+  return "/workspace/settings/business-profile?setup=1";
+}
+
 
 export default function BusinessSetupPage() {
   const router = useRouter();
@@ -86,9 +109,6 @@ export default function BusinessSetupPage() {
     useState(true);
 
   const [saving, setSaving] =
-    useState(false);
-
-  const [saved, setSaved] =
     useState(false);
 
   const [error, setError] =
@@ -128,7 +148,6 @@ export default function BusinessSetupPage() {
     );
 
     setError("");
-    setSaved(false);
   }
 
 
@@ -185,14 +204,14 @@ export default function BusinessSetupPage() {
           // The business record is saved even if the store page is unavailable.
         }
         setOriginal(payload);
-        setSaved(true);
+        const nextHref = await nextSetupHref(accessToken, businessId);
+        router.push(nextHref);
         return;
       }
 
-      await createBusiness(accessToken, payload);
-      router.replace(
-        "/workspace/settings/business-profile?setup=1",
-      );
+      const created = await createBusiness(accessToken, payload);
+      const nextHref = await nextSetupHref(accessToken, created.id);
+      router.replace(nextHref);
 
     } catch (err) {
       if (err instanceof ApiError) {
@@ -375,23 +394,13 @@ export default function BusinessSetupPage() {
               )}
 
 
-              {saved && (
-                <p className="text-sm font-semibold text-kova-green">
-                  Saved.
-                </p>
-              )}
-
               <div className="flex justify-end border-t border-kova-border pt-6">
 
                 <Button
                   type="submit"
                   disabled={saving}
                 >
-                  {saving
-                    ? "Saving..."
-                    : businessId
-                      ? "Save changes"
-                      : "Continue"}
+                  {saving ? "Saving..." : "Continue"}
                 </Button>
 
               </div>

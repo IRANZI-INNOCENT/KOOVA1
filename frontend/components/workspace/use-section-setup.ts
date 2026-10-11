@@ -83,9 +83,26 @@ export function useSectionSetup<T extends object>({
     }
   }
 
+  async function continueToNext(
+    saveNow: () => Promise<void>,
+    navigate: (path: string) => void,
+  ) {
+    if (!isSetup) {
+      return false;
+    }
+    const path = nextSetupPath(section);
+    if (!path) {
+      return false;
+    }
+    await saveNow();
+    navigate(path);
+    return true;
+  }
+
   return {
     isSetup,
     nextPath: nextSetupPath(section),
+    continueToNext,
     drafting,
     draftError,
     autoState,

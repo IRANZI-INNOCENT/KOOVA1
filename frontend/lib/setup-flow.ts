@@ -22,6 +22,15 @@ export function nextSetupPath(section: SetupSection) {
   return NEXT_PATH[section];
 }
 
+export interface BrainProgress {
+  next_href: string | null;
+  sections: {
+    key: string;
+    complete: boolean;
+    href: string;
+  }[];
+}
+
 export const SETUP_LABELS: Record<SetupSection, string> = {
   profile: "Business profile",
   audience: "Customers",

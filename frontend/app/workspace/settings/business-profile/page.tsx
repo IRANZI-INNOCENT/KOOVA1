@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/workspace/app-shell";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,44 @@ type ProfileForm = Omit<
 type FieldErrors = Partial<
   Record<keyof ProfileForm, string>
 >;
+
+interface WebsiteScanResult {
+  website: string;
+  summary: string;
+  suggestions: Partial<ProfileForm>;
+  sources: { title: string; url: string; snippet: string }[];
+}
+
+const PROFILE_FIELD_LABELS: Record<keyof ProfileForm, string> = {
+  mission: "Mission",
+  value_proposition: "Value proposition",
+  target_market: "Target market",
+  business_model: "Business model",
+  business_stage: "Business stage",
+  website: "Website",
+};
+
+function normalizeWebsiteForSave(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  return trimmed.match(/^https?:\/\//i)
+    ? trimmed
+    : `https://${trimmed}`;
+}
+
+function looksLikeWebsite(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  try {
+    const url = trimmed.match(/^https?:\/\//i)
+      ? trimmed
+      : `https://${trimmed}`;
+    const parsed = new URL(url);
+    return Boolean(parsed.hostname && parsed.hostname.includes("."));
+  } catch {
+    return false;
+  }
+}
 
 const initialForm: ProfileForm = {
   mission: "",
@@ -156,6 +194,11 @@ export default function BusinessProfilePage() {
   const [success, setSuccess] = useState("");
   const [fieldErrors, setFieldErrors] =
     useState<FieldErrors>({});
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState("");
+  const [scanResult, setScanResult] =
+    useState<WebsiteScanResult | null>(null);
+  const lastScannedWebsite = useRef("");
 
   const setup = useSectionSetup({
     section: "profile",
@@ -192,7 +235,76 @@ export default function BusinessProfilePage() {
 
     setError("");
     setSuccess("");
+    if (field === "website") {
+      setScanResult(null);
+      setScanError("");
+    }
   };
+
+  async function scanWebsite(urlOverride?: string) {
+    if (!business || !accessToken) return;
+
+    const candidate = (urlOverride ?? form.website).trim();
+    if (!looksLikeWebsite(candidate)) {
+      setScanError(
+        "Enter a public website address before Kova can scan it.",
+      );
+      return;
+    }
+
+    setScanning(true);
+    setScanError("");
+    setScanResult(null);
+    setSuccess("");
+
+    try {
+      const result =
+        await authenticatedApiRequest<WebsiteScanResult>(
+          `/business-brain/${business.id}/profile/scan-website/`,
+          accessToken,
+          {
+            method: "POST",
+            body: JSON.stringify({ website: candidate }),
+          },
+        );
+      lastScannedWebsite.current = result.website;
+      setScanResult(result);
+      if (result.website && result.website !== form.website) {
+        setForm((current) => ({
+          ...current,
+          website: result.website,
+        }));
+      }
+    } catch (err) {
+      setScanError(
+        err instanceof ApiError
+          ? err.message
+          : "Kova could not scan that website. Try again in a moment.",
+      );
+    } finally {
+      setScanning(false);
+    }
+  }
+
+  function applyScanSuggestions() {
+    if (!scanResult?.suggestions) return;
+    setForm((current) => {
+      const next = { ...current };
+      for (const key of Object.keys(
+        scanResult.suggestions,
+      ) as (keyof ProfileForm)[]) {
+        const value = scanResult.suggestions[key];
+        if (typeof value === "string" && value.trim()) {
+          next[key] = value.trim();
+        }
+      }
+      return next;
+    });
+    setSuccess(
+      "Kova applied the suggested fields. Review them, then save when you are ready.",
+    );
+    setScanError("");
+  }
 
   useEffect(() => {
     if (authLoading) return;
@@ -266,21 +378,32 @@ export default function BusinessProfilePage() {
     setSuccess("");
     setFieldErrors({});
 
-    try {
-      await authenticatedApiRequest<BusinessProfile>(
-        `/business-brain/${business.id}/profile/`,
-        accessToken,
-        {
-          method: "PATCH",
-          body: JSON.stringify(form),
-        },
-      );
+    const payload = {
+      ...form,
+      website: normalizeWebsiteForSave(form.website),
+    };
 
-      if (setup.isSetup && setup.nextPath) {
-        router.push(setup.nextPath);
+    try {
+      const saveProfile = () =>
+        authenticatedApiRequest<BusinessProfile>(
+          `/business-brain/${business.id}/profile/`,
+          accessToken,
+          {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+          },
+        );
+
+      const continued = await setup.continueToNext(
+        saveProfile,
+        (path) => router.push(path),
+      );
+      if (continued) {
         return;
       }
 
+      await saveProfile();
+      setForm(payload);
       setSuccess(
         "Your business profile has been updated.",
       );
@@ -424,18 +547,106 @@ export default function BusinessProfilePage() {
                 />
               </div>
 
-              <Input
-                label="Website"
-                type="url"
-                value={form.website}
-                onChange={(event) =>
-                  updateField(
-                    "website",
-                    event.target.value,
-                  )
-                }
-                placeholder="https://example.com"
-              />
+              <div>
+                <Input
+                  label="Website"
+                  type="url"
+                  value={form.website}
+                  onChange={(event) =>
+                    updateField(
+                      "website",
+                      event.target.value,
+                    )
+                  }
+                  onBlur={(event) => {
+                    const value = event.target.value.trim();
+                    if (
+                      !looksLikeWebsite(value) ||
+                      value === lastScannedWebsite.current ||
+                      scanning
+                    ) {
+                      return;
+                    }
+                    void scanWebsite(value);
+                  }}
+                  placeholder="https://example.com"
+                />
+
+                <p className="mt-2 text-xs leading-5 text-gray-500">
+                  When you add your site, Kova scans it and suggests
+                  updates for mission, customers, business model, and
+                  stage. You review every field before saving.
+                </p>
+
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={scanning || !looksLikeWebsite(form.website)}
+                    onClick={() => void scanWebsite()}
+                    className="inline-flex h-10 items-center justify-center rounded-md border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark hover:bg-kova-background disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {scanning ? "Scanning website..." : "Scan website"}
+                  </button>
+                </div>
+
+                {scanError && (
+                  <p className="mt-3 text-sm text-red-700">{scanError}</p>
+                )}
+
+                {scanResult && (
+                  <div className="mt-4 border border-kova-green/25 bg-kova-green/5 p-4">
+                    <p className="text-sm leading-6 text-kova-dark">
+                      {scanResult.summary}
+                    </p>
+
+                    <ul className="mt-4 space-y-3">
+                      {(
+                        Object.keys(scanResult.suggestions) as (keyof ProfileForm)[]
+                      )
+                        .filter(
+                          (key) =>
+                            key !== "website" &&
+                            scanResult.suggestions[key]?.trim(),
+                        )
+                        .map((key) => (
+                          <li key={key}>
+                            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                              {PROFILE_FIELD_LABELS[key]}
+                            </p>
+                            <p className="mt-1 text-sm leading-6 text-kova-dark">
+                              {scanResult.suggestions[key]}
+                            </p>
+                          </li>
+                        ))}
+                    </ul>
+
+                    {scanResult.sources.length > 0 && (
+                      <p className="mt-4 text-xs text-gray-500">
+                        Source:{" "}
+                        <a
+                          href={scanResult.sources[0].url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-kova-green underline"
+                        >
+                          {scanResult.sources[0].title ||
+                            scanResult.sources[0].url}
+                        </a>
+                      </p>
+                    )}
+
+                    <div className="mt-4">
+                      <button
+                        type="button"
+                        onClick={applyScanSuggestions}
+                        className="inline-flex h-10 items-center justify-center rounded-md bg-kova-green px-4 text-sm font-semibold text-white hover:bg-[#2d6a52]"
+                      >
+                        Apply suggestions to form
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </FormSection>
 
             {error && (

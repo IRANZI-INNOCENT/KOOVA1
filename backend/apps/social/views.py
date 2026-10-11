@@ -90,9 +90,9 @@ class MetaOAuthURLView(APIView):
         chosen = request.query_params.get("platform", "facebook")
         if chosen not in {"facebook", "instagram"}:
             chosen = "facebook"
-        from .services.capabilities import REQUESTED_SCOPES
+        from .services.capabilities import oauth_scopes_for_platform
 
-        scopes = ",".join(REQUESTED_SCOPES)
+        scopes = ",".join(oauth_scopes_for_platform(chosen))
         url = (
             f"https://www.facebook.com/v21.0/dialog/oauth"
             f"?client_id={app_id}"

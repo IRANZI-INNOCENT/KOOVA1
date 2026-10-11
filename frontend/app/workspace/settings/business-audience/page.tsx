@@ -269,19 +269,26 @@ export default function BusinessAudiencePage() {
     setFieldErrors({});
 
     try {
-      await authenticatedApiRequest<BusinessAudience>(
-        `/business-brain/${business.id}/audience/`,
-        accessToken,
-        {
-          method: "PATCH",
-          body: JSON.stringify(form),
-        },
-      );
+      const saveAudience = () =>
+        authenticatedApiRequest<BusinessAudience>(
+          `/business-brain/${business.id}/audience/`,
+          accessToken,
+          {
+            method: "PATCH",
+            body: JSON.stringify(form),
+          },
+        );
 
-      if (setup.isSetup && setup.nextPath) {
-        router.push(setup.nextPath);
+      if (
+        await setup.continueToNext(
+          saveAudience,
+          (path) => router.push(path),
+        )
+      ) {
         return;
       }
+
+      await saveAudience();
 
       setSuccess(
         "Your customer audience has been updated.",

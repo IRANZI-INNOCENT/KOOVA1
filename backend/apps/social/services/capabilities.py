@@ -18,17 +18,32 @@ INSTAGRAM_FEATURES = (
     ("pages_show_list", "See the linked Facebook Page"),
 )
 
-REQUESTED_SCOPES = (
+FACEBOOK_REQUESTED_SCOPES = (
     "pages_show_list",
     "pages_manage_posts",
     "pages_read_engagement",
     "pages_manage_engagement",
     "pages_messaging",
+)
+
+INSTAGRAM_REQUESTED_SCOPES = (
+    *FACEBOOK_REQUESTED_SCOPES,
     "instagram_basic",
     "instagram_content_publish",
     "instagram_manage_comments",
     "instagram_manage_messages",
 )
+
+# Full list when documenting or checking reconnect after scope changes.
+REQUESTED_SCOPES = INSTAGRAM_REQUESTED_SCOPES
+
+
+def oauth_scopes_for_platform(platform: str) -> tuple[str, ...]:
+    """Facebook Page login must not ask for Instagram scopes unless connecting Instagram."""
+
+    if platform == "instagram":
+        return INSTAGRAM_REQUESTED_SCOPES
+    return FACEBOOK_REQUESTED_SCOPES
 
 
 def account_capabilities(account) -> list[dict]:

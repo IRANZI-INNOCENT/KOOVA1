@@ -12,6 +12,7 @@ from apps.kova_ai.services.openrouter import OpenRouterError
 from .services.draft import SECTIONS, draft_section, section_is_complete
 from .services.research import research_market
 from .services.search import MarketSearchError
+from .services.website_scan import WebsiteScanError, scan_website_for_profile
 
 from apps.businesses.models import Business
 
@@ -78,6 +79,29 @@ class BusinessProfileView(BusinessBrainMixin, generics.RetrieveUpdateAPIView):
             business=business,
         )
         return profile
+
+
+class BusinessProfileWebsiteScanView(BusinessBrainMixin, APIView):
+    """Read a public website and suggest Business Profile field updates."""
+
+    def post(self, request, business_id):
+        business = self.get_business()
+        website = str(request.data.get("website") or "").strip()
+        if not website:
+            profile = BusinessProfile.objects.filter(business=business).first()
+            website = (profile.website if profile else "").strip()
+        if not website:
+            return Response(
+                {"detail": "Add a website URL to scan."},
+                status=400,
+            )
+        try:
+            result = scan_website_for_profile(business, website)
+        except WebsiteScanError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        except OpenRouterError as exc:
+            return Response({"detail": str(exc)}, status=502)
+        return Response(result)
 
 
 class BusinessAudienceView(BusinessBrainMixin, generics.RetrieveUpdateAPIView):

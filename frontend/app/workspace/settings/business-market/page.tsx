@@ -354,6 +354,21 @@ export default function BusinessMarketPage() {
           )}
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-end">
+            {setup.isSetup && (
+              <button
+                type="button"
+                onClick={() => decide(false)}
+                disabled={deciding || researching}
+                className="inline-flex h-10 items-center justify-center rounded-md border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark hover:border-kova-green disabled:opacity-60"
+              >
+                {deciding
+                  ? "Saving..."
+                  : hasBrief
+                    ? "Continue without keeping"
+                    : "Continue"}
+              </button>
+            )}
+            {!setup.isSetup && (
             <button
               type="button"
               onClick={() => decide(false)}
@@ -362,6 +377,7 @@ export default function BusinessMarketPage() {
             >
               Leave it out
             </button>
+            )}
             <button
               type="button"
               onClick={() => decide(true)}

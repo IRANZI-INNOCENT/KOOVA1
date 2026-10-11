@@ -11,6 +11,7 @@ from .views import (
     BusinessMarketResearchView,
     BusinessPolicyView,
     BusinessProfileView,
+    BusinessProfileWebsiteScanView,
 )
 
 app_name = "business-brain"
@@ -30,6 +31,11 @@ urlpatterns = [
         "<int:business_id>/profile/",
         BusinessProfileView.as_view(),
         name="business-profile",
+    ),
+    path(
+        "<int:business_id>/profile/scan-website/",
+        BusinessProfileWebsiteScanView.as_view(),
+        name="business-profile-scan-website",
     ),
     path(
         "<int:business_id>/audience/",
