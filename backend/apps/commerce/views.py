@@ -1,3 +1,4 @@
+import json
 import logging
 from decimal import Decimal, InvalidOperation
 
@@ -34,6 +35,163 @@ from .services.product_vision import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _collect_snap_to_sell_images(request):
+    uploaded_images = request.FILES.getlist("images")
+
+    if not uploaded_images:
+        single_image = request.FILES.get("image")
+        if single_image:
+            uploaded_images = [single_image]
+
+    return uploaded_images
+
+
+def _parse_snap_to_sell_owner_facts(request):
+    raw_price = request.data.get("price")
+
+    if raw_price in (None, ""):
+        return None, Response(
+            {"detail": "Selling price is required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        price = Decimal(str(raw_price))
+    except (InvalidOperation, TypeError, ValueError):
+        return None, Response(
+            {"detail": "Selling price must be a valid number."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if price < 0:
+        return None, Response(
+            {"detail": "Selling price cannot be negative."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    currency = (
+        request.data.get("currency") or "KES"
+    ).strip().upper()
+
+    owner_facts = {
+        "price": str(price),
+        "currency": currency,
+        "name": (request.data.get("name") or "").strip(),
+        "category": (request.data.get("category") or "").strip(),
+        "brand": (request.data.get("brand") or "").strip(),
+        "material": (request.data.get("material") or "").strip(),
+        "size": (request.data.get("size") or "").strip(),
+        "color": (request.data.get("color") or "").strip(),
+        "condition": (request.data.get("condition") or "").strip(),
+    }
+
+    return owner_facts, None
+
+
+def _parse_decimal_price(raw_price, *, field_label: str = "Selling price"):
+    if raw_price in (None, ""):
+        return None, f"{field_label} is required."
+
+    try:
+        price = Decimal(str(raw_price))
+    except (InvalidOperation, TypeError, ValueError):
+        return None, f"{field_label} must be a valid number."
+
+    if price < 0:
+        return None, f"{field_label} cannot be negative."
+
+    return price, None
+
+
+def _parse_snap_to_sell_batch_pricing(request, *, image_count: int):
+    """
+    Batch Snap-to-Sell accepts either one shared price or one price per image.
+
+    Per-image prices are sent as JSON in the ``prices`` field, in the same
+    order as the uploaded ``images``.
+    """
+
+    currency = (
+        request.data.get("currency") or "KES"
+    ).strip().upper()
+
+    owner_fields = {
+        "name": (request.data.get("name") or "").strip(),
+        "category": (request.data.get("category") or "").strip(),
+        "brand": (request.data.get("brand") or "").strip(),
+        "material": (request.data.get("material") or "").strip(),
+        "size": (request.data.get("size") or "").strip(),
+        "color": (request.data.get("color") or "").strip(),
+        "condition": (request.data.get("condition") or "").strip(),
+    }
+
+    raw_prices = request.data.get("prices")
+
+    if raw_prices not in (None, ""):
+        if isinstance(raw_prices, str):
+            try:
+                parsed_prices = json.loads(raw_prices)
+            except json.JSONDecodeError:
+                return None, None, Response(
+                    {"detail": "Prices must be a valid JSON array."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        elif isinstance(raw_prices, list):
+            parsed_prices = raw_prices
+        else:
+            return None, None, Response(
+                {"detail": "Prices must be a valid JSON array."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if len(parsed_prices) != image_count:
+            return None, None, Response(
+                {
+                    "detail": (
+                        "Provide exactly one price for each photo "
+                        f"({image_count} required)."
+                    ),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        normalized_prices: list[str] = []
+
+        for index, raw_item in enumerate(parsed_prices):
+            price, detail = _parse_decimal_price(
+                raw_item,
+                field_label=f"Price for photo {index + 1}",
+            )
+            if detail is not None:
+                return None, None, Response(
+                    {"detail": detail},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            normalized_prices.append(str(price))
+
+        owner_facts = {
+            "currency": currency,
+            **owner_fields,
+        }
+
+        return owner_facts, normalized_prices, None
+
+    price, detail = _parse_decimal_price(request.data.get("price"))
+    if detail is not None:
+        return None, None, Response(
+            {"detail": detail},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    owner_facts = {
+        "price": str(price),
+        "currency": currency,
+        **owner_fields,
+    }
+
+    return owner_facts, None, None
 
 
 class BusinessOwnedAPIView(APIView):
@@ -502,13 +660,7 @@ class SnapToSellView(BusinessOwnedAPIView):
     def post(self, request, business_id):
         business = self.get_business()
 
-        # Collect uploaded images (accept both "images" and "image").
-        uploaded_images = request.FILES.getlist("images")
-
-        if not uploaded_images:
-            single_image = request.FILES.get("image")
-            if single_image:
-                uploaded_images = [single_image]
+        uploaded_images = _collect_snap_to_sell_images(request)
 
         if not uploaded_images:
             return Response(
@@ -516,51 +668,11 @@ class SnapToSellView(BusinessOwnedAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # ----------------------------------------------------------
-        # Validate price (owner-provided, required).
-        # ----------------------------------------------------------
-
-        raw_price = request.data.get("price")
-
-        if raw_price in (None, ""):
-            return Response(
-                {"detail": "Selling price is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            price = Decimal(str(raw_price))
-        except (InvalidOperation, TypeError, ValueError):
-            return Response(
-                {"detail": "Selling price must be a valid number."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if price < 0:
-            return Response(
-                {"detail": "Selling price cannot be negative."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        currency = (
-            request.data.get("currency") or "KES"
-        ).strip().upper()
-
-        owner_facts = {
-            "price": str(price),
-            "currency": currency,
-            "name": (request.data.get("name") or "").strip(),
-            "category": (request.data.get("category") or "").strip(),
-            "brand": (request.data.get("brand") or "").strip(),
-            "material": (request.data.get("material") or "").strip(),
-            "size": (request.data.get("size") or "").strip(),
-            "color": (request.data.get("color") or "").strip(),
-            "condition": (request.data.get("condition") or "").strip(),
-        }
-
-        # ----------------------------------------------------------
-        # Delegate to the service.
-        # ----------------------------------------------------------
+        owner_facts, error_response = _parse_snap_to_sell_owner_facts(
+            request,
+        )
+        if error_response is not None:
+            return error_response
 
         from .services.product_service import SnapToSellService
 
@@ -620,6 +732,112 @@ class SnapToSellView(BusinessOwnedAPIView):
                 product,
                 context={"request": request},
             ).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class SnapToSellBatchView(BusinessOwnedAPIView):
+    """
+    Analyze up to 10 product photos in parallel and create one draft
+    product per image.
+
+    Pricing: send ``price`` for a shared amount, or ``prices`` (JSON array)
+    with one value per image in upload order.
+    """
+
+    parser_classes = [
+        MultiPartParser,
+        FormParser,
+        JSONParser,
+    ]
+
+    def post(self, request, business_id):
+        business = self.get_business()
+
+        uploaded_images = _collect_snap_to_sell_images(request)
+
+        if not uploaded_images:
+            return Response(
+                {"detail": "At least one product image is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        owner_facts, per_image_prices, error_response = (
+            _parse_snap_to_sell_batch_pricing(
+                request,
+                image_count=len(uploaded_images),
+            )
+        )
+        if error_response is not None:
+            return error_response
+
+        from .services.product_service import SnapToSellService
+
+        try:
+            logger.info(
+                "Starting Snap-to-Sell batch: business_id=%s user_id=%s "
+                "image_count=%s per_image_prices=%s",
+                business.pk,
+                request.user.pk,
+                len(uploaded_images),
+                per_image_prices is not None,
+            )
+
+            batch_result = SnapToSellService().create_batch(
+                business=business,
+                uploads=uploaded_images,
+                owner_facts=owner_facts,
+                per_image_prices=per_image_prices,
+            )
+
+        except ProductVisionError as exc:
+            logger.exception(
+                "Snap-to-Sell batch failed: business_id=%s user_id=%s",
+                business.pk,
+                request.user.pk,
+            )
+
+            return Response(
+                {
+                    "detail": str(exc)
+                    if str(exc)
+                    else "Kova could not analyze the product images.",
+                    "error_code": "PRODUCT_VISION_FAILED",
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        except Exception:
+            logger.exception(
+                "Unexpected Snap-to-Sell batch failure: "
+                "business_id=%s user_id=%s",
+                business.pk,
+                request.user.pk,
+            )
+
+            return Response(
+                {
+                    "detail": (
+                        "Kova encountered an unexpected error "
+                        "while analyzing the product images."
+                    ),
+                    "error_code": "SNAP_TO_SELL_INTERNAL_ERROR",
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        serializer_context = {"request": request}
+
+        return Response(
+            {
+                "products": ProductSerializer(
+                    batch_result.products,
+                    many=True,
+                    context=serializer_context,
+                ).data,
+                "created_count": len(batch_result.products),
+                "errors": batch_result.errors,
+            },
             status=status.HTTP_201_CREATED,
         )
 

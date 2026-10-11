@@ -10,9 +10,13 @@ import {
 
 import {
   Product,
+  SnapToSellBatchError,
   snapToSell,
+  snapToSellBatch,
   updateProduct,
 } from "@/lib/commerce";
+
+const MAX_SNAP_PHOTOS = 10;
 import { authenticatedApiRequest } from "@/lib/api";
 
 interface SnapToSellModalProps {
@@ -28,8 +32,12 @@ type Step =
   | "price"
   | "processing"
   | "review"
+  | "batchReview"
   | "manual"
   | "live";
+
+type SnapMode = "single" | "batch";
+type BatchPriceMode = "shared" | "individual";
 
 interface ImagePreview {
   file: File;
@@ -87,6 +95,23 @@ export default function SnapToSellModal({
   const [product, setProduct] =
     useState<Product | null>(null);
 
+  const [snapMode, setSnapMode] =
+    useState<SnapMode>("single");
+
+  const [batchProducts, setBatchProducts] = useState<
+    Product[]
+  >([]);
+
+  const [batchErrors, setBatchErrors] = useState<
+    SnapToSellBatchError[]
+  >([]);
+
+  const [batchPriceMode, setBatchPriceMode] =
+    useState<BatchPriceMode>("shared");
+
+  const [individualPrices, setIndividualPrices] =
+    useState<string[]>([]);
+
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [brand, setBrand] = useState("");
@@ -119,6 +144,11 @@ export default function SnapToSellModal({
     setStep("capture");
     setError("");
     setProduct(null);
+    setSnapMode("single");
+    setBatchProducts([]);
+    setBatchErrors([]);
+    setBatchPriceMode("shared");
+    setIndividualPrices([]);
 
     setPrice("");
     setCurrency("KES");
@@ -194,10 +224,13 @@ export default function SnapToSellModal({
       return;
     }
 
-    const remaining = 5 - images.length;
+    const remaining =
+      MAX_SNAP_PHOTOS - images.length;
 
     if (remaining <= 0) {
-      setError("You can use a maximum of 5 photos.");
+      setError(
+        `You can use a maximum of ${MAX_SNAP_PHOTOS} photos.`,
+      );
       return;
     }
 
@@ -334,6 +367,9 @@ export default function SnapToSellModal({
       return;
     }
 
+    setIndividualPrices(
+      Array.from({ length: images.length }, () => ""),
+    );
     setStep("price");
   }
 
@@ -355,19 +391,58 @@ export default function SnapToSellModal({
 
     setError("");
 
-    const numericPrice = Number(price);
+    const useBatch =
+      snapMode === "batch" && images.length > 1;
 
-    if (!price.trim()) {
-      setError("Enter the selling price.");
-      return;
-    }
+    if (useBatch && batchPriceMode === "individual") {
+      if (
+        individualPrices.length !== images.length
+      ) {
+        setError("Enter a price for each photo.");
+        return;
+      }
 
-    if (
-      !Number.isFinite(numericPrice) ||
-      numericPrice < 0
-    ) {
-      setError("Enter a valid selling price.");
-      return;
+      for (
+        let index = 0;
+        index < individualPrices.length;
+        index += 1
+      ) {
+        const value = individualPrices[index]?.trim();
+
+        if (!value) {
+          setError(
+            `Enter a price for photo ${index + 1}.`,
+          );
+          return;
+        }
+
+        const numeric = Number(value);
+
+        if (
+          !Number.isFinite(numeric) ||
+          numeric < 0
+        ) {
+          setError(
+            `Enter a valid price for photo ${index + 1}.`,
+          );
+          return;
+        }
+      }
+    } else {
+      const numericPrice = Number(price);
+
+      if (!price.trim()) {
+        setError("Enter the selling price.");
+        return;
+      }
+
+      if (
+        !Number.isFinite(numericPrice) ||
+        numericPrice < 0
+      ) {
+        setError("Enter a valid selling price.");
+        return;
+      }
     }
 
     if (!images.length) {
@@ -384,8 +459,32 @@ export default function SnapToSellModal({
         formData.append("images", file);
       });
 
-      formData.append("price", price);
+      if (
+        useBatch &&
+        batchPriceMode === "individual"
+      ) {
+        formData.append(
+          "prices",
+          JSON.stringify(individualPrices),
+        );
+      } else {
+        formData.append("price", price);
+      }
+
       formData.append("currency", currency);
+
+      if (useBatch) {
+        const batchResult = await snapToSellBatch(
+          businessId,
+          accessToken,
+          formData,
+        );
+
+        setBatchProducts(batchResult.products);
+        setBatchErrors(batchResult.errors || []);
+        setStep("batchReview");
+        return;
+      }
 
       const createdProduct = await snapToSell(
         businessId,
@@ -780,7 +879,7 @@ export default function SnapToSellModal({
                   </div>
                 ))}
 
-                {images.length < 5 && (
+                {images.length < MAX_SNAP_PHOTOS && (
                   <button
                     type="button"
                     onClick={openCamera}
@@ -816,12 +915,64 @@ export default function SnapToSellModal({
               </div>
 
               <p className="mt-3 text-xs text-gray-500">
-                {images.length}{" "}
+                {images.length} of {MAX_SNAP_PHOTOS}{" "}
                 {images.length === 1
                   ? "photo"
                   : "photos"}{" "}
                 added
               </p>
+
+              {images.length > 1 && (
+                <div className="mt-5 space-y-3 border border-[#E5E7E5] bg-white p-4">
+                  <p className="text-sm font-semibold text-[#17211D]">
+                    How should Kova use these photos?
+                  </p>
+
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      type="radio"
+                      name="snap-mode"
+                      checked={snapMode === "single"}
+                      onChange={() =>
+                        setSnapMode("single")
+                      }
+                      className="mt-1"
+                    />
+                    <span>
+                      <span className="block text-sm font-medium text-[#17211D]">
+                        One product
+                      </span>
+                      <span className="mt-0.5 block text-xs leading-5 text-gray-500">
+                        All photos are angles of the same
+                        item. Kova analyzes them together.
+                      </span>
+                    </span>
+                  </label>
+
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      type="radio"
+                      name="snap-mode"
+                      checked={snapMode === "batch"}
+                      onChange={() =>
+                        setSnapMode("batch")
+                      }
+                      className="mt-1"
+                    />
+                    <span>
+                      <span className="block text-sm font-medium text-[#17211D]">
+                        Separate products (batch)
+                      </span>
+                      <span className="mt-0.5 block text-xs leading-5 text-gray-500">
+                        Each photo becomes its own product.
+                        Kova scans up to{" "}
+                        {MAX_SNAP_PHOTOS} images in
+                        parallel.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              )}
             </div>
 
             {error && renderError()}
@@ -866,6 +1017,9 @@ export default function SnapToSellModal({
    */
 
   function renderPriceStep() {
+    const isBatchPricing =
+      snapMode === "batch" && images.length > 1;
+
     return (
       <form
         onSubmit={prepareProduct}
@@ -881,27 +1035,178 @@ export default function SnapToSellModal({
           </button>
 
           <p className="text-sm font-medium text-[#176B4D]">
-            Your product is ready for Kova.
+            {isBatchPricing
+              ? "Your photos are ready for Kova."
+              : "Your product is ready for Kova."}
           </p>
 
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[#17211D]">
-            What is your selling price?
+            {isBatchPricing
+              ? "Set your selling prices"
+              : "What is your selling price?"}
           </h2>
 
           <p className="mt-2 max-w-xl text-sm leading-6 text-gray-500">
-            Kova will use the price you provide as the
-            authoritative selling price. It will not guess a
-            price from the image.
+            Kova never guesses price from photos. Enter your
+            own price for one product, or choose a shared price
+            or a price per photo when listing several products
+            at once.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_160px]">
+        {isBatchPricing && (
+          <div className="space-y-3 border border-[#E5E7E5] bg-white p-4">
+            <p className="text-sm font-semibold text-[#17211D]">
+              Pricing for this batch
+            </p>
+
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="radio"
+                name="batch-price-mode"
+                checked={batchPriceMode === "shared"}
+                onChange={() =>
+                  setBatchPriceMode("shared")
+                }
+                className="mt-1"
+              />
+              <span>
+                <span className="block text-sm font-medium text-[#17211D]">
+                  Shared price
+                </span>
+                <span className="mt-0.5 block text-xs leading-5 text-gray-500">
+                  One amount applies to every product in this
+                  batch.
+                </span>
+              </span>
+            </label>
+
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="radio"
+                name="batch-price-mode"
+                checked={
+                  batchPriceMode === "individual"
+                }
+                onChange={() => {
+                  setBatchPriceMode("individual");
+                  setIndividualPrices((current) => {
+                    if (
+                      current.length === images.length
+                    ) {
+                      return current;
+                    }
+
+                    return Array.from(
+                      { length: images.length },
+                      (_, index) =>
+                        current[index] ??
+                        price ??
+                        "",
+                    );
+                  });
+                }}
+                className="mt-1"
+              />
+              <span>
+                <span className="block text-sm font-medium text-[#17211D]">
+                  Price per photo
+                </span>
+                <span className="mt-0.5 block text-xs leading-5 text-gray-500">
+                  Enter a selling price for each product
+                  separately.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
+
+        <div>
+          <label
+            htmlFor="currency"
+            className="mb-2 block text-sm font-medium text-[#17211D]"
+          >
+            Currency
+          </label>
+
+          <select
+            id="currency"
+            value={currency}
+            onChange={(event) =>
+              setCurrency(event.target.value)
+            }
+            className="h-14 w-full max-w-xs border border-[#E5E7E5] bg-white px-4 text-base text-[#17211D] outline-none transition focus:border-[#176B4D]"
+          >
+            <option value="KES">KES</option>
+            <option value="USD">USD</option>
+            <option value="UGX">UGX</option>
+            <option value="TZS">TZS</option>
+            <option value="RWF">RWF</option>
+          </select>
+        </div>
+
+        {isBatchPricing &&
+        batchPriceMode === "individual" ? (
+          <ul className="divide-y divide-[#E5E7E5] border border-[#E5E7E5] bg-white">
+            {images.map((image, index) => (
+              <li
+                key={`${image.file.name}-${index}-price`}
+                className="flex items-center gap-4 px-4 py-3"
+              >
+                <div className="h-14 w-14 shrink-0 overflow-hidden border border-[#E5E7E5] bg-[#FAFAF8]">
+                  <img
+                    src={image.url}
+                    alt={`Product photo ${index + 1}`}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <label
+                    htmlFor={`photo-price-${index}`}
+                    className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-500"
+                  >
+                    Photo {index + 1} price
+                  </label>
+
+                  <input
+                    id={`photo-price-${index}`}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={
+                      individualPrices[index] ?? ""
+                    }
+                    onChange={(event) => {
+                      const value =
+                        event.target.value;
+
+                      setIndividualPrices(
+                        (current) => {
+                          const next = [
+                            ...current,
+                          ];
+                          next[index] = value;
+                          return next;
+                        },
+                      );
+                    }}
+                    placeholder="2300"
+                    className="h-12 w-full border border-[#E5E7E5] bg-white px-3 text-base text-[#17211D] outline-none transition focus:border-[#176B4D]"
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
           <div>
             <label
               htmlFor="selling-price"
               className="mb-2 block text-sm font-medium text-[#17211D]"
             >
-              Selling price
+              {isBatchPricing
+                ? "Shared selling price"
+                : "Selling price"}
             </label>
 
             <input
@@ -915,34 +1220,10 @@ export default function SnapToSellModal({
               }
               placeholder="2300"
               autoFocus
-              className="h-14 w-full border border-[#E5E7E5] bg-white px-4 text-base text-[#17211D] outline-none transition focus:border-[#176B4D]"
+              className="h-14 w-full max-w-md border border-[#E5E7E5] bg-white px-4 text-base text-[#17211D] outline-none transition focus:border-[#176B4D]"
             />
           </div>
-
-          <div>
-            <label
-              htmlFor="currency"
-              className="mb-2 block text-sm font-medium text-[#17211D]"
-            >
-              Currency
-            </label>
-
-            <select
-              id="currency"
-              value={currency}
-              onChange={(event) =>
-                setCurrency(event.target.value)
-              }
-              className="h-14 w-full border border-[#E5E7E5] bg-white px-4 text-base text-[#17211D] outline-none transition focus:border-[#176B4D]"
-            >
-              <option value="KES">KES</option>
-              <option value="USD">USD</option>
-              <option value="UGX">UGX</option>
-              <option value="TZS">TZS</option>
-              <option value="RWF">RWF</option>
-            </select>
-          </div>
-        </div>
+        )}
 
         <div className="border border-[#E5E7E5] bg-[#FAFAF8] px-4 py-4">
           <p className="text-sm font-medium text-[#17211D]">
@@ -963,7 +1244,9 @@ export default function SnapToSellModal({
             type="submit"
             className="bg-[#176B4D] px-7 py-3 text-sm font-semibold text-white transition hover:bg-[#12583F]"
           >
-            Prepare product
+            {isBatchPricing
+              ? "Prepare products"
+              : "Prepare product"}
           </button>
         </div>
       </form>
@@ -977,6 +1260,9 @@ export default function SnapToSellModal({
    */
 
   function renderProcessingStep() {
+    const isBatch =
+      snapMode === "batch" && images.length > 1;
+
     return (
       <div className="flex min-h-[430px] flex-col items-center justify-center px-6 text-center">
         <div className="flex h-14 w-14 items-center justify-center border border-[#176B4D]">
@@ -984,13 +1270,15 @@ export default function SnapToSellModal({
         </div>
 
         <h2 className="mt-6 text-xl font-semibold text-[#17211D]">
-          Kova is preparing your product
+          {isBatch
+            ? "Kova is preparing your products"
+            : "Kova is preparing your product"}
         </h2>
 
         <p className="mt-2 max-w-md text-sm leading-6 text-gray-500">
-          Kova is looking at your photos together with your
-          Business Brain to understand the product and prepare
-          its selling information.
+          {isBatch
+            ? `Kova is analyzing ${images.length} photos in parallel using your Business Brain to create separate product drafts.`
+            : "Kova is looking at your photos together with your Business Brain to understand the product and prepare its selling information."}
         </p>
 
         <div className="mt-8 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#176B4D]">
@@ -1486,6 +1774,92 @@ export default function SnapToSellModal({
     onClose();
   }
 
+  function finishBatch() {
+    batchProducts.forEach((item) => {
+      onCreated?.(item);
+    });
+    onClose();
+  }
+
+  function renderBatchReviewStep() {
+    return (
+      <div className="space-y-6">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#176B4D]">
+            Batch complete
+          </p>
+
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[#17211D]">
+            {batchProducts.length}{" "}
+            {batchProducts.length === 1
+              ? "product"
+              : "products"}{" "}
+            prepared
+          </h2>
+
+          <p className="mt-2 text-sm leading-6 text-gray-500">
+            Each photo was analyzed separately. Draft products
+            are on your store with the price you set. You can
+            edit details from your product list anytime.
+          </p>
+        </div>
+
+        {batchErrors.length > 0 && (
+          <div className="border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-sm font-medium text-amber-900">
+              {batchErrors.length}{" "}
+              {batchErrors.length === 1
+                ? "photo could"
+                : "photos could"}{" "}
+              not be analyzed
+            </p>
+            <ul className="mt-2 space-y-1 text-sm text-amber-800">
+              {batchErrors.map((item) => (
+                <li key={`${item.index}-${item.filename}`}>
+                  {item.filename}: {item.detail}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <ul className="divide-y divide-[#E5E7E5] border border-[#E5E7E5] bg-white">
+          {batchProducts.map((item) => (
+            <li
+              key={item.id}
+              className="flex items-center justify-between gap-4 px-4 py-3"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-[#17211D]">
+                  {item.name || "Untitled product"}
+                </p>
+                {item.category && (
+                  <p className="truncate text-xs text-gray-500">
+                    {item.category}
+                  </p>
+                )}
+              </div>
+              <span className="shrink-0 text-sm font-medium text-[#176B4D]">
+                {item.currency}{" "}
+                {item.price ?? price}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="flex justify-end border-t border-[#E5E7E5] pt-5">
+          <button
+            type="button"
+            onClick={finishBatch}
+            className="bg-[#176B4D] px-7 py-3 text-sm font-semibold text-white transition hover:bg-[#12583F]"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   function renderLiveStep() {
     if (!product) {
       return null;
@@ -1832,6 +2206,9 @@ export default function SnapToSellModal({
 
             {step === "review" &&
               renderReviewStep()}
+
+            {step === "batchReview" &&
+              renderBatchReviewStep()}
 
             {step === "manual" &&
               renderManualStep()}

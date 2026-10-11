@@ -424,3 +424,31 @@ export async function snapToSell(
     },
   );
 }
+
+export interface SnapToSellBatchError {
+  index: number;
+  filename: string;
+  detail: string;
+}
+
+export interface SnapToSellBatchResult {
+  products: Product[];
+  created_count: number;
+  errors: SnapToSellBatchError[];
+}
+
+/** Parallel Snap-to-Sell: one product draft per uploaded image (up to 10). */
+export async function snapToSellBatch(
+  businessId: number,
+  token: string,
+  formData: FormData,
+): Promise<SnapToSellBatchResult> {
+  return authenticatedApiRequest<SnapToSellBatchResult>(
+    `/commerce/${businessId}/snap-to-sell/batch/`,
+    token,
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
+}

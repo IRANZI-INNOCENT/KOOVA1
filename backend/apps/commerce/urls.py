@@ -13,6 +13,7 @@ from .views import (
     PublicOrderView,
     PublicProductView,
     PublicStorefrontView,
+    SnapToSellBatchView,
     SnapToSellView,
 )
 
@@ -64,6 +65,12 @@ urlpatterns = [
         "<int:business_id>/snap-to-sell/",
         SnapToSellView.as_view(),
         name="snap-to-sell",
+    ),
+
+    path(
+        "<int:business_id>/snap-to-sell/batch/",
+        SnapToSellBatchView.as_view(),
+        name="snap-to-sell-batch",
     ),
 
     # --------------------------------------------------------------

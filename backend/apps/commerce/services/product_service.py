@@ -18,10 +18,12 @@ from the image and sets condition to New.
 from __future__ import annotations
 
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass, field
 from typing import Any
 
-from django.core.files.uploadedfile import UploadedFile
-from django.db import transaction
+from django.core.files.uploadedfile import SimpleUploadedFile, UploadedFile
+from django.db import close_old_connections, transaction
 
 from apps.businesses.models import Business
 
@@ -32,11 +34,21 @@ from .product_vision import ProductVisionError, ProductVisionService
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class SnapToSellBatchResult:
+    """Outcome of a parallel Snap-to-Sell batch."""
+
+    products: list[Product] = field(default_factory=list)
+    errors: list[dict[str, Any]] = field(default_factory=list)
+
+
 class SnapToSellService:
     """Turn product photos into a reviewable Kova business asset."""
 
-    MAX_IMAGES = 5
+    MAX_IMAGES = 10
+    MAX_BATCH_SIZE = 10
     MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10 MB
+    MAX_PARALLEL_VISION_WORKERS = 5
 
     def __init__(self, *, vision: ProductVisionService | None = None):
         self.vision = vision or ProductVisionService()
@@ -58,7 +70,7 @@ class SnapToSellService:
 
         Args:
             business:    The business that owns the product.
-            uploads:     1–5 uploaded image files.
+            uploads:     1–10 uploaded image files (one product).
             owner_facts: Owner-provided commercial facts.
 
         Returns:
@@ -71,13 +83,10 @@ class SnapToSellService:
 
         self._validate_uploads(uploads)
 
-        # Build Business Brain context for the vision prompt.
         business_context = CommerceBusinessContextService.build(
             business,
         )
 
-        # Read image bytes before the vision call.
-        # Reset file pointers afterward so they can be saved.
         image_payload: list[tuple[str, bytes]] = []
         for upload in uploads:
             image_payload.append((upload.name, upload.read()))
@@ -94,29 +103,152 @@ class SnapToSellService:
                 "Product vision returned an invalid response."
             )
 
-        product = self._create_product(
+        return self._persist_analyzed_product(
             business=business,
+            uploads=uploads,
             owner_facts=owner_facts,
             analysis=analysis,
         )
 
-        self._save_images(
-            product=product,
-            uploads=uploads,
-            analysis=analysis,
+    def create_batch(
+        self,
+        *,
+        business: Business,
+        uploads: list[UploadedFile],
+        owner_facts: dict[str, Any],
+        per_image_prices: list[str] | None = None,
+    ) -> SnapToSellBatchResult:
+        """
+        Analyze each image in parallel and create one draft product per photo.
+
+        Use ``owner_facts["price"]`` for a shared selling price, or
+        ``per_image_prices`` (same order as uploads) for individual prices.
+        Currency and other owner fields apply to every product in the batch.
+        """
+
+        self._validate_batch_uploads(uploads)
+
+        business_context = CommerceBusinessContextService.build(
+            business,
         )
 
-        self._save_analysis_history(
-            product=product,
-            analysis=analysis,
+        prepared: list[tuple[int, str, bytes, str]] = []
+        for index, upload in enumerate(uploads):
+            content_type = (upload.content_type or "image/jpeg").lower()
+            prepared.append(
+                (index, upload.name, upload.read(), content_type),
+            )
+            upload.seek(0)
+
+        if per_image_prices is None and not owner_facts.get("price"):
+            raise ProductVisionError("Selling price is required.")
+
+        if (
+            per_image_prices is not None
+            and len(per_image_prices) != len(uploads)
+        ):
+            raise ProductVisionError(
+                "Provide exactly one price for each photo."
+            )
+
+        per_image_facts = {
+            key: value
+            for key, value in owner_facts.items()
+            if key
+            not in (
+                "name",
+                "category",
+                "brand",
+                "material",
+                "size",
+                "color",
+                "condition",
+                "price",
+            )
+        }
+
+        workers = min(
+            self.MAX_PARALLEL_VISION_WORKERS,
+            len(prepared),
         )
+        products_by_index: dict[int, Product] = {}
+        errors: list[dict[str, Any]] = []
 
-        from .storefront import publish_product_on_store
+        def process_one(
+            index: int,
+            filename: str,
+            content: bytes,
+            content_type: str,
+        ) -> tuple[int, Product | None, dict[str, Any] | None]:
+            close_old_connections()
+            try:
+                item_owner_facts = {
+                    **per_image_facts,
+                    "price": (
+                        per_image_prices[index]
+                        if per_image_prices is not None
+                        else owner_facts["price"]
+                    ),
+                }
 
-        publish_product_on_store(product)
-        product.refresh_from_db()
+                product = self._create_from_image_bytes(
+                    business=business,
+                    filename=filename,
+                    content=content,
+                    content_type=content_type,
+                    owner_facts=item_owner_facts,
+                    business_context=business_context,
+                )
+                return index, product, None
+            except ProductVisionError as exc:
+                return index, None, {
+                    "index": index,
+                    "filename": filename,
+                    "detail": str(exc) or "Kova could not analyze this image.",
+                }
+            except Exception:
+                logger.exception(
+                    "Snap-to-Sell batch item failed: business_id=%s index=%s",
+                    business.pk,
+                    index,
+                )
+                return index, None, {
+                    "index": index,
+                    "filename": filename,
+                    "detail": (
+                        "Kova encountered an unexpected error "
+                        "while analyzing this image."
+                    ),
+                }
+            finally:
+                close_old_connections()
 
-        return product
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = [
+                executor.submit(process_one, index, name, data, ctype)
+                for index, name, data, ctype in prepared
+            ]
+
+            for future in as_completed(futures):
+                index, product, error = future.result()
+                if product is not None:
+                    products_by_index[index] = product
+                elif error is not None:
+                    errors.append(error)
+
+        errors.sort(key=lambda item: item["index"])
+        products = [
+            products_by_index[i]
+            for i in sorted(products_by_index)
+        ]
+
+        if not products:
+            first_detail = errors[0]["detail"] if errors else (
+                "Kova could not analyze the product images."
+            )
+            raise ProductVisionError(first_detail)
+
+        return SnapToSellBatchResult(products=products, errors=errors)
 
     # ------------------------------------------------------------------
     # Validation
@@ -150,9 +282,106 @@ class SnapToSellService:
                     f"{upload.name} is larger than the 10 MB image limit."
                 )
 
+    def _validate_batch_uploads(
+        self,
+        uploads: list[UploadedFile],
+    ) -> None:
+        if not uploads:
+            raise ProductVisionError(
+                "At least one product image is required."
+            )
+
+        if len(uploads) > self.MAX_BATCH_SIZE:
+            raise ProductVisionError(
+                f"Snap-to-Sell batch supports a maximum of "
+                f"{self.MAX_BATCH_SIZE} images."
+            )
+
+        for upload in uploads:
+            content_type = (upload.content_type or "").lower()
+
+            if not content_type.startswith("image/"):
+                raise ProductVisionError(
+                    f"{upload.name} is not a supported image file."
+                )
+
+            if upload.size and upload.size > self.MAX_IMAGE_SIZE:
+                raise ProductVisionError(
+                    f"{upload.name} is larger than the 10 MB image limit."
+                )
+
     # ------------------------------------------------------------------
     # Product creation
     # ------------------------------------------------------------------
+
+    def _create_from_image_bytes(
+        self,
+        *,
+        business: Business,
+        filename: str,
+        content: bytes,
+        content_type: str,
+        owner_facts: dict[str, Any],
+        business_context: dict[str, Any],
+    ) -> Product:
+        image_payload = [(filename, content)]
+
+        analysis = self.vision.analyze(
+            images=image_payload,
+            owner_facts=owner_facts,
+            business_context=business_context,
+        )
+
+        if not isinstance(analysis, dict):
+            raise ProductVisionError(
+                "Product vision returned an invalid response."
+            )
+
+        upload = SimpleUploadedFile(
+            filename,
+            content,
+            content_type=content_type or "image/jpeg",
+        )
+
+        return self._persist_analyzed_product(
+            business=business,
+            uploads=[upload],
+            owner_facts=owner_facts,
+            analysis=analysis,
+        )
+
+    @staticmethod
+    def _persist_analyzed_product(
+        *,
+        business: Business,
+        uploads: list[UploadedFile],
+        owner_facts: dict[str, Any],
+        analysis: dict[str, Any],
+    ) -> Product:
+        from .storefront import publish_product_on_store
+
+        with transaction.atomic():
+            product = SnapToSellService._create_product(
+                business=business,
+                owner_facts=owner_facts,
+                analysis=analysis,
+            )
+
+            SnapToSellService._save_images(
+                product=product,
+                uploads=uploads,
+                analysis=analysis,
+            )
+
+            SnapToSellService._save_analysis_history(
+                product=product,
+                analysis=analysis,
+            )
+
+            publish_product_on_store(product)
+            product.refresh_from_db()
+
+        return product
 
     @staticmethod
     def _create_product(
