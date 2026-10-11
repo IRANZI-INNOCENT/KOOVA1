@@ -84,7 +84,7 @@ export function useSectionSetup<T extends object>({
   }
 
   async function continueToNext(
-    saveNow: () => Promise<void>,
+    saveNow: () => Promise<unknown>,
     navigate: (path: string) => void,
   ) {
     if (!isSetup) {
