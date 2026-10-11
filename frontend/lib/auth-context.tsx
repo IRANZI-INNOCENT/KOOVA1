@@ -9,6 +9,8 @@ import {
   type ReactNode,
 } from "react";
 
+import { flushSync } from "react-dom";
+
 import {
   getCurrentUser,
   login,
@@ -139,24 +141,33 @@ export function AuthProvider({
               restored.access,
             );
 
-            setAccessToken(restored.access);
-            setUser(restoredUser);
+            flushSync(() => {
+              setAccessToken(restored.access);
+              setUser(restoredUser);
+            });
           } catch (profileError) {
             if (
               profileError instanceof ApiError &&
               profileError.status === 401
             ) {
-              setAccessToken(null);
-              setUser(null);
+              flushSync(() => {
+                setAccessToken(null);
+                setUser(null);
+              });
             } else {
-              setAccessToken(restored.access);
+              flushSync(() => {
+                setAccessToken(restored.access);
+                setUser(null);
+              });
             }
           }
         } else if (
           restored.reason === "unauthorized"
         ) {
-          setAccessToken(null);
-          setUser(null);
+          flushSync(() => {
+            setAccessToken(null);
+            setUser(null);
+          });
         }
       } finally {
         setIsLoading(false);
@@ -202,15 +213,11 @@ export function AuthProvider({
     const response =
       await login(credentials);
 
-
-    setAccessToken(
-      response.access,
-    );
-
-    setUser(
-      response.user,
-    );
-
+    flushSync(() => {
+      setAccessToken(response.access);
+      setUser(response.user);
+      setIsLoading(false);
+    });
   }
 
 
@@ -246,9 +253,7 @@ export function AuthProvider({
 
     isLoading,
 
-    isAuthenticated:
-      accessToken !== null &&
-      user !== null,
+    isAuthenticated: accessToken !== null,
 
     signIn,
 

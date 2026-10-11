@@ -1,6 +1,8 @@
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:8000/api";
+import { getBrowserApiBaseUrl } from "./api-config";
+
+function apiUrl(): string {
+  return getBrowserApiBaseUrl();
+}
 
 
 export class ApiError extends Error {
@@ -108,7 +110,7 @@ async function readErrorResponse(
 async function refreshAccessToken(): Promise<string | null> {
   try {
     const response = await fetch(
-      `${API_URL}/auth/refresh/`,
+      `${apiUrl()}/auth/refresh/`,
       {
         method: "POST",
         credentials: "include",
@@ -178,7 +180,7 @@ export async function apiRequest<T>(
     }
 
     return fetch(
-      `${API_URL}${endpoint}`,
+      `${apiUrl()}${endpoint}`,
       {
         ...requestOptions,
         credentials: "include",

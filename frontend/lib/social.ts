@@ -5,6 +5,7 @@
  */
 
 import { authenticatedApiRequest } from "./api";
+import { getPublicApiBaseUrl } from "./api-config";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -171,8 +172,7 @@ export async function getMetaOAuthURL(
 }
 
 export function metaOAuthRedirectUri() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-  return `${apiUrl.replace(/\/$/, "")}/social/meta/callback/`;
+  return `${getPublicApiBaseUrl()}/social/meta/callback/`;
 }
 
 export async function submitMetaOAuthCode(

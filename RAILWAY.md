@@ -67,7 +67,7 @@ Then add these yourself. Values marked “from local `.env`” are copied from `
 
 | Variable | Value |
 | --- | --- |
-| `DJANGO_SECRET_KEY` | A long random string. Use Railway’s secret generator, or any password manager. |
+| `DJANGO_SECRET_KEY` | A long random string (**32+ characters**). Use Railway’s secret generator. Shorter keys trigger JWT warnings; changing the key logs everyone out. |
 | `FRONTEND_URL` | Leave this for step 8, after the site has a domain. If Railway requires a value now, use `https://placeholder.invalid` and replace it in step 8. |
 | `CORS_ALLOWED_ORIGINS` | The same address you put in `FRONTEND_URL`, with no path on the end. |
 | `OPENROUTER_API_KEY` | From local `.env` |
@@ -107,13 +107,22 @@ Instagram can fetch a photo from that public address. It cannot fetch a file tha
 3. Railway will run `npm run build`, then `npm run start`. The site listens on `0.0.0.0` and on Railway’s `PORT`.
 4. The health check is `/`.
 
-Set this variable **before the first build**:
+Set these variables **before the first build** (recommended — keeps login cookies on the site host):
 
 | Variable | Value |
 | --- | --- |
-| `NEXT_PUBLIC_API_URL` | `https://YOUR-API.up.railway.app/api` |
+| `NEXT_PUBLIC_API_URL` | `/api` |
+| `NEXT_PUBLIC_API_PUBLIC_URL` | `https://YOUR-API.up.railway.app/api` |
+| `API_PROXY_TARGET` | `https://YOUR-API.up.railway.app/api` |
+| `NEXT_PUBLIC_SITE_URL` | `https://YOUR-SITE.up.railway.app` (same as your site domain; used for server-side `/api` fetches) |
 
-Next.js copies `NEXT_PUBLIC_API_URL` into the site at build time. Changing it later does nothing until you redeploy the site so it builds again.
+The site serves `/api/*` and Next.js **rewrites** those requests to `API_PROXY_TARGET`. The browser only talks to `YOUR-SITE`, so the HttpOnly `kova_refresh_token` cookie is first-party and survives refresh / PWA install.
+
+`NEXT_PUBLIC_API_PUBLIC_URL` must stay the **absolute API URL** — Meta OAuth callbacks still hit the API host directly.
+
+Next.js bakes `NEXT_PUBLIC_*` values in at build time. Change them only together with a **new site deploy** (rebuild).
+
+**Legacy setup (cross-origin API):** you can still set `NEXT_PUBLIC_API_URL` to `https://YOUR-API.up.railway.app/api`, but refresh cookies are third-party between two Railway hostnames and many browsers will drop them — expect redirect-to-login loops. Prefer the proxy table above.
 
 Generate a public domain for the site. That hostname is `YOUR-SITE`.
 
