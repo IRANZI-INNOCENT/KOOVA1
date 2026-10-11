@@ -348,3 +348,18 @@ class SocialAPITests(TestCase):
         self.assertEqual(result.external_post_id, "page_post_1")
         self.assertIn("/photos", post.call_args.args[0])
         self.assertIn("source", post.call_args.kwargs["files"])
+
+
+class MetaOAuthScopeTests(TestCase):
+    def test_instagram_connect_uses_page_scopes_in_login_dialog(self):
+        from apps.social.services.capabilities import (
+            FACEBOOK_REQUESTED_SCOPES,
+            INSTAGRAM_REQUESTED_SCOPES,
+            oauth_scopes_for_platform,
+        )
+
+        self.assertEqual(oauth_scopes_for_platform("facebook"), FACEBOOK_REQUESTED_SCOPES)
+        scopes = oauth_scopes_for_platform("instagram")
+        self.assertEqual(scopes, FACEBOOK_REQUESTED_SCOPES)
+        self.assertNotIn("instagram_content_publish", scopes)
+        self.assertIn("instagram_content_publish", INSTAGRAM_REQUESTED_SCOPES)

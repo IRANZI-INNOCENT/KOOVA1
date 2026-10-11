@@ -101,7 +101,7 @@ class MetaOAuthURLView(APIView):
             f"&state={business_id}:{chosen}"
             f"&response_type=code"
         )
-        return Response({"url": url})
+        return Response({"url": url, "platform": chosen, "scopes": list(oauth_scopes_for_platform(chosen))})
 
 
 class MetaOAuthCallbackView(APIView):

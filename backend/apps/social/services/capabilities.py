@@ -39,10 +39,18 @@ REQUESTED_SCOPES = INSTAGRAM_REQUESTED_SCOPES
 
 
 def oauth_scopes_for_platform(platform: str) -> tuple[str, ...]:
-    """Facebook Page login must not ask for Instagram scopes unless connecting Instagram."""
+    """
+    Scopes for the Facebook Login dialog.
 
-    if platform == "instagram":
-        return INSTAGRAM_REQUESTED_SCOPES
+    Kova discovers a linked Instagram Professional account from the Page
+    token after login (see MetaAdapter.exchange_code). Requesting
+    instagram_* scopes here makes Meta show \"Invalid Scopes\" until those
+    permissions are added to the app (and often until App Review passes).
+    The chosen platform (facebook vs instagram) is carried in OAuth state
+    and only changes which SocialAccount records connect_meta creates.
+    """
+
+    _ = platform
     return FACEBOOK_REQUESTED_SCOPES
 
 
