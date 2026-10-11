@@ -1,3 +1,4 @@
+# API service (Railway root directory: backend, not /backend)
 [build]
 builder = "RAILPACK"
 watchPatterns = ["**"]
