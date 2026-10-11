@@ -139,9 +139,14 @@ export async function getMetaOAuthURL(
   businessId: number,
   token: string,
   platform: "facebook" | "instagram",
-): Promise<{ url: string }> {
-  return authenticatedApiRequest<{ url: string }>(
-    `/social/${businessId}/meta/oauth-url/?platform=${platform}`,
+  reconnect = false,
+): Promise<{ url: string; scopes?: string[] }> {
+  const params = new URLSearchParams({ platform });
+  if (reconnect) {
+    params.set("reconnect", "1");
+  }
+  return authenticatedApiRequest<{ url: string; scopes?: string[] }>(
+    `/social/${businessId}/meta/oauth-url/?${params.toString()}`,
     token,
   );
 }

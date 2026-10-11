@@ -143,11 +143,19 @@ export default function ChannelsPage() {
       });
   }, [authLoading, isAuthenticated, accessToken, businessId]);
 
-  async function connectMeta(platform: "facebook" | "instagram") {
+  async function connectMeta(
+    platform: "facebook" | "instagram",
+    reconnect = false,
+  ) {
     if (!businessId || !accessToken) return;
     setError("");
     try {
-      const { url } = await getMetaOAuthURL(businessId, accessToken, platform);
+      const { url } = await getMetaOAuthURL(
+        businessId,
+        accessToken,
+        platform,
+        reconnect,
+      );
       window.location.href = url;
     } catch (err) {
       setError(
@@ -355,6 +363,23 @@ export default function ChannelsPage() {
                     <div className="flex flex-wrap gap-2">
                       {account.connection_status !== "revoked" && (
                         <>
+                          {account.capabilities?.some((item) => !item.available) && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                connectMeta(
+                                  account.platform === "instagram"
+                                    ? "instagram"
+                                    : "facebook",
+                                  true,
+                                )
+                              }
+                              disabled={busy}
+                              className="inline-flex h-9 items-center rounded-md bg-kova-orange px-3 text-sm font-semibold text-kova-dark transition hover:bg-[#f0a46e] disabled:opacity-60"
+                            >
+                              Allow missing permissions
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => handleVerify(account)}

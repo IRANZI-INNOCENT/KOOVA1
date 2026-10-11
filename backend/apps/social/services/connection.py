@@ -163,6 +163,19 @@ def verify_account(account: SocialAccount) -> bool:
     now = timezone.now()
     account.last_verified_at = now
 
+    update_fields = [
+        "connection_status",
+        "connection_error",
+        "last_verified_at",
+        "updated_at",
+    ]
+    refresh_scopes = getattr(adapter, "refresh_granted_scopes", None)
+    if callable(refresh_scopes):
+        scopes = refresh_scopes(account)
+        if scopes:
+            account.scopes = scopes
+            update_fields.append("scopes")
+
     if valid:
         account.connection_status = SocialAccount.ConnectionStatus.CONNECTED
         account.connection_error = ""
@@ -170,10 +183,5 @@ def verify_account(account: SocialAccount) -> bool:
         account.connection_status = SocialAccount.ConnectionStatus.EXPIRED
         account.connection_error = "Token verification failed."
 
-    account.save(update_fields=[
-        "connection_status",
-        "connection_error",
-        "last_verified_at",
-        "updated_at",
-    ])
+    account.save(update_fields=update_fields)
     return valid

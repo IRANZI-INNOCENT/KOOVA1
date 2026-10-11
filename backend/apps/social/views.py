@@ -93,6 +93,11 @@ class MetaOAuthURLView(APIView):
         from .services.capabilities import oauth_scopes_for_platform
 
         scopes = ",".join(oauth_scopes_for_platform(chosen))
+        reconnect = request.query_params.get("reconnect", "").lower() in {
+            "1",
+            "true",
+            "yes",
+        }
         url = (
             f"https://www.facebook.com/v21.0/dialog/oauth"
             f"?client_id={app_id}"
@@ -101,6 +106,8 @@ class MetaOAuthURLView(APIView):
             f"&state={business_id}:{chosen}"
             f"&response_type=code"
         )
+        if reconnect:
+            url += "&auth_type=rerequest"
         return Response({"url": url, "platform": chosen, "scopes": list(oauth_scopes_for_platform(chosen))})
 
 

@@ -110,10 +110,12 @@ class MetaAdapter(ChannelAdapter):
         except Exception:
             pass
 
+        scopes = self._granted_scopes(long_token, page_token)
+
         return TokenExchange(
             access_token=long_token,
             expires_in=60 * 60 * 24 * 60,
-            scopes=["pages_show_list", "pages_manage_posts", "pages_read_engagement"],
+            scopes=scopes,
             page_id=page_id,
             page_name=page_name,
             page_access_token=page_token,
@@ -149,6 +151,11 @@ class MetaAdapter(ChannelAdapter):
             return data.get("is_valid", False)
         except Exception:
             return False
+
+    def refresh_granted_scopes(self, account: SocialAccount) -> list[str]:
+        """Read scopes Meta actually granted for the stored token."""
+
+        return self._granted_scopes(account.access_token)
 
     # ------------------------------------------------------------------ #
     # Publish
@@ -290,6 +297,35 @@ class MetaAdapter(ChannelAdapter):
     # ================================================================== #
     # Private helpers
     # ================================================================== #
+
+    @staticmethod
+    def _granted_scopes(*tokens: str) -> list[str]:
+        app_token = f"{_app_id()}|{_app_secret()}"
+        found: set[str] = set()
+        for token in tokens:
+            if not token:
+                continue
+            try:
+                resp = requests.get(
+                    f"{GRAPH_URL}/debug_token",
+                    params={
+                        "input_token": token,
+                        "access_token": app_token,
+                    },
+                    timeout=15,
+                )
+                data = resp.json().get("data", {})
+                for scope in data.get("scopes") or []:
+                    if isinstance(scope, str) and scope.strip():
+                        found.add(scope.strip())
+                for item in data.get("granular_scopes") or []:
+                    if isinstance(item, dict):
+                        scope = str(item.get("scope") or "").strip()
+                        if scope:
+                            found.add(scope)
+            except Exception:
+                continue
+        return sorted(found)
 
     @staticmethod
     def _code_to_short_token(code: str, redirect_uri: str) -> str:
