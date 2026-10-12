@@ -514,7 +514,7 @@ export default function ContentStudioPage() {
               <div className="flex items-center gap-4 rounded-lg border border-kova-orange/30 bg-kova-orange/5 p-4">
                 {selectedProduct.images[0]?.url ? (
                   <img
-                    src={selectedProduct.images[0].url}
+                    src={mediaSrc(selectedProduct.images[0].url)}
                     alt={selectedProduct.name}
                     className="h-16 w-16 rounded-lg object-cover ring-2 ring-kova-orange/30"
                   />

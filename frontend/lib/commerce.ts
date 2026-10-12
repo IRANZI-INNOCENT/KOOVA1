@@ -265,14 +265,7 @@ export async function updateProduct(
 /* Content                                                             */
 /* ------------------------------------------------------------------ */
 
-export function mediaSrc(url: string): string {
-  if (!url) return "";
-  if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-  const origin = apiUrl.replace(/\/api\/?$/, "");
-  const path = url.startsWith("/") ? url : `/${url}`;
-  return `${origin}${path}`;
-}
+export { mediaSrc } from "@/lib/media";
 
 export interface ContentSlide {
   caption: string;

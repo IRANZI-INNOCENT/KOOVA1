@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from apps.commerce.services.storefront import absolute_media_url
+
 from .models import Content, ContentBatch
 
 
@@ -62,8 +64,22 @@ class ContentSerializer(serializers.ModelSerializer):
         if not primary:
             primary = obj.product.images.first()
         if primary and primary.image:
-            return primary.image.url
+            return absolute_media_url(primary.image.url)
         return None
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        urls = data.get("media_urls")
+        if isinstance(urls, list):
+            data["media_urls"] = [
+                absolute_media_url(str(item or ""))
+                for item in urls
+                if str(item or "").strip()
+            ]
+        image = data.get("product_image")
+        if image:
+            data["product_image"] = absolute_media_url(str(image))
+        return data
 
     def get_batch_id(self, obj):
         if obj.batch_id:
