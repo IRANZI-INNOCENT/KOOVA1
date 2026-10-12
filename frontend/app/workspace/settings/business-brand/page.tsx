@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AppShell } from "@/components/workspace/app-shell";
 import { Button } from "@/components/ui/button";
 import { ApiError, authenticatedApiRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -307,8 +306,7 @@ export default function BusinessBrandPage() {
   }
 
   return (
-    <AppShell>
-      <div className="p-6 sm:p-8">
+          <div className="p-6 sm:p-8">
         <div className="mx-auto max-w-3xl">
           <header>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-kova-green">
@@ -465,6 +463,5 @@ export default function BusinessBrandPage() {
           </form>
         </div>
       </div>
-    </AppShell>
-  );
+      );
 }

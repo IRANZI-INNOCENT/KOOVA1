@@ -3,6 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import {
+  InboxNavIcon,
+  PlatformBrandIcon,
+  SocialNavIcon,
+} from "@/components/social/platform-brand";
+import {
+  NavIconSlot,
+  OverviewNavIcon,
+} from "@/components/workspace/nav-icon-slot";
 import { Logo } from "@/components/ui/logo";
 
 interface NavigationItem {
@@ -19,46 +28,79 @@ function Icon({ d, ...props }: { d: string } & React.SVGProps<SVGSVGElement>) {
   );
 }
 
+/** Colorful nav marks (same visual weight as platform logos). */
+function NavEmoji({
+  symbol,
+  label,
+}: {
+  symbol: string;
+  label: string;
+}) {
+  return (
+    <span
+      className="flex h-[18px] w-[18px] items-center justify-center text-[15px] leading-none"
+      role="img"
+      aria-label={label}
+    >
+      {symbol}
+    </span>
+  );
+}
+
 const navigationItems: NavigationItem[] = [
   {
     label: "Overview",
     href: "/workspace",
-    icon: <Icon d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z M9 21V12h6v9" />,
-  },
-  {
-    label: "Morning Brief",
-    href: "/workspace/brief",
-    icon: <Icon d="M12 2a10 10 0 100 20 10 10 0 000-20z M12 6v6l4 2" />,
+    icon: (
+      <NavIconSlot>
+        <OverviewNavIcon />
+      </NavIconSlot>
+    ),
   },
   {
     label: "Social",
     href: "/workspace/social",
-    icon: <Icon d="M17 2H7a2 2 0 00-2 2v16l7-4 7 4V4a2 2 0 00-2-2z" />,
+    icon: (
+      <NavIconSlot>
+        <SocialNavIcon size={15} />
+      </NavIconSlot>
+    ),
   },
   {
     label: "LinkedIn",
     href: "/workspace/linkedin",
-    icon: <Icon d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-4 0v7h-4v-7a6 6 0 016-6z M2 9h4v12H2z M4 6a2 2 0 100-4 2 2 0 000 4z" />,
+    icon: (
+      <NavIconSlot>
+        <PlatformBrandIcon platform="linkedin" size={18} />
+      </NavIconSlot>
+    ),
   },
   {
     label: "Commerce",
     href: "/workspace/commerce",
-    icon: <Icon d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z M3 6h18 M16 10a4 4 0 01-8 0" />,
+    icon: (
+      <NavIconSlot>
+        <NavEmoji symbol="🛍️" label="Commerce" />
+      </NavIconSlot>
+    ),
   },
   {
     label: "Inbox",
     href: "/workspace/inbox",
-    icon: <Icon d="M4 4h16v12H5.17L4 17.17V4z M8 9h8 M8 12h4" />,
+    icon: (
+      <NavIconSlot>
+        <InboxNavIcon size={10} />
+      </NavIconSlot>
+    ),
   },
   {
     label: "Leads",
     href: "/workspace/leads",
-    icon: <Icon d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4-4v2 M9 11a4 4 0 100-8 4 4 0 000 8z M22 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75" />,
-  },
-  {
-    label: "Analytics",
-    href: "/workspace/analytics",
-    icon: <Icon d="M18 20V10 M12 20V4 M6 20v-6" />,
+    icon: (
+      <NavIconSlot>
+        <NavEmoji symbol="🎯" label="Leads" />
+      </NavIconSlot>
+    ),
   },
 ];
 
@@ -66,7 +108,11 @@ const secondaryNavigationItems: NavigationItem[] = [
   {
     label: "Settings",
     href: "/workspace/settings",
-    icon: <Icon d="M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001.08 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9c.26.6.84 1 1.51 1.08H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1.08z" />,
+    icon: (
+      <NavIconSlot>
+        <Icon d="M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001.08 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9c.26.6.84 1 1.51 1.08H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1.08z" />
+      </NavIconSlot>
+    ),
   },
 ];
 
@@ -144,15 +190,19 @@ export function Sidebar({
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 title={item.label}
-                className={`flex items-center gap-3 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors ${
-                  collapsed ? "justify-center" : ""
+                className={`flex items-center rounded-md py-2 pl-2.5 pr-2.5 text-[13px] font-medium transition-colors ${
+                  collapsed ? "justify-center px-2.5" : "gap-2.5"
                 } ${
                   active
-                    ? "bg-white text-kova-green"
+                    ? "bg-kova-orange font-semibold text-kova-dark"
                     : "text-white/85 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                <span className={`shrink-0 ${active ? "text-kova-green" : "text-white/70"}`}>
+                <span
+                  className={
+                    active ? "text-kova-dark" : "text-white/90"
+                  }
+                >
                   {item.icon}
                 </span>
                 {!collapsed && item.label}
@@ -177,15 +227,19 @@ export function Sidebar({
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   title={item.label}
-                  className={`flex items-center gap-3 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors ${
-                    collapsed ? "justify-center" : ""
+                  className={`flex items-center rounded-md py-2 pl-2.5 pr-2.5 text-[13px] font-medium transition-colors ${
+                    collapsed ? "justify-center px-2.5" : "gap-2.5"
                   } ${
                     active
-                      ? "bg-white text-kova-green"
+                      ? "bg-kova-orange font-semibold text-kova-dark"
                       : "text-white/85 hover:bg-white/10 hover:text-white"
                   }`}
                 >
-                  <span className={`shrink-0 ${active ? "text-kova-green" : "text-white/70"}`}>
+                  <span
+                    className={
+                      active ? "text-kova-dark" : "text-white/90"
+                    }
+                  >
                     {item.icon}
                   </span>
                   {!collapsed && item.label}

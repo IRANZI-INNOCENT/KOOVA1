@@ -43,10 +43,15 @@ class SocialAccountListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, business_id):
+        from .services.connection import backfill_missing_profiles
+
         business = get_object_or_404(
             Business, id=business_id, owner=request.user,
         )
-        accounts = SocialAccount.objects.filter(business=business)
+        accounts = list(
+            SocialAccount.objects.filter(business=business),
+        )
+        backfill_missing_profiles(accounts)
         return Response(SocialAccountSerializer(accounts, many=True).data)
 
 
@@ -264,11 +269,17 @@ class SocialOverviewView(APIView):
         business = get_object_or_404(
             Business, id=business_id, owner=request.user,
         )
-        accounts = SocialAccount.objects.filter(business=business)
-        connected = accounts.filter(
-            connection_status=SocialAccount.ConnectionStatus.CONNECTED,
-        ).count()
-        total = accounts.count()
+        from .services.connection import backfill_missing_profiles
+
+        accounts = list(SocialAccount.objects.filter(business=business))
+        backfill_missing_profiles(accounts)
+        connected = sum(
+            1
+            for a in accounts
+            if a.connection_status
+            == SocialAccount.ConnectionStatus.CONNECTED
+        )
+        total = len(accounts)
 
         from apps.content.models import Content
 
@@ -523,15 +534,44 @@ class MetaWebhookView(APIView):
     authentication_classes = []
 
     def get(self, request):
-        token = os.getenv("FACEBOOK_WEBHOOK_VERIFY_TOKEN", "kova")
+        from django.conf import settings
+
+        token = settings.FACEBOOK_WEBHOOK_VERIFY_TOKEN
+        if not token:
+            return Response(
+                {"detail": "Webhook verify token is not configured."},
+                status=503,
+            )
         if request.query_params.get("hub.verify_token") == token:
             return HttpResponse(request.query_params.get("hub.challenge") or "")
         return Response({"detail": "Verification failed."}, status=403)
 
     def post(self, request):
-        from .services.inbox import record_inbound
+        import json
 
-        for entry in request.data.get("entry") or []:
+        from django.conf import settings
+
+        from .services.inbox import record_inbound
+        from .services.meta_webhook import verify_signature
+
+        app_secret = settings.FACEBOOK_APP_SECRET
+        if not app_secret:
+            return Response(
+                {"detail": "Webhook is not configured."},
+                status=503,
+            )
+
+        raw_body = request.body
+        signature = request.headers.get("X-Hub-Signature-256")
+        if not verify_signature(raw_body, signature, app_secret):
+            return Response({"detail": "Invalid signature."}, status=403)
+
+        try:
+            payload = json.loads(raw_body.decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            return Response({"detail": "Invalid JSON."}, status=400)
+
+        for entry in payload.get("entry") or []:
             page_id = str(entry.get("id") or "")
             account = SocialAccount.objects.filter(platform_account_id=page_id).first()
             if account is None:

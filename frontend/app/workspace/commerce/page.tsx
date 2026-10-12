@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { CatalogContentModal } from "@/components/workspace/catalog-content";
+import { KovaStepsGuide } from "@/components/workspace/kova-steps-guide";
 import { PageSkeleton } from "@/components/workspace/page-skeleton";
-import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
 import { ApiError } from "@/lib/api";
 import {
+  getCommercePage,
   getProductContentPlans,
   getProducts,
   type Product,
@@ -29,6 +31,7 @@ export default function CommerceWorkspacePage() {
   const [error, setError] = useState("");
   const [contentFocus, setContentFocus] = useState<Product | "all" | null>(null);
   const [plans, setPlans] = useState<Record<number, ProductContentPlan>>({});
+  const [storeLive, setStoreLive] = useState(false);
 
   useEffect(() => {
     if (
@@ -46,7 +49,7 @@ export default function CommerceWorkspacePage() {
     async function loadCommerce() {
       try {
         setError("");
-        const [businessProducts, contentPlans] =
+        const [businessProducts, contentPlans, page] =
           await Promise.all([
             getProducts(bizId, token),
             getProductContentPlans(
@@ -55,6 +58,7 @@ export default function CommerceWorkspacePage() {
             ).catch(
               () => [] as ProductContentPlan[],
             ),
+            getCommercePage(bizId, token).catch(() => null),
           ]);
 
         if (cancelled) {
@@ -70,6 +74,7 @@ export default function CommerceWorkspacePage() {
             ]),
           ),
         );
+        setStoreLive(!!page?.is_published);
       } catch (err) {
         if (cancelled) {
           return;
@@ -105,46 +110,63 @@ export default function CommerceWorkspacePage() {
   const draftCount = products.filter((p) => p.status === "draft").length;
   const activeCount = products.filter((p) => p.status === "active").length;
 
+  if (workspaceLoading || loading) {
+    return (
+      <div className={WORKSPACE_PAGE}>
+        <PageSkeleton />
+      </div>
+    );
+  }
+
   return (
-    <WorkspacePageFrame
-      loading={workspaceLoading || loading}
-      skeleton={<PageSkeleton />}
-    >
-      <main className="min-h-screen bg-kova-background">
-        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
-          {/* ──── Header ──── */}
-          <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
-                Commerce
-              </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-kova-dark sm:text-3xl">
-                Turn your products into sales.
-              </h1>
-              <p className="mt-2 max-w-xl text-sm leading-6 text-gray-600">
-                Add your products once. Kova turns them into commerce assets
-                that can power your storefront, content, conversations and
-                future sales.
-              </p>
-            </div>
-            <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:items-end">
+    <>
+      <div className={WORKSPACE_PAGE}>
+        <div className="space-y-5">
+          <PageHeader
+            eyebrow="Commerce"
+            title="Products and your store"
+            description="Add items, publish your shop, and track orders."
+            actions={
               <button
                 type="button"
                 onClick={openSnapToSell}
-                className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-kova-orange px-5 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e] sm:w-auto"
+                className="inline-flex h-10 items-center justify-center rounded-lg bg-kova-orange px-4 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e]"
               >
-                Snap to Sell
+                Snap a product
               </button>
-              <Link
-                href="/workspace/commerce/orders"
-                className="text-center text-sm font-semibold text-kova-orange"
-              >
-                View orders
-              </Link>
-            </div>
-          </header>
+            }
+          />
 
-          <div className="mt-6 h-px bg-kova-border" />
+          {business && (
+            <KovaStepsGuide
+              title="Commerce in three steps"
+              steps={[
+                {
+                  letter: "A",
+                  title: "Add products",
+                  description: "Photo with Snap or enter details in Products.",
+                  href: "/workspace/commerce/snap-to-sell",
+                  done: products.length > 0,
+                },
+                {
+                  letter: "B",
+                  title: "Open your store",
+                  description: "Turn on the storefront so customers can buy.",
+                  href: "/workspace/commerce/storefront",
+                  done: storeLive,
+                },
+                {
+                  letter: "C",
+                  title: "Share the link",
+                  description: "Copy your store URL from the Store tab.",
+                  href: "/workspace/commerce/storefront",
+                  done: storeLive && activeCount > 0,
+                },
+              ]}
+            />
+          )}
+
+          <div className="h-px bg-kova-border" />
 
           {error && (
             <div
@@ -292,26 +314,30 @@ export default function CommerceWorkspacePage() {
             </>
           )}
         </div>
-        {business && contentFocus && accessToken && (
-          <CatalogContentModal
-            businessId={business.id}
-            token={accessToken}
-            products={products}
-            plans={plans}
-            focus={contentFocus === "all" ? null : contentFocus}
-            onClose={() => setContentFocus(null)}
-            onChanged={() => {
-              if (!accessToken || !business) return;
-              getProductContentPlans(business.id, accessToken)
-                .then((contentPlans) =>
-                  setPlans(Object.fromEntries(contentPlans.map((plan) => [plan.product_id, plan]))),
-                )
-                .catch(() => undefined);
-            }}
-          />
-        )}
-      </main>
-    </WorkspacePageFrame>
+      </div>
+      {business && contentFocus && accessToken && (
+        <CatalogContentModal
+          businessId={business.id}
+          token={accessToken}
+          products={products}
+          plans={plans}
+          focus={contentFocus === "all" ? null : contentFocus}
+          onClose={() => setContentFocus(null)}
+          onChanged={() => {
+            if (!accessToken || !business) return;
+            getProductContentPlans(business.id, accessToken)
+              .then((contentPlans) =>
+                setPlans(
+                  Object.fromEntries(
+                    contentPlans.map((plan) => [plan.product_id, plan]),
+                  ),
+                ),
+              )
+              .catch(() => undefined);
+          }}
+        />
+      )}
+    </>
   );
 }
 
@@ -346,36 +372,17 @@ function MetricCard({
 
 function EmptyCatalog({ onSnap }: { onSnap: () => void }) {
   return (
-    <div className="mt-5 rounded-lg border-2 border-dashed border-kova-orange/40 bg-kova-orange/5 p-8 text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-kova-orange/20">
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-kova-orange"
-        >
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </div>
-      <h3 className="mt-4 text-lg font-semibold text-kova-dark">
-        Start with your first product
-      </h3>
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
-        Take one product photo and give Kova the basic commercial information.
-        Kova will create a draft product asset for you.
+    <div className="mt-4 py-4 text-sm text-gray-500">
+      <p className="font-medium text-kova-dark">No products yet</p>
+      <p className="mt-1 leading-6">
+        Snap one photo and Kova will draft the listing for you.
       </p>
       <button
         type="button"
         onClick={onSnap}
-        className="mt-5 inline-flex h-11 items-center justify-center rounded-lg bg-kova-orange px-5 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e]"
+        className="mt-3 text-sm font-semibold text-kova-green hover:underline"
       >
-        Snap your first product
+        Snap your first product →
       </button>
     </div>
   );

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { AppShell } from "@/components/workspace/app-shell";
 import { authenticatedApiRequest, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { SetupGuide } from "@/components/workspace/setup-guide";
@@ -402,8 +401,7 @@ export default function BusinessPolicyPage() {
 
   if (authLoading || isLoading) {
     return (
-      <AppShell>
-        <div className="mx-auto max-w-3xl px-6 py-10">
+              <div className="mx-auto max-w-3xl px-6 py-10">
           <div className="h-5 w-32 animate-pulse rounded bg-gray-200" />
           <div className="mt-4 h-9 w-72 animate-pulse rounded bg-gray-200" />
           <div className="mt-3 h-5 w-full max-w-xl animate-pulse rounded bg-gray-100" />
@@ -413,8 +411,7 @@ export default function BusinessPolicyPage() {
             <div className="h-64 animate-pulse rounded-xl bg-gray-100" />
           </div>
         </div>
-      </AppShell>
-    );
+          );
   }
 
   if (!user) {
@@ -422,8 +419,7 @@ export default function BusinessPolicyPage() {
   }
 
   return (
-    <AppShell>
-      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
+          <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
         <div>
           <p className="text-sm font-medium text-[#176B4D]">
             Business Brain
@@ -636,6 +632,5 @@ export default function BusinessPolicyPage() {
           </div>
         </form>
       </main>
-    </AppShell>
-  );
+      );
 }

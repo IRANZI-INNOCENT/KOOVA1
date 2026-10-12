@@ -2,6 +2,10 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
+import {
+  PlatformBrandIcon,
+  channelToPlatformBrand,
+} from "@/components/social/platform-brand";
 import { useAuth } from "@/lib/auth-context";
 import { getBusiness } from "@/lib/commerce";
 import {
@@ -298,7 +302,11 @@ export function MessageDesk({
                       <span className="text-xs font-medium text-gray-500">Reply saved</span>
                     )}
                   </div>
-                  <p className="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500">
+                  <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
+                    <PlatformBrandIcon
+                      platform={channelToPlatformBrand(message.channel)}
+                      size={14}
+                    />
                     {channelLabel(message.channel)} ·{" "}
                     {message.kind === "comment" ? "Comment" : "Message"}
                     {message.intent && message.intent !== "other"
@@ -433,8 +441,13 @@ function OutboundCard({
         <span className="text-xs text-gray-400">{formatWhen(message.created_at)}</span>
         <span className="text-xs text-gray-500">{deliveryLabel(message.delivery_status)}</span>
       </div>
-      <p className="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500">
-        {channelLabel(message.channel)} · {message.kind === "comment" ? "Comment" : "Message"}
+      <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
+        <PlatformBrandIcon
+          platform={channelToPlatformBrand(message.channel)}
+          size={14}
+        />
+        {channelLabel(message.channel)} ·{" "}
+        {message.kind === "comment" ? "Comment" : "Message"}
       </p>
       {parent && (
         <p className="mt-2 truncate text-xs text-gray-500">

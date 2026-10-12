@@ -4,17 +4,25 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+import { PlatformAvatar } from "@/components/social/platform-avatar";
+import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { ApiError, authenticatedApiRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import {
   getBusiness,
   getConnectedChannels,
   getContentBatches,
+  getContentCapabilities,
+  getOrganicContentSeeds,
   getProducts,
   mediaSrc,
+  publishOwnerVideo,
+  uploadContentMedia,
   type ConnectedChannels,
   type Content,
   type ContentBatch,
+  type ContentCapabilities,
+  type OrganicContentSeed,
   type Product,
 } from "@/lib/commerce";
 import {
@@ -69,7 +77,16 @@ export default function ContentStudioPage() {
   const [mode, setMode] = useState<OperatingMode>("assist");
   const [loading, setLoading] = useState(true);
 
+  const [capabilities, setCapabilities] =
+    useState<ContentCapabilities | null>(null);
+  const [campaignMode, setCampaignMode] = useState<
+    "product" | "organic" | "video"
+  >("product");
   const [productId, setProductId] = useState("");
+  const [organicSeeds, setOrganicSeeds] = useState<OrganicContentSeed[]>([]);
+  const [selectedSeedId, setSelectedSeedId] = useState<string | null>(null);
+  const [seedsLoading, setSeedsLoading] = useState(false);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
   const [note, setNote] = useState("");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
@@ -77,6 +94,31 @@ export default function ContentStudioPage() {
   const [acting, setActing] = useState("");
 
   const selectedProduct = products.find((p) => String(p.id) === productId);
+  const selectedSeed = organicSeeds.find((s) => s.id === selectedSeedId) ?? null;
+
+  async function loadOrganicSeeds(force = false) {
+    if (!businessId || !accessToken) return;
+    if (!force && organicSeeds.length > 0) return;
+    setSeedsLoading(true);
+    try {
+      const seeds = await getOrganicContentSeeds(businessId, accessToken);
+      setOrganicSeeds(seeds);
+      if (seeds.length > 0 && (force || !selectedSeedId)) {
+        setSelectedSeedId(seeds[0].id);
+        setNote(seeds[0].brief);
+      }
+    } catch {
+      setError("Kova could not load content ideas. Try again in a moment.");
+    } finally {
+      setSeedsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (campaignMode !== "organic" || !businessId || !accessToken) return;
+    void loadOrganicSeeds();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load when entering organic mode
+  }, [campaignMode, businessId, accessToken]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -90,16 +132,18 @@ export default function ContentStudioPage() {
       try {
         const business = await getBusiness(token);
         setBusinessId(business.id);
-        const [ch, prods, batchList, policy] = await Promise.all([
+        const [ch, prods, batchList, policy, caps] = await Promise.all([
           getConnectedChannels(business.id, token),
           getProducts(business.id, token),
           getContentBatches(business.id, token),
           getBusinessPolicy(business.id, token),
+          getContentCapabilities(business.id, token),
         ]);
         setChannels(ch);
         setProducts(prods);
         setBatches(batchList);
         setMode(policy.social_operating_mode);
+        setCapabilities(caps);
       } catch (err) {
         setError(
           err instanceof ApiError
@@ -119,21 +163,50 @@ export default function ContentStudioPage() {
     setGenerating(true);
     setError("");
     try {
-      await authenticatedApiRequest(
-        `/content/${businessId}/campaign/`,
-        accessToken,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            note,
-            product_id: productId ? Number(productId) : null,
-          }),
-        },
-      );
+      if (campaignMode === "organic" && !selectedSeed) {
+        setError("Choose one of Kova's content seeds below.");
+        return;
+      }
+      if (campaignMode === "video") {
+        if (!videoFile) {
+          setError("Choose a short video to upload.");
+          return;
+        }
+        const uploaded = await uploadContentMedia(
+          businessId,
+          accessToken,
+          videoFile,
+        );
+        await publishOwnerVideo(businessId, accessToken, {
+          asset_id: uploaded.id,
+          caption: note,
+          schedule: mode === "autopilot",
+        });
+      } else {
+        await authenticatedApiRequest(
+          `/content/${businessId}/campaign/`,
+          accessToken,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              note,
+              product_id:
+                campaignMode === "product" && productId
+                  ? Number(productId)
+                  : null,
+              organic_theme:
+                campaignMode === "organic"
+                  ? selectedSeed?.theme_key
+                  : undefined,
+            }),
+          },
+        );
+      }
       const batchList = await getContentBatches(businessId, accessToken);
       setBatches(batchList);
       setNote("");
       setProductId("");
+      setVideoFile(null);
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -198,21 +271,13 @@ export default function ContentStudioPage() {
   /* ──── Gate: no channels ──── */
   if (channels && !channels.connected) {
     return (
-      <div className="p-4 sm:p-8">
-        <div className="mx-auto max-w-6xl space-y-6">
-          <header>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
-              Content Studio
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-kova-dark sm:text-4xl">
-              Connect a channel first
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
-              Kova generates content adapted to your connected social accounts.
-              Connect at least one account so Kova knows which platforms to
-              write for.
-            </p>
-          </header>
+      <div className={WORKSPACE_PAGE}>
+        <div className="space-y-6">
+          <PageHeader
+            eyebrow="Create"
+            title="Connect an account first"
+            description="Kova writes posts for the accounts you connect — Facebook and Instagram."
+          />
 
           <div className="h-px bg-kova-border" />
 
@@ -253,47 +318,40 @@ export default function ContentStudioPage() {
   }
 
   return (
-    <div className="p-4 sm:p-8">
-      <div className="mx-auto max-w-6xl space-y-6">
-        {/* ──── Header ──── */}
-        <header>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
-                Content Studio
-              </p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-kova-dark sm:text-4xl">
-                Tell Kova what to promote
-              </h1>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-gray-600 sm:text-base">
-                Describe what you want or select a product. Kova generates
-                adapted content for all your connected channels simultaneously.
-              </p>
-            </div>
-
-            {mode === "autopilot" && (
+    <div className={WORKSPACE_PAGE}>
+      <div className="space-y-6">
+        <PageHeader
+          eyebrow="Create"
+          title="Make posts for your accounts"
+          description="Pick a product, share everyday tips, or upload a short video. Kova formats it for Facebook and Instagram."
+          actions={
+            mode === "autopilot" ? (
               <div className="flex items-center gap-2 rounded-full bg-kova-orange/15 px-4 py-2">
                 <span className="flex h-2 w-2 rounded-full bg-kova-orange" />
                 <span className="text-xs font-bold text-kova-orange">
-                  Autopilot active
+                  Autopilot on
                 </span>
               </div>
-            )}
-          </div>
+            ) : undefined
+          }
+        />
 
-          {/* Channel pills */}
-          <div className="mt-4 flex flex-wrap gap-2">
-            {channels?.accounts.map((a) => (
-              <span
-                key={a.id}
-                className="inline-flex items-center gap-1.5 rounded-full bg-kova-orange/10 px-3 py-1.5 text-xs font-semibold text-kova-dark"
-              >
-                <span className="flex h-1.5 w-1.5 rounded-full bg-kova-orange" />
-                {PLATFORM_LABELS[a.platform] ?? a.platform}: {a.name}
-              </span>
-            ))}
-          </div>
-        </header>
+        <div className="flex flex-wrap gap-2">
+          {channels?.accounts.map((a) => (
+            <span
+              key={a.id}
+              className="inline-flex items-center gap-2 rounded-full border border-kova-orange/25 bg-kova-orange/10 px-2 py-1 text-xs font-semibold text-kova-dark"
+            >
+              <PlatformAvatar
+                platform={a.platform}
+                imageUrl={a.profile_picture_url}
+                name={a.name}
+                size="sm"
+              />
+              {PLATFORM_LABELS[a.platform] ?? a.platform}: {a.name}
+            </span>
+          ))}
+        </div>
 
         <div className="h-px bg-kova-border" />
 
@@ -317,7 +375,30 @@ export default function ContentStudioPage() {
             </p>
           </div>
           <div className="space-y-5 p-5 sm:p-6">
-            {/* Product selector */}
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["product", "Product"],
+                  ["organic", "Organic"],
+                  ["video", "Upload video"],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setCampaignMode(key)}
+                  className={`rounded-full px-4 py-2 text-xs font-bold transition ${
+                    campaignMode === key
+                      ? "bg-kova-green text-white"
+                      : "bg-kova-background text-kova-dark hover:bg-kova-green/10"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {campaignMode === "product" && (
             <label className="block">
               <span className="text-sm font-semibold text-kova-dark">
                 Product
@@ -327,7 +408,7 @@ export default function ContentStudioPage() {
                 onChange={(e) => setProductId(e.target.value)}
                 className="mt-2 block w-full rounded-md border border-kova-border bg-white px-3 py-3 text-base text-kova-dark transition focus:border-kova-orange focus:ring-1 focus:ring-kova-orange"
               >
-                <option value="">General business content</option>
+                <option value="">Pick a product to feature</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}{" "}
@@ -336,9 +417,86 @@ export default function ContentStudioPage() {
                 ))}
               </select>
             </label>
+            )}
+
+            {campaignMode === "organic" && (
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-kova-dark">
+                    Content seeds from Kova
+                  </p>
+                  <button
+                    type="button"
+                    disabled={seedsLoading}
+                    onClick={() => void loadOrganicSeeds(true)}
+                    className="text-xs font-bold text-kova-green hover:underline disabled:opacity-50"
+                  >
+                    {seedsLoading ? "Refreshing…" : "New ideas"}
+                  </button>
+                </div>
+                <p className="text-xs leading-5 text-gray-500">
+                  Pick an angle — Kova will adapt it for every connected channel.
+                  You can edit the brief below before generating.
+                </p>
+                {seedsLoading && organicSeeds.length === 0 ? (
+                  <div className="flex items-center gap-2 py-6 text-sm text-gray-500">
+                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-kova-green border-t-transparent" />
+                    Kova is drafting ideas for your business…
+                  </div>
+                ) : (
+                  <ul className="grid gap-2 sm:grid-cols-2">
+                    {organicSeeds.map((seed) => {
+                      const active = seed.id === selectedSeedId;
+                      return (
+                        <li key={seed.id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedSeedId(seed.id);
+                              setNote(seed.brief);
+                            }}
+                            className={`w-full rounded-lg border px-3 py-3 text-left transition ${
+                              active
+                                ? "border-kova-orange bg-kova-orange/10 ring-1 ring-kova-orange/40"
+                                : "border-kova-border bg-white hover:border-kova-orange/35"
+                            }`}
+                          >
+                            <p className="text-sm font-semibold text-kova-dark">
+                              {seed.title}
+                            </p>
+                            <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-600">
+                              {seed.brief}
+                            </p>
+                            <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-kova-orange">
+                              {seed.theme_label}
+                            </p>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {campaignMode === "video" && (
+              <label className="block">
+                <span className="text-sm font-semibold text-kova-dark">
+                  Short video (MP4, MOV, WebM — max 100 MB)
+                </span>
+                <input
+                  type="file"
+                  accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
+                  onChange={(e) =>
+                    setVideoFile(e.target.files?.[0] ?? null)
+                  }
+                  className="mt-2 block w-full text-sm text-gray-600"
+                />
+              </label>
+            )}
 
             {/* Product preview */}
-            {selectedProduct && (
+            {campaignMode === "product" && selectedProduct && (
               <div className="flex items-center gap-4 rounded-lg border border-kova-orange/30 bg-kova-orange/5 p-4">
                 {selectedProduct.images[0]?.url ? (
                   <img
@@ -384,7 +542,13 @@ export default function ContentStudioPage() {
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 rows={3}
-                placeholder="Promote the new grey sofa, mention free delivery in Nairobi."
+                placeholder={
+                  campaignMode === "organic"
+                    ? "Adjust the brief for this seed, or add extra detail for Kova."
+                    : campaignMode === "video"
+                      ? "Caption for your video (optional)."
+                      : "Promote the new grey sofa, mention free delivery in Nairobi."
+                }
                 className="mt-2 block w-full rounded-md border border-kova-border bg-white px-3 py-3 text-base text-kova-dark transition placeholder:text-gray-400 focus:border-kova-orange focus:ring-1 focus:ring-kova-orange"
               />
             </label>
@@ -399,7 +563,9 @@ export default function ContentStudioPage() {
               {generating ? (
                 <>
                   <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-kova-dark/30 border-t-kova-dark" />
-                  Generating for all channels…
+                  {campaignMode === "video"
+                    ? "Uploading…"
+                    : "Generating for all channels…"}
                 </>
               ) : (
                 <>
@@ -416,7 +582,9 @@ export default function ContentStudioPage() {
                   >
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                   </svg>
-                  Generate content for all channels
+                  {campaignMode === "video"
+                    ? "Upload and queue video"
+                    : "Generate content for all channels"}
                 </>
               )}
             </button>
@@ -478,9 +646,13 @@ function BatchSection({
       <div className="flex flex-col gap-3 border-b border-kova-border bg-gradient-to-r from-kova-green/5 to-transparent px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="min-w-0">
           <h2 className="truncate text-base font-bold text-kova-dark">
-            {batch.product_name
-              ? `Content for ${batch.product_name}`
-              : "Business content"}
+            {batch.kind === "owner_video"
+              ? "Your video"
+              : batch.kind === "organic"
+                ? `Organic · ${batch.organic_theme?.replace("_", " ") ?? "brand"}`
+                : batch.product_name
+                  ? `Content for ${batch.product_name}`
+                  : "Business content"}
           </h2>
           {batch.brief && (
             <p className="mt-0.5 truncate text-sm text-gray-500">

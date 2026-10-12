@@ -95,6 +95,8 @@ def connect_meta(
             "account_name": fb_account.account_name,
             "connection_status": fb_account.connection_status,
         })
+        sync_account_profile(fb_account)
+        fb_account.refresh_from_db()
         _store_baseline(adapter, fb_account)
         SocialAction.objects.create(
             business=business,
@@ -129,6 +131,8 @@ def connect_meta(
             "connection_status": ig_account.connection_status,
         })
 
+        sync_account_profile(ig_account)
+        ig_account.refresh_from_db()
         _store_baseline(adapter, ig_account)
         SocialAction.objects.create(
             business=business,
@@ -195,6 +199,58 @@ def instagram_link_status(business: Business) -> dict:
     }
 
 
+def backfill_missing_profiles(accounts) -> None:
+    """Refresh profile photos and names for connected accounts missing pictures."""
+    for account in accounts:
+        if (
+            account.connection_status
+            == SocialAccount.ConnectionStatus.CONNECTED
+            and not account.profile_picture_url
+            and account.access_token
+        ):
+            sync_account_profile(account)
+            account.refresh_from_db()
+
+
+def sync_account_profile(account: SocialAccount) -> bool:
+    """
+    Refresh name, username, and profile picture from the platform API.
+    """
+    if (
+        not account.access_token
+        or account.connection_status == SocialAccount.ConnectionStatus.REVOKED
+    ):
+        return False
+    try:
+        adapter = get_adapter(account.platform)
+        info = adapter.get_account_info(account)
+    except Exception:
+        return False
+
+    update_fields: list[str] = []
+    if info.profile_picture_url:
+        account.profile_picture_url = info.profile_picture_url
+        update_fields.append("profile_picture_url")
+    if info.name:
+        account.account_name = info.name
+        update_fields.append("account_name")
+    if info.username:
+        account.account_username = info.username
+        update_fields.append("account_username")
+    if info.metadata:
+        merged = dict(account.metadata or {})
+        merged.update(info.metadata)
+        account.metadata = merged
+        update_fields.append("metadata")
+
+    if not update_fields:
+        return False
+
+    update_fields.append("updated_at")
+    account.save(update_fields=update_fields)
+    return True
+
+
 def disconnect_account(account: SocialAccount) -> None:
     """Mark an account as revoked and clear its token."""
     account.access_token = ""
@@ -239,6 +295,20 @@ def verify_account(account: SocialAccount) -> bool:
     if valid:
         account.connection_status = SocialAccount.ConnectionStatus.CONNECTED
         account.connection_error = ""
+        sync_account_profile(account)
+        if "profile_picture_url" not in update_fields:
+            update_fields.extend(
+                [
+                    f
+                    for f in (
+                        "profile_picture_url",
+                        "account_name",
+                        "account_username",
+                        "metadata",
+                    )
+                    if f not in update_fields
+                ],
+            )
     else:
         account.connection_status = SocialAccount.ConnectionStatus.EXPIRED
         account.connection_error = "Token verification failed."

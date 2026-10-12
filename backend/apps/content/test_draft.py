@@ -180,6 +180,19 @@ class ContentDraftTests(TestCase):
         # Verify batch was created
         self.assertEqual(ContentBatch.objects.filter(business=self.business).count(), 1)
 
+    def test_organic_seeds_endpoint(self):
+        response = self.client.get(
+            f"/api/content/{self.business.id}/organic-seeds/",
+        )
+        self.assertEqual(response.status_code, 200)
+        seeds = response.data.get("seeds")
+        self.assertIsInstance(seeds, list)
+        self.assertGreaterEqual(len(seeds), 4)
+        first = seeds[0]
+        self.assertIn("title", first)
+        self.assertIn("brief", first)
+        self.assertIn("theme_key", first)
+
     def test_connected_channels_endpoint(self):
         response = self.client.get(
             f"/api/content/{self.business.id}/channels/",

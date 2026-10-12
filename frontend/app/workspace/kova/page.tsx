@@ -320,23 +320,99 @@ function EmptyState({
       )}
 
       {(loading || suggestions.length > 0) && (
-        <div className="mt-8 w-full max-w-md space-y-3 text-left">
-          {loading && (
-            <p className="text-sm text-gray-500">Finding a few questions to start with…</p>
-          )}
-          {suggestions.map((text) => (
-            <button
-              key={text}
-              type="button"
-              onClick={() => onSuggestion(text)}
-              className="block w-full text-left text-sm leading-6 text-kova-dark/80 transition-colors hover:text-kova-green"
-            >
-              {text}
-            </button>
-          ))}
+        <div className="mt-6 w-full max-w-xl text-left">
+          <p className="text-center text-[11px] font-bold uppercase tracking-[0.14em] text-kova-orange">
+            Suggested questions
+          </p>
+          <p className="mt-0.5 text-center text-xs text-gray-500">
+            Tap to fill the box — edit before you send.
+          </p>
+
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {loading &&
+              Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={`sk-${i}`}
+                  className="h-14 animate-pulse rounded-md border border-kova-border/80 bg-white"
+                />
+              ))}
+            {!loading &&
+              suggestions.map((text) => (
+                <SuggestionCard
+                  key={text}
+                  text={text}
+                  onSelect={() => onSuggestion(text)}
+                />
+              ))}
+          </div>
         </div>
       )}
     </div>
+  );
+}
+
+function suggestionCategory(text: string): { tag: string; tone: "green" | "orange" } {
+  const lower = text.toLowerCase();
+  if (
+    lower.includes("message") ||
+    lower.includes("inbox") ||
+    lower.includes("reply") ||
+    lower.includes("customer")
+  ) {
+    return { tag: "Inbox & customers", tone: "green" };
+  }
+  if (
+    lower.includes("content") ||
+    lower.includes("post") ||
+    lower.includes("draft") ||
+    lower.includes("schedule") ||
+    lower.includes("marketing")
+  ) {
+    return { tag: "Content & social", tone: "orange" };
+  }
+  if (
+    lower.includes("product") ||
+    lower.includes("promote") ||
+    lower.includes("store") ||
+    lower.includes("commerce") ||
+    lower.includes("order")
+  ) {
+    return { tag: "Commerce", tone: "orange" };
+  }
+  if (lower.includes("lead")) {
+    return { tag: "Leads", tone: "green" };
+  }
+  return { tag: "General", tone: "green" };
+}
+
+function SuggestionCard({
+  text,
+  onSelect,
+}: {
+  text: string;
+  onSelect: () => void;
+}) {
+  const { tag, tone } = suggestionCategory(text);
+  const tagClass =
+    tone === "orange"
+      ? "bg-kova-orange/15 text-kova-dark"
+      : "bg-kova-green/10 text-kova-green";
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className="group rounded-md border border-kova-border/90 bg-white px-3 py-2.5 text-left transition hover:border-kova-orange/50 hover:bg-kova-orange/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-kova-green"
+    >
+      <span
+        className={`inline-flex rounded-full px-2 py-px text-[9px] font-bold uppercase tracking-wide ${tagClass}`}
+      >
+        {tag}
+      </span>
+      <p className="mt-1.5 text-xs leading-snug text-kova-dark line-clamp-2">
+        {text}
+      </p>
+    </button>
   );
 }
 

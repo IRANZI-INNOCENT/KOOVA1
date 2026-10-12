@@ -3,32 +3,50 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const sideItems = [
+import {
+  PlatformBrandIcon,
+  SocialNavIcon,
+} from "@/components/social/platform-brand";
+import {
+  NavIconSlot,
+  OverviewNavIcon,
+} from "@/components/workspace/nav-icon-slot";
+
+type SideItem = {
+  href: string;
+  label: string;
+  exact: boolean;
+  icon?: string;
+  brand?: "social" | "linkedin" | "overview";
+  emoji?: string;
+};
+
+const sideItems: SideItem[] = [
   {
     href: "/workspace",
-    label: "Today",
+    label: "Overview",
     exact: true,
-    icon: "M12 4a5 5 0 1 0 0 10 5 5 0 0 0 0-10z M12 1.5v2 M12 16.5v2 M4.2 4.2l1.4 1.4 M14.4 14.4l1.4 1.4 M1.5 9h2 M16.5 9h2 M4.2 13.8l1.4-1.4 M14.4 3.6l1.4-1.4",
-  },
-  {
-    href: "/workspace/kova",
-    label: "Ask",
-    exact: false,
-    icon: "M5 5h14v9H8l-3 3z",
-  },
-  {
-    href: "/workspace/inbox",
-    label: "Inbox",
-    exact: false,
-    icon: "M4 5h16v11H6.5L4 18.5z M8 9h8 M8 12h5",
+    brand: "overview",
   },
   {
     href: "/workspace/social",
     label: "Social",
     exact: false,
-    icon: "M7 4h10a1 1 0 0 1 1 1v15l-6-3.5L6 20V5a1 1 0 0 1 1-1z",
+    brand: "social",
   },
-] as const;
+  {
+    href: "/workspace/commerce",
+    label: "Shop",
+    exact: false,
+    emoji: "🛍️",
+  },
+  {
+    href: "/workspace/linkedin",
+    label: "LinkedIn",
+    exact: false,
+    brand: "linkedin",
+  },
+];
 
 function isCurrent(pathname: string, href: string, exact: boolean) {
   return exact ? pathname === href : pathname.startsWith(href);
@@ -38,12 +56,12 @@ export function BottomNav() {
   const pathname = usePathname();
   const left = sideItems.slice(0, 2);
   const right = sideItems.slice(2);
-  const snapActive = pathname.startsWith("/workspace/commerce");
+  const snapActive = pathname.startsWith("/workspace/commerce/snap-to-sell");
 
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-30 bg-kova-green pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-kova-green pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       <ul className="grid h-[4.25rem] grid-cols-5">
         {left.map((item) => (
@@ -51,14 +69,16 @@ export function BottomNav() {
         ))}
         <li>
           <Link
-            href="/workspace/commerce"
+            href="/workspace/commerce/snap-to-sell"
             prefetch={true}
             aria-current={snapActive ? "page" : undefined}
-            className="flex h-full flex-col items-center justify-center gap-1"
+            className="flex h-full flex-col items-center justify-center gap-0.5"
           >
             <span
               className={`flex h-11 w-11 items-center justify-center rounded-full bg-kova-orange text-kova-dark ${
-                snapActive ? "ring-2 ring-white ring-offset-2 ring-offset-kova-green" : ""
+                snapActive
+                  ? "ring-2 ring-white ring-offset-2 ring-offset-kova-green"
+                  : ""
               }`}
             >
               <svg
@@ -75,7 +95,7 @@ export function BottomNav() {
               </svg>
             </span>
             <span
-              className={`text-xs font-semibold ${
+              className={`text-[10px] font-semibold sm:text-xs ${
                 snapActive ? "text-kova-orange" : "text-white"
               }`}
             >
@@ -95,7 +115,7 @@ function SideLink({
   item,
   pathname,
 }: {
-  item: (typeof sideItems)[number];
+  item: SideItem;
   pathname: string;
 }) {
   const active = isCurrent(pathname, item.href, item.exact);
@@ -105,23 +125,37 @@ function SideLink({
         href={item.href}
         prefetch={true}
         aria-current={active ? "page" : undefined}
-        className={`flex h-full flex-col items-center justify-center gap-1 text-xs font-semibold ${
+        className={`flex h-full flex-col items-center justify-center gap-0.5 px-0.5 text-[10px] font-semibold sm:text-xs ${
           active ? "text-kova-orange" : "text-white"
         }`}
       >
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d={item.icon} />
-        </svg>
+        {item.brand === "overview" ? (
+          <NavIconSlot>
+            <OverviewNavIcon />
+          </NavIconSlot>
+        ) : item.brand === "social" ? (
+          <SocialNavIcon size={14} />
+        ) : item.brand === "linkedin" ? (
+          <PlatformBrandIcon platform="linkedin" size={22} />
+        ) : item.emoji ? (
+          <span className="text-lg leading-none" aria-hidden>
+            {item.emoji}
+          </span>
+        ) : (
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d={item.icon!} />
+          </svg>
+        )}
         {item.label}
       </Link>
     </li>

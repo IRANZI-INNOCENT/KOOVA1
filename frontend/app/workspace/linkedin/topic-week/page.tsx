@@ -215,14 +215,14 @@ export default function TopicWeekPage() {
 
   if (bootLoading) {
     return (
-      <WorkspacePageFrame>
+      <WorkspacePageFrame embedded requireBusiness={false}>
         <div className="p-8 text-sm text-kova-muted">Loading this week…</div>
       </WorkspacePageFrame>
     );
   }
 
   return (
-    <WorkspacePageFrame>
+    <WorkspacePageFrame embedded requireBusiness={false}>
       <div className="mx-auto max-w-3xl space-y-8 px-4 py-8">
         <header>
           <h1 className="text-2xl font-semibold text-kova-ink">Topic week</h1>

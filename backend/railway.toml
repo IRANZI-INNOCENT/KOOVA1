@@ -4,7 +4,7 @@ builder = "RAILPACK"
 watchPatterns = ["**"]
 
 [deploy]
-preDeployCommand = "DJANGO_SETTINGS_MODULE=config.settings.production python manage.py migrate --noinput && DJANGO_SETTINGS_MODULE=config.settings.production python manage.py collectstatic --noinput"
+preDeployCommand = "DJANGO_SETTINGS_MODULE=config.settings.production python manage.py migrate --noinput && DJANGO_SETTINGS_MODULE=config.settings.production python manage.py collectstatic --noinput && DJANGO_SETTINGS_MODULE=config.settings.production python manage.py ensure_superuser"
 startCommand = "sh scripts/web.sh"
 healthcheckPath = "/api/health/"
 healthcheckTimeout = 300

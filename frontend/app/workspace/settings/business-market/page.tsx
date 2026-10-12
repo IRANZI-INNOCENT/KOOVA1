@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { AppShell } from "@/components/workspace/app-shell";
 import { useSectionSetup } from "@/components/workspace/use-section-setup";
 import { ApiError, authenticatedApiRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -203,8 +202,7 @@ export default function BusinessMarketPage() {
   const hasBrief = researched || status !== "empty";
 
   return (
-    <AppShell>
-      <div className="p-6 sm:p-8">
+          <div className="p-6 sm:p-8">
         <div className="mx-auto max-w-3xl">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-kova-green">
@@ -389,6 +387,5 @@ export default function BusinessMarketPage() {
           </div>
         </div>
       </div>
-    </AppShell>
-  );
+      );
 }

@@ -41,7 +41,7 @@ admin.site.index = _kova_admin_index
 urlpatterns = [
     path("api/health/", health),
 
-    path("admin/", admin.site.urls),
+    path(settings.KOVA_ADMIN_URL, admin.site.urls),
 
     # Authentication and account-management endpoints.
     path(

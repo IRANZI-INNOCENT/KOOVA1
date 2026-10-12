@@ -104,6 +104,8 @@ class ContentBatchSerializer(serializers.ModelSerializer):
             "product",
             "product_name",
             "brief",
+            "kind",
+            "organic_theme",
             "contents",
             "created_at",
         ]

@@ -307,13 +307,47 @@ export interface ContentBatch {
   product: number | null;
   product_name: string | null;
   brief: string;
+  kind?: "product" | "organic" | "owner_video";
+  organic_theme?: string;
   contents: Content[];
   created_at: string;
 }
 
+export interface OrganicTheme {
+  key: string;
+  label: string;
+  description: string;
+}
+
+export interface OrganicContentSeed {
+  id: string;
+  title: string;
+  brief: string;
+  theme_key: string;
+  theme_label: string;
+}
+
+export interface ContentCapabilities {
+  product_campaigns: boolean;
+  organic_campaigns: boolean;
+  organic_themes: OrganicTheme[];
+  owner_video_upload: boolean;
+  video_publish: boolean;
+  autopilot: {
+    product_posts: boolean;
+    organic_posts: boolean;
+    owner_videos: boolean;
+  };
+}
+
 export interface ConnectedChannels {
   connected: boolean;
-  accounts: Array<{ id: number; platform: string; name: string }>;
+  accounts: Array<{
+    id: number;
+    platform: string;
+    name: string;
+    profile_picture_url?: string;
+  }>;
 }
 
 export async function getContents(
@@ -351,6 +385,60 @@ export async function getProductContentPlans(
   return authenticatedApiRequest<ProductContentPlan[]>(
     `/content/${businessId}/product-status/`,
     token,
+  );
+}
+
+export async function getContentCapabilities(
+  businessId: number,
+  token: string,
+): Promise<ContentCapabilities> {
+  return authenticatedApiRequest<ContentCapabilities>(
+    `/content/${businessId}/capabilities/`,
+    token,
+  );
+}
+
+export async function getOrganicContentSeeds(
+  businessId: number,
+  token: string,
+): Promise<OrganicContentSeed[]> {
+  const data = await authenticatedApiRequest<{ seeds: OrganicContentSeed[] }>(
+    `/content/${businessId}/organic-seeds/`,
+    token,
+  );
+  return data.seeds ?? [];
+}
+
+export async function uploadContentMedia(
+  businessId: number,
+  token: string,
+  file: File,
+): Promise<{ id: string; media_type: string; url: string }> {
+  const form = new FormData();
+  form.append("file", file);
+  return authenticatedApiRequest(
+    `/content/${businessId}/media/upload/`,
+    token,
+    { method: "POST", body: form },
+  );
+}
+
+export async function publishOwnerVideo(
+  businessId: number,
+  token: string,
+  payload: {
+    asset_id: string;
+    caption?: string;
+    schedule?: boolean;
+  },
+): Promise<{ batch_id: string; pieces: Content[] }> {
+  return authenticatedApiRequest(
+    `/content/${businessId}/owner-video/`,
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
   );
 }
 

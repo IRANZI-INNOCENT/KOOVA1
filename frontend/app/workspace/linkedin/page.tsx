@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { PlatformAvatar } from "@/components/social/platform-avatar";
+import { PlatformBrandIcon } from "@/components/social/platform-brand";
+import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
+import { KovaStepsGuide } from "@/components/workspace/kova-steps-guide";
 import { PageSkeleton } from "@/components/workspace/page-skeleton";
 import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
 import { ApiError } from "@/lib/api";
@@ -39,6 +42,8 @@ export default function LinkedInHomePage() {
 
   const linkedin = profile?.linkedin;
   const isConnected = linkedin?.connection_status === "connected";
+  const hasPillars =
+    (profile?.pillars?.length ?? 0) > 0 || !!profile?.profile_setup_complete;
 
   async function connectLinkedIn() {
     if (!accessToken) return;
@@ -59,145 +64,143 @@ export default function LinkedInHomePage() {
 
   if (loading) {
     return (
-      <WorkspacePageFrame>
+      <WorkspacePageFrame embedded requireBusiness={false}>
         <PageSkeleton />
       </WorkspacePageFrame>
     );
   }
 
   return (
-    <WorkspacePageFrame>
-      <div className="mx-auto max-w-3xl space-y-8 px-4 py-8">
-        <div>
-          <h1 className="text-2xl font-semibold text-kova-ink">
-            LinkedIn workspace
-          </h1>
-          <p className="mt-1 text-sm text-kova-muted">
-            {profile?.headline ||
-              "Set up your profile and pillars, then run a topic week or capture an event."}
-          </p>
-          <p className="mt-2 text-xs text-kova-muted">
-            Mode:{" "}
-            <span className="font-medium capitalize">
-              {profile?.operating_mode ?? "approval"}
-            </span>
-          </p>
-        </div>
+    <WorkspacePageFrame embedded requireBusiness={false}>
+      <div className={WORKSPACE_PAGE}>
+        <div className="mx-auto max-w-3xl space-y-5">
+          <PageHeader
+            eyebrow="LinkedIn"
+            title="Professional posts on LinkedIn"
+            description={
+              profile?.headline ||
+              "Connect, set your focus, then run a topic week or event post."
+            }
+          />
 
-        <div
-          className={`rounded-xl border p-4 sm:p-5 ${
-            isConnected
-              ? "border-kova-green/30 bg-kova-green/5"
-              : "border-kova-orange/40 bg-kova-orange/5"
-          }`}
-        >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-kova-ink">
-                {isConnected ? "LinkedIn connected" : "Connect your LinkedIn"}
-              </p>
-              <p className="mt-1 text-sm text-kova-muted">
-                {isConnected
-                  ? linkedin?.display_name
-                    ? `Posting as ${linkedin.display_name}. Kova can publish and schedule text posts for you.`
-                    : "Kova can publish and schedule text posts for you."
-                  : "Link your account so Kova can publish and schedule posts—not just copy drafts."}
-              </p>
-              {connectMessage && (
-                <p className="mt-2 text-sm text-amber-800">{connectMessage}</p>
-              )}
-              {!linkedin?.configured && !isConnected && (
-                <p className="mt-2 text-xs text-amber-800">
-                  Server needs LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET. Until
-                  then, use{" "}
-                  <Link
-                    href="/workspace/linkedin/connect"
-                    className="font-medium underline"
-                  >
-                    Connect
-                  </Link>{" "}
-                  or copy posts manually.
-                </p>
-              )}
-            </div>
-            <div className="flex shrink-0 flex-wrap gap-2">
-              {isConnected ? (
+          <KovaStepsGuide
+            title="LinkedIn in three steps"
+            steps={[
+              {
+                letter: "A",
+                title: "Connect",
+                description: "Link LinkedIn so Kova can publish for you.",
+                href: "/workspace/linkedin/connect",
+                done: isConnected,
+              },
+              {
+                letter: "B",
+                title: "Profile & pillars",
+                description: "Tell Kova what you stand for.",
+                href: "/workspace/linkedin/profile",
+                done: hasPillars,
+              },
+              {
+                letter: "C",
+                title: "First program",
+                description: "Topic week or event moment.",
+                href: "/workspace/linkedin/topic-week",
+                done: posts.length > 0,
+              },
+            ]}
+          />
+
+          <div className="flex flex-wrap items-center gap-3">
+            {isConnected ? (
+              <>
+                <span className="inline-flex items-center gap-2 rounded-full border border-kova-green/30 bg-kova-green/5 px-2 py-1 text-sm font-semibold text-kova-dark">
+                  <PlatformAvatar
+                    platform="linkedin"
+                    imageUrl={linkedin?.profile_knowledge?.photo_url}
+                    name={
+                      linkedin?.display_name ||
+                      linkedin?.profile_knowledge?.name
+                    }
+                    size="sm"
+                  />
+                  {linkedin?.display_name ||
+                    linkedin?.profile_knowledge?.name ||
+                    "LinkedIn connected"}
+                </span>
                 <Link
                   href="/workspace/linkedin/connect"
-                  className="inline-flex h-10 items-center rounded-md border border-kova-border bg-white px-4 text-sm font-semibold text-kova-ink hover:border-kova-green/40"
+                  className="text-sm font-semibold text-kova-green hover:underline"
                 >
                   Manage connection
                 </Link>
-              ) : (
-                <>
-                  <Button
-                    type="button"
-                    disabled={connecting}
-                    onClick={connectLinkedIn}
-                  >
-                    {connecting ? "Opening LinkedIn…" : "Connect LinkedIn"}
-                  </Button>
-                  <Link
-                    href="/workspace/linkedin/connect"
-                    className="inline-flex h-10 items-center rounded-md border border-kova-border bg-white px-4 text-sm font-semibold text-kova-ink hover:border-kova-green/40"
-                  >
-                    Details
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Link
-            href="/workspace/linkedin/topic-week"
-            className="rounded-xl border border-kova-border bg-white p-4 shadow-sm hover:border-kova-green/40"
-          >
-            <h2 className="font-semibold">Topic week</h2>
-            <p className="mt-1 text-sm text-kova-muted">
-              Plan three posts around one theme for the week.
-            </p>
-          </Link>
-          <Link
-            href="/workspace/linkedin/event"
-            className="rounded-xl border border-kova-border bg-white p-4 shadow-sm hover:border-kova-green/40"
-          >
-            <h2 className="font-semibold">Event moment</h2>
-            <p className="mt-1 text-sm text-kova-muted">
-              Upload a photo, answer one question, get a post arc.
-            </p>
-          </Link>
-        </div>
-
-        <section>
-          <h2 className="text-lg font-semibold">Recent posts</h2>
-          {posts.length === 0 ? (
-            <p className="mt-2 text-sm text-kova-muted">
-              No drafts yet. Start a program above.
-            </p>
-          ) : (
-            <ul className="mt-3 space-y-2">
-              {posts.map((post) => (
-                <li
-                  key={post.id}
-                  className="rounded-lg border border-kova-border px-3 py-2 text-sm"
+              </>
+            ) : (
+              <>
+                <span className="inline-flex items-center gap-2 text-sm text-gray-600">
+                  <PlatformBrandIcon platform="linkedin" size={20} />
+                  Not connected yet.
+                </span>
+                <button
+                  type="button"
+                  className="inline-flex h-9 items-center gap-2 rounded-lg bg-kova-orange/15 px-3 text-sm font-semibold text-kova-dark ring-1 ring-kova-orange/40 hover:bg-kova-orange/25 disabled:opacity-60"
+                  disabled={connecting}
+                  onClick={connectLinkedIn}
                 >
-                  <span className="font-medium">{post.title || "Untitled"}</span>
-                  <span className="ml-2 capitalize text-kova-muted">
-                    {post.status}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <Link
-            href="/workspace/linkedin/calendar"
-            className="mt-3 inline-block text-sm font-medium text-kova-green"
-          >
-            Open calendar →
-          </Link>
-        </section>
+                  <PlatformBrandIcon platform="linkedin" size={16} />
+                  {connecting ? "Opening LinkedIn…" : "Connect now"}
+                </button>
+              </>
+            )}
+          </div>
+          {connectMessage ? (
+            <p className="text-sm text-amber-800">{connectMessage}</p>
+          ) : null}
+
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+            <Link
+              href="/workspace/linkedin/topic-week"
+              className="font-semibold text-kova-dark hover:text-kova-green"
+            >
+              Topic week →
+            </Link>
+            <Link
+              href="/workspace/linkedin/event"
+              className="font-semibold text-kova-dark hover:text-kova-green"
+            >
+              Event moment →
+            </Link>
+            <Link
+              href="/workspace/linkedin/calendar"
+              className="font-semibold text-kova-dark hover:text-kova-green"
+            >
+              Calendar →
+            </Link>
+          </div>
+
+          <section>
+            <h2 className="text-base font-semibold text-kova-dark">
+              Recent posts
+            </h2>
+            {posts.length === 0 ? (
+              <p className="mt-2 text-sm text-gray-500">
+                No drafts yet. Start with Topic week above.
+              </p>
+            ) : (
+              <ul className="mt-2 divide-y divide-kova-border border-y border-kova-border">
+                {posts.map((post) => (
+                  <li key={post.id} className="py-2.5 text-sm">
+                    <span className="font-medium text-kova-dark">
+                      {post.title || "Untitled"}
+                    </span>
+                    <span className="ml-2 capitalize text-gray-500">
+                      {post.status}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
       </div>
     </WorkspacePageFrame>
   );

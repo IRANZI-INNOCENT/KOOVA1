@@ -1,11 +1,11 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
+import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -18,16 +18,45 @@ import {
 
 export default function LinkedInSetupPage() {
   const router = useRouter();
-  const { accessToken } = useAuth();
+  const { accessToken, isLoading: authLoading } = useAuth();
   const [profile, setProfile] = useState<ProfessionalProfile | null>(null);
   const [pillarName, setPillarName] = useState("");
   const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!accessToken) return;
-    getProfessionalProfile(accessToken).then(setProfile);
+  const loadProfile = useCallback(async () => {
+    if (!accessToken) {
+      setLoadingProfile(false);
+      setLoadError("Please sign in again to continue.");
+      return;
+    }
+
+    setLoadingProfile(true);
+    setLoadError("");
+
+    try {
+      const data = await getProfessionalProfile(accessToken);
+      setProfile(data);
+    } catch (err) {
+      setProfile(null);
+      setLoadError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not load your LinkedIn profile. Check your connection and try again.",
+      );
+    } finally {
+      setLoadingProfile(false);
+    }
   }, [accessToken]);
+
+  useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+    void loadProfile();
+  }, [authLoading, loadProfile]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -85,11 +114,30 @@ export default function LinkedInSetupPage() {
     }
   }
 
-  if (!profile) {
+  if (authLoading || loadingProfile) {
     return (
-      <WorkspacePageFrame>
-        <div className="p-8 text-sm text-kova-muted">Loading…</div>
-      </WorkspacePageFrame>
+      <div className={WORKSPACE_PAGE}>
+        <div className="mx-auto max-w-lg">
+          <p className="text-sm text-gray-500">Loading your profile…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError || !profile) {
+    return (
+      <div className={WORKSPACE_PAGE}>
+        <div className="mx-auto max-w-lg space-y-4">
+          <PageHeader
+            eyebrow="LinkedIn setup"
+            title="We could not load this page"
+            description={loadError || "Something went wrong."}
+          />
+          <Button type="button" onClick={() => void loadProfile()}>
+            Try again
+          </Button>
+        </div>
+      </div>
     );
   }
 
@@ -97,26 +145,21 @@ export default function LinkedInSetupPage() {
   const showPillarInput = pillars.length === 0;
 
   return (
-    <WorkspacePageFrame>
-      <div className="mx-auto max-w-lg px-4 py-10">
-        <p className="text-sm font-semibold uppercase tracking-wide text-kova-green">
-          LinkedIn setup
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold text-kova-ink">
-          Tell Kova who you are on LinkedIn
-        </h1>
-        <p className="mt-2 text-sm leading-relaxed text-kova-muted">
-          This takes about a minute. Kova uses your headline, role, and content
-          pillars to plan topic weeks and draft posts in your voice.
-        </p>
+    <div className={WORKSPACE_PAGE}>
+      <div className="mx-auto max-w-lg">
+        <PageHeader
+          eyebrow="LinkedIn setup"
+          title="Tell Kova who you are on LinkedIn"
+          description="About a minute — headline, role, and one content pillar so Kova can draft in your voice."
+        />
 
         {error && (
-          <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
           </p>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <Input
             label="LinkedIn headline *"
             placeholder="What you want to be known for"
@@ -153,13 +196,14 @@ export default function LinkedInSetupPage() {
           />
 
           <div>
-            <p className="text-sm font-medium text-kova-ink">
-              Content pillar * <span className="font-normal text-kova-muted">(at least one)</span>
+            <p className="text-sm font-medium text-kova-dark">
+              Content pillar *{" "}
+              <span className="font-normal text-gray-500">(at least one)</span>
             </p>
             {pillars.length > 0 ? (
-              <ul className="mt-2 space-y-1 text-sm text-kova-muted">
+              <ul className="mt-2 space-y-1 text-sm text-gray-600">
                 {pillars.map((p) => (
-                  <li key={p.id} className="rounded-md bg-kova-cream px-2 py-1">
+                  <li key={p.id} className="rounded-md bg-kova-background px-2 py-1">
                     {p.name}
                   </li>
                 ))}
@@ -182,6 +226,6 @@ export default function LinkedInSetupPage() {
           </Button>
         </form>
       </div>
-    </WorkspacePageFrame>
+    </div>
   );
 }

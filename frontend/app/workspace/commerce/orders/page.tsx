@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-
-import { AppShell } from "@/components/workspace/app-shell";
+import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { useAuth } from "@/lib/auth-context";
 import { getBusiness } from "@/lib/commerce";
 import { getOrders, updateOrder, type OrderRecord } from "@/lib/operations";
@@ -39,28 +37,18 @@ export default function OrdersPage() {
   }
 
   return (
-    <AppShell>
-      <div className="p-4 sm:p-8">
-        <div className="mx-auto max-w-3xl space-y-6">
-          <header className="flex items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
-                Commerce
-              </p>
-              <h1 className="mt-1 text-2xl font-semibold text-kova-dark">Orders</h1>
-              <p className="mt-2 text-sm text-gray-500">
-                Each Order tap on the public store is saved here. The chat still continues on WhatsApp.
-              </p>
-            </div>
-            <Link href="/workspace/commerce" className="text-sm font-semibold text-kova-orange">
-              Products
-            </Link>
-          </header>
-          {orders.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-kova-orange/40 bg-kova-orange/5 px-4 py-8 text-center text-sm text-gray-500">
-              Orders appear when a customer taps Order on a product page.
-            </p>
-          ) : (
+    <div className={WORKSPACE_PAGE}>
+      <div className="mx-auto max-w-3xl space-y-6">
+        <PageHeader
+          eyebrow="Orders"
+          title="Customer orders"
+          description="When someone taps Order on your store, it shows up here."
+        />
+        {orders.length === 0 ? (
+          <p className="py-6 text-sm text-gray-500">
+            No orders yet. They appear when a customer orders from your store.
+          </p>
+        ) : (
             <div className="space-y-3">
               {orders.map((order) => (
                 <article key={order.id} className="rounded-lg border border-kova-border bg-white p-4">
@@ -91,8 +79,7 @@ export default function OrdersPage() {
               ))}
             </div>
           )}
-        </div>
       </div>
-    </AppShell>
+    </div>
   );
 }

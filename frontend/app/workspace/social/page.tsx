@@ -5,8 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { ApiError } from "@/lib/api";
+import { PlatformAvatar } from "@/components/social/platform-avatar";
+import { ActivityColumns } from "@/components/ui/activity-columns";
+import { MetricStrip } from "@/components/ui/metric-strip";
+import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
+import { QuickLinks } from "@/components/ui/quick-links";
+import { KovaStepsGuide } from "@/components/workspace/kova-steps-guide";
 import { PageSkeleton } from "@/components/workspace/page-skeleton";
-import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
 import { useWorkspace } from "@/lib/workspace-context";
 import {
   getBusinessPolicy,
@@ -22,19 +27,19 @@ const MODE_META: Record<
   { label: string; description: string }
 > = {
   assist: {
-    label: "Assist",
+    label: "Help me",
     description:
-      "Kova drafts content and recommends actions. You review and act.",
+      "Kova suggests posts and next steps. You choose what to publish.",
   },
   approval: {
-    label: "Approval",
+    label: "You approve",
     description:
-      "Kova prepares content and queues actions. You approve before anything goes live.",
+      "Kova prepares posts and replies. Nothing goes live until you say yes.",
   },
   autopilot: {
     label: "Autopilot",
     description:
-      "Kova has the company. It writes, replies, polishes listings, plans the day's posts, and files the report.",
+      "Kova runs the day — drafts, schedules, replies, and keeps your store tidy.",
   },
 };
 
@@ -138,22 +143,17 @@ export default function SocialOverviewPage() {
   const hasChannels = o.channels.total > 0;
 
   return (
-    <div className="p-4 sm:p-8">
-      <div className="mx-auto max-w-6xl space-y-6">
-        {/* ──── Header + mode toggle ──── */}
-        <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
-              Kova Social
-            </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-kova-dark sm:text-3xl">
-              Your social presence, managed.
-            </h1>
-          </div>
-
-          {/* Mode toggle */}
-          <div className="flex items-center gap-3">
-            <span className="hidden text-xs text-gray-500 sm:block">Mode:</span>
+    <div className={WORKSPACE_PAGE}>
+      <div className="space-y-6">
+        <PageHeader
+          eyebrow="Social"
+          title="Posts and replies for Facebook & Instagram"
+          description="Connect once, create in Create, and check Replies when customers write you."
+          actions={
+            <div className="flex items-center gap-3">
+              <span className="hidden text-xs text-gray-500 sm:block">
+                How Kova works:
+              </span>
             <div className="flex rounded-lg border border-kova-border bg-white p-0.5">
               {MODES.map((m) => {
                 const active = m === mode;
@@ -176,8 +176,9 @@ export default function SocialOverviewPage() {
                 );
               })}
             </div>
-          </div>
-        </header>
+            </div>
+          }
+        />
 
         {/* Mode description */}
         <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -186,6 +187,31 @@ export default function SocialOverviewPage() {
           )}
           <span>{MODE_META[mode].description}</span>
         </div>
+
+        <KovaStepsGuide
+          steps={[
+            {
+              letter: "A",
+              title: "Connect accounts",
+              description: "Link Facebook or Instagram so Kova can post for you.",
+              href: "/workspace/social/channels",
+              done: hasChannels,
+            },
+            {
+              letter: "B",
+              title: "Create posts",
+              description: "From products, everyday tips, or a video you upload.",
+              href: "/workspace/social/studio",
+              done: o.content.drafts > 0 || o.content.published > 0,
+            },
+            {
+              letter: "C",
+              title: "Check replies",
+              description: "See comments and messages that need your attention.",
+              href: "/workspace/social/engagement",
+            },
+          ]}
+        />
 
         <div className="h-px bg-kova-border" />
 
@@ -198,33 +224,33 @@ export default function SocialOverviewPage() {
           </div>
         )}
 
-        {/* ──── Stat cards ──── */}
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-kova-border bg-kova-border sm:grid-cols-4">
-          <StatCell
-            label="Posts scheduled"
-            value={o.command?.scheduled_posts ?? 0}
-            detail="Waiting for their time"
-            color="orange"
-          />
-          <StatCell
-            label="Conversations to review"
-            value={o.command?.conversations_to_review ?? 0}
-            detail="Comments and messages still waiting"
-            color="default"
-          />
-          <StatCell
-            label="Potential leads"
-            value={o.command?.potential_leads ?? 0}
-            detail="New buyers Kova has recorded"
-            color="green"
-          />
-          <StatCell
-            label="Actions verified today"
-            value={o.command?.actions_verified_today ?? 0}
-            detail="Completed on the platform today"
-            color="green"
-          />
-        </div>
+        <MetricStrip
+          items={[
+            {
+              label: "Scheduled",
+              value: o.command?.scheduled_posts ?? 0,
+              hint: "Waiting to publish",
+              tone: "orange",
+            },
+            {
+              label: "Replies",
+              value: o.command?.conversations_to_review ?? 0,
+              hint: "Need review",
+            },
+            {
+              label: "Leads",
+              value: o.command?.potential_leads ?? 0,
+              hint: "Open Leads",
+              tone: "green",
+            },
+            {
+              label: "Verified today",
+              value: o.command?.actions_verified_today ?? 0,
+              hint: "On platform",
+              tone: "green",
+            },
+          ]}
+        />
 
         {o.command?.plan && (
           <p className="text-sm leading-6 text-kova-dark">{o.command.plan}</p>
@@ -252,18 +278,27 @@ export default function SocialOverviewPage() {
         )}
 
         {o.command?.recommendations?.length > 0 && (
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold text-kova-dark">Kova recommends</h2>
-            {o.command.recommendations.map((item) => (
-              <Link
-                key={item.title}
-                href={item.href}
-                className="block rounded-lg border border-kova-border bg-white px-5 py-4 hover:border-kova-green"
-              >
-                <p className="text-sm font-bold text-kova-dark">{item.title}</p>
-                <p className="mt-1 text-sm leading-6 text-gray-600">{item.detail}</p>
-              </Link>
-            ))}
+          <section>
+            <h2 className="text-sm font-semibold text-kova-dark">
+              Kova recommends
+            </h2>
+            <ul className="mt-2 space-y-1.5">
+              {o.command.recommendations.map((item) => (
+                <li key={item.title}>
+                  <Link
+                    href={item.href}
+                    className="block rounded-md border border-kova-border/80 bg-white px-3 py-2 transition hover:border-kova-green/50"
+                  >
+                    <p className="text-sm font-semibold text-kova-dark">
+                      {item.title}
+                    </p>
+                    <p className="mt-0.5 text-xs leading-5 text-gray-500">
+                      {item.detail}
+                    </p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </section>
         )}
 
@@ -306,108 +341,51 @@ export default function SocialOverviewPage() {
           </div>
         )}
 
-        {/* ──── Quick actions ──── */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <QuickAction
-            title="Connect an account"
-            description="Add Facebook or Instagram so Kova can manage your presence."
-            href="/workspace/social/channels"
-            variant="orange"
-          />
-          <QuickAction
-            title="Create content"
-            description="Ask Kova to draft from your products, brand, and audience."
-            href="/workspace/social/studio"
-            variant="green"
-          />
-          <QuickAction
-            title="View performance"
-            description="See how published content is performing."
-            href="/workspace/social/performance"
-            variant="default"
-          />
-        </div>
+        <QuickLinks
+          links={[
+            {
+              label: "Connect accounts",
+              href: "/workspace/social/channels",
+              accent: "orange",
+            },
+            {
+              label: "Create posts",
+              href: "/workspace/social/studio",
+              accent: "green",
+            },
+            { label: "Open Leads", href: "/workspace/leads" },
+          ]}
+        />
 
-        {/* ──── Connected channels ──── */}
         {o.channels.accounts.length > 0 && (
-          <div className="rounded-lg border border-kova-border bg-white">
-            <div className="border-b border-kova-border px-5 py-4">
-              <p className="text-sm font-bold text-kova-dark">Connected channels</p>
-            </div>
-            <div className="divide-y divide-kova-border">
-              {o.channels.accounts.map((acc) => (
-                <div
-                  key={acc.id}
-                  className="flex items-center gap-3 px-5 py-3"
-                >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-kova-orange/15 text-xs font-bold text-kova-orange">
-                    {acc.platform === "instagram" ? "IG" : "FB"}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-kova-dark">
-                      {acc.account_name || acc.account_username}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {acc.platform === "instagram"
-                        ? "Instagram"
-                        : "Facebook Page"}
-                    </p>
-                  </div>
-                  <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                      acc.is_healthy
-                        ? "bg-kova-green/10 text-kova-green"
-                        : "bg-red-50 text-red-600"
-                    }`}
-                  >
-                    {acc.is_healthy ? "Healthy" : "Issue"}
-                  </span>
-                </div>
-              ))}
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-gray-400">
+              Connected:
+            </span>
+            {o.channels.accounts.map((acc) => (
+              <span
+                key={acc.id}
+                className={`inline-flex max-w-[16rem] items-center gap-2 truncate rounded-full border px-2 py-1 text-xs ${
+                  acc.is_healthy
+                    ? "border-kova-green/30 bg-kova-green/5 text-kova-dark"
+                    : "border-red-200 bg-red-50 text-red-700"
+                }`}
+              >
+                <PlatformAvatar
+                  platform={acc.platform}
+                  imageUrl={acc.profile_picture_url}
+                  name={acc.account_name || acc.account_username}
+                  size="sm"
+                />
+                <span className="truncate">
+                  {acc.account_name || acc.account_username}
+                </span>
+              </span>
+            ))}
           </div>
         )}
 
-        {/* ──── Recent activity ──── */}
-        {o.recent_actions.length > 0 && (
-          <section>
-            <h2 className="text-lg font-semibold text-kova-dark">
-              Recent activity
-            </h2>
-            <ul className="mt-4 space-y-2">
-              {o.recent_actions.map((action) => (
-                <li
-                  key={action.id}
-                  className="rounded-lg border border-kova-border bg-white px-5 py-4"
-                >
-                  <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-wide">
-                    <span className="text-kova-orange">
-                      {action.action_type.replace(/_/g, " ")}
-                    </span>
-                    <span className="text-gray-300">·</span>
-                    <span
-                      className={
-                        action.action_status === "completed"
-                          ? "text-kova-green"
-                          : action.action_status === "failed"
-                            ? "text-red-600"
-                            : "text-kova-orange"
-                      }
-                    >
-                      {action.action_status}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm text-kova-dark">{action.intent}</p>
-                  {action.result && (
-                    <p className="mt-1 text-sm text-gray-500">
-                      {action.result}
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+        <ActivityColumns items={o.recent_actions} columns={3} />
 
         {/* ──── Empty state ──── */}
         {!hasChannels &&
@@ -439,68 +417,3 @@ export default function SocialOverviewPage() {
   );
 }
 
-/* ───── Stat cell ───── */
-
-function StatCell({
-  label,
-  value,
-  detail,
-  color,
-}: {
-  label: string;
-  value: number;
-  detail: string;
-  color: "green" | "orange" | "default";
-}) {
-  const valueColor =
-    color === "green"
-      ? "text-kova-green"
-      : color === "orange"
-        ? "text-kova-orange"
-        : "text-kova-dark";
-  return (
-    <div className="bg-white p-5">
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-gray-400">
-        {label}
-      </p>
-      <p className={`mt-1 text-2xl font-bold ${valueColor}`}>{value}</p>
-      <p className="mt-1 text-xs text-gray-500">{detail}</p>
-    </div>
-  );
-}
-
-/* ───── Quick action card ───── */
-
-function QuickAction({
-  title,
-  description,
-  href,
-  variant,
-}: {
-  title: string;
-  description: string;
-  href: string;
-  variant: "green" | "orange" | "default";
-}) {
-  const border =
-    variant === "green"
-      ? "border-kova-green/30 hover:border-kova-green"
-      : variant === "orange"
-        ? "border-kova-orange/50 hover:border-kova-orange"
-        : "border-kova-border hover:border-gray-300";
-  const titleColor =
-    variant === "green"
-      ? "text-kova-green"
-      : variant === "orange"
-        ? "text-kova-orange"
-        : "text-kova-dark";
-  return (
-    <Link
-      href={href}
-      className={`block rounded-lg border bg-white px-5 py-4 transition-colors ${border}`}
-    >
-      <p className={`text-sm font-bold ${titleColor}`}>{title}</p>
-      <p className="mt-1 text-xs leading-5 text-gray-500">{description}</p>
-    </Link>
-  );
-}

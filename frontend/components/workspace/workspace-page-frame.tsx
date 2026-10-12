@@ -10,6 +10,10 @@ interface WorkspacePageFrameProps {
   children: ReactNode;
   loading?: boolean;
   skeleton?: ReactNode;
+  /** LinkedIn-only flows do not require a commerce business record. */
+  requireBusiness?: boolean;
+  /** When the route layout already renders AppShell (e.g. LinkedIn). */
+  embedded?: boolean;
 }
 
 /**
@@ -20,6 +24,8 @@ export function WorkspacePageFrame({
   children,
   loading = false,
   skeleton,
+  requireBusiness = true,
+  embedded = false,
 }: WorkspacePageFrameProps) {
   const {
     authLoading,
@@ -30,14 +36,14 @@ export function WorkspacePageFrame({
   const showSkeleton =
     authLoading ||
     !isAuthenticated ||
-    workspaceLoading ||
+    (requireBusiness && workspaceLoading) ||
     loading;
 
-  return (
-    <AppShell>
-      {showSkeleton
-        ? skeleton ?? <PageSkeleton />
-        : children}
-    </AppShell>
-  );
+  const body = showSkeleton ? skeleton ?? <PageSkeleton /> : children;
+
+  if (embedded) {
+    return body;
+  }
+
+  return <AppShell>{body}</AppShell>;
 }

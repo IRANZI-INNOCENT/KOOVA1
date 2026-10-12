@@ -199,10 +199,8 @@ export default function SnapToSellModal({
 
   function renderError() {
     return (
-      <div className="border border-red-200 bg-red-50 px-4 py-3">
-        <p className="text-sm leading-6 text-red-700">
-          {error}
-        </p>
+      <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2">
+        <p className="text-sm leading-6 text-red-700">{error}</p>
       </div>
     );
   }
@@ -665,30 +663,26 @@ export default function SnapToSellModal({
 
   function renderHeader() {
     return (
-      <div className="flex shrink-0 items-start justify-between border-b border-[#E5E7E5] bg-white px-6 py-5 md:px-8">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#176B4D]">
+      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-kova-border bg-white px-4 py-3 sm:px-5">
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-kova-orange">
             Snap to Sell
           </p>
-
           <h1
             id="snap-to-sell-title"
-            className="mt-2 text-2xl font-semibold tracking-tight text-[#17211D]"
+            className="mt-0.5 text-lg font-semibold tracking-tight text-kova-dark sm:text-xl"
           >
-            Photograph it. Kova prepares it.
+            Add a product
           </h1>
-
-          <p className="mt-1 text-sm text-gray-500">
-            Turn a product photo into a ready-to-sell
-            product.
+          <p className="mt-0.5 text-xs leading-5 text-gray-500 sm:text-sm">
+            Photo → set price → Kova drafts the listing.
           </p>
         </div>
-
         <button
           type="button"
           onClick={onClose}
           aria-label="Close Snap to Sell"
-          className="ml-6 flex h-9 w-9 shrink-0 items-center justify-center text-2xl leading-none text-gray-500 transition hover:bg-[#FAFAF8] hover:text-[#17211D]"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xl leading-none text-gray-400 transition hover:bg-kova-background hover:text-kova-dark"
         >
           ×
         </button>
@@ -704,18 +698,7 @@ export default function SnapToSellModal({
 
   function renderCaptureStep() {
     return (
-      <div className="space-y-7">
-        <div>
-          <h2 className="text-xl font-semibold text-[#17211D]">
-            How do you want to add your product?
-          </h2>
-
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-            Snap a photo and let Kova understand the
-            product, or enter the product information
-            yourself.
-          </p>
-        </div>
+      <div className="space-y-4">
 
         {/* Camera input */}
         <input
@@ -738,116 +721,38 @@ export default function SnapToSellModal({
         />
 
         {images.length === 0 ? (
-          <>
-            {/* Primary camera action */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <button
               type="button"
               onClick={openCamera}
-              className="group flex w-full items-center gap-4 border border-kova-green bg-white px-5 py-5 text-left transition hover:bg-kova-green/[0.04]"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-kova-orange/45 bg-kova-orange/15 px-3 py-2.5 text-sm font-semibold text-kova-dark transition hover:border-kova-orange hover:bg-kova-orange/25 sm:w-auto"
             >
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-kova-green text-white">
-                <svg
-                  width="30"
-                  height="30"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M4 7.5C4 6.67 4.67 6 5.5 6H8L9.5 4H14.5L16 6H18.5C19.33 6 20 6.67 20 7.5V18.5C20 19.33 19.33 20 18.5 20H5.5C4.67 20 4 19.33 4 18.5V7.5Z"
-                    stroke="currentColor"
-                    strokeWidth="1.7"
-                  />
-
-                  <circle
-                    cx="12"
-                    cy="13"
-                    r="3.5"
-                    stroke="currentColor"
-                    strokeWidth="1.7"
-                  />
-                </svg>
-              </div>
-
-              <span>
-                <span className="block text-base font-semibold text-kova-dark">
-                  Open camera
-                </span>
-                <span className="mt-1 block text-sm text-gray-500">
-                  Take a photo of your product
-                </span>
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-kova-orange text-kova-dark">
+                <CameraIcon />
               </span>
+              Take photo
             </button>
-
-            {/* Secondary actions */}
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <button
-                type="button"
-                onClick={openFilePicker}
-                className="flex items-center justify-center gap-3 border border-[#E5E7E5] bg-white px-5 py-4 text-sm font-semibold text-[#17211D] transition hover:border-[#176B4D] hover:text-[#176B4D]"
-              >
-                <svg
-                  width="19"
-                  height="19"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M4 5.5C4 4.67 4.67 4 5.5 4H18.5C19.33 4 20 4.67 20 5.5V18.5C20 19.33 19.33 20 18.5 20H5.5C4.67 20 4 19.33 4 18.5V5.5Z"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                  />
-
-                  <circle
-                    cx="8.5"
-                    cy="8.5"
-                    r="1.3"
-                    fill="currentColor"
-                  />
-
-                  <path
-                    d="M4 16L9 11L13 15L15.5 12.5L20 17"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-
-                Choose from device
-              </button>
-
-              <button
-                type="button"
-                onClick={openManualMode}
-                className="flex items-center justify-center gap-3 border border-[#E5E7E5] bg-white px-5 py-4 text-sm font-semibold text-[#17211D] transition hover:border-[#176B4D] hover:text-[#176B4D]"
-              >
-                <svg
-                  width="19"
-                  height="19"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M4 19.5V16.5L15.5 5C16.33 4.17 17.67 4.17 18.5 5L19 5.5C19.83 6.33 19.83 7.67 19 8.5L7.5 20H4V19.5Z"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinejoin="round"
-                  />
-
-                  <path
-                    d="M14 6.5L17.5 10"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                  />
-                </svg>
-
-                Add manually
-              </button>
-            </div>
-          </>
+            <button
+              type="button"
+              onClick={openFilePicker}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-kova-orange/30 bg-kova-orange/10 px-3 py-2.5 text-sm font-semibold text-kova-dark transition hover:border-kova-orange/50 hover:bg-kova-orange/15 sm:w-auto"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-kova-orange/30 text-kova-dark">
+                <GalleryIcon />
+              </span>
+              From device
+            </button>
+            <button
+              type="button"
+              onClick={openManualMode}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-kova-orange/25 bg-white px-3 py-2.5 text-sm font-semibold text-kova-dark transition hover:border-kova-orange/40 hover:bg-kova-orange/10 sm:w-auto"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-kova-orange/20 text-kova-dark">
+                <PencilIcon />
+              </span>
+              Type it in
+            </button>
+          </div>
         ) : (
           <>
             <div>
@@ -1043,17 +948,11 @@ export default function SnapToSellModal({
               : "Your product is ready for Kova."}
           </p>
 
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[#17211D]">
-            {isBatchPricing
-              ? "Set your selling prices"
-              : "What is your selling price?"}
+          <h2 className="mt-1 text-lg font-semibold text-kova-dark">
+            {isBatchPricing ? "Set prices" : "Your selling price"}
           </h2>
-
-          <p className="mt-2 max-w-xl text-sm leading-6 text-gray-500">
-            Kova never guesses price from photos. Enter your
-            own price for one product, or choose a shared price
-            or a price per photo when listing several products
-            at once.
+          <p className="mt-1 text-xs leading-5 text-gray-500 sm:text-sm">
+            Kova does not guess price from photos — you set it.
           </p>
         </div>
 
@@ -1228,17 +1127,9 @@ export default function SnapToSellModal({
           </div>
         )}
 
-        <div className="border border-[#E5E7E5] bg-[#FAFAF8] px-4 py-4">
-          <p className="text-sm font-medium text-[#17211D]">
-            Your price stays authoritative
-          </p>
-
-          <p className="mt-1 text-sm leading-6 text-gray-500">
-            Kova can help market and sell the product, but it
-            will not invent or silently change your selling
-            price.
-          </p>
-        </div>
+        <p className="text-xs leading-5 text-gray-500">
+          Your price is never changed without you.
+        </p>
 
         {error && renderError()}
 
@@ -1267,7 +1158,7 @@ export default function SnapToSellModal({
       snapMode === "batch" && images.length > 1;
 
     return (
-      <div className="flex min-h-[430px] flex-col items-center justify-center px-6 text-center">
+      <div className="flex min-h-[220px] flex-col items-center justify-center py-8 text-center">
         <div className="flex h-14 w-14 items-center justify-center border border-[#176B4D]">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#E5E7E5] border-t-[#176B4D]" />
         </div>
@@ -1869,12 +1760,12 @@ export default function SnapToSellModal({
     }
 
     return (
-      <div className="flex min-h-[420px] flex-col items-center justify-center px-6 text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#176B4D]">
-          Store live
+      <div className="flex flex-col items-center py-6 text-center">
+        <p className="text-xs font-bold uppercase tracking-wide text-kova-green">
+          Saved
         </p>
-        <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#17211D]">
-          {product.name} is on your Kova store
+        <h2 className="mt-2 text-lg font-semibold text-kova-dark">
+          {product.name} is on your store
         </h2>
         <p className="mt-3 max-w-md text-sm leading-6 text-gray-500">
           Customers can buy this product on its own page, or browse every product in your store. Share either link.
@@ -2187,37 +2078,74 @@ export default function SnapToSellModal({
    */
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#17211D]/55 p-0 sm:items-center sm:p-4 md:p-6">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-kova-dark/50 p-0 sm:items-center sm:p-4">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="snap-to-sell-title"
-        className="flex h-[100dvh] max-h-[100dvh] w-full max-w-4xl flex-col overflow-hidden bg-white shadow-2xl sm:h-auto sm:max-h-[calc(100dvh-32px)] sm:rounded-lg md:max-h-[calc(100dvh-48px)]"
+        className="flex max-h-[min(100dvh,720px)] w-full max-w-xl flex-col overflow-hidden rounded-t-xl bg-white shadow-xl sm:rounded-xl"
       >
         {renderHeader()}
 
-        <div className="min-h-0 flex-1 overflow-y-auto bg-kova-orange/15">
-          <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-5 sm:py-7 md:px-8 md:py-8">
-            {step === "capture" &&
-              renderCaptureStep()}
-
-            {step === "price" &&
-              renderPriceStep()}
-
-            {step === "processing" &&
-              renderProcessingStep()}
-
-            {step === "review" &&
-              renderReviewStep()}
-
-            {step === "batchReview" &&
-              renderBatchReviewStep()}
-
-            {step === "manual" &&
-              renderManualStep()}
+        <div className="min-h-0 flex-1 overflow-y-auto bg-kova-background">
+          <div className="px-4 py-4 sm:px-5 sm:py-5">
+            {step === "capture" && renderCaptureStep()}
+            {step === "price" && renderPriceStep()}
+            {step === "processing" && renderProcessingStep()}
+            {step === "review" && renderReviewStep()}
+            {step === "batchReview" && renderBatchReviewStep()}
+            {step === "manual" && renderManualStep()}
+            {step === "live" && renderLiveStep()}
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function CameraIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4 7.5C4 6.67 4.67 6 5.5 6H8L9.5 4H14.5L16 6H18.5C19.33 6 20 6.67 20 7.5V18.5C20 19.33 19.33 20 18.5 20H5.5C4.67 20 4 19.33 4 18.5V7.5Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <circle cx="12" cy="13" r="3.5" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  );
+}
+
+function GalleryIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4 5.5C4 4.67 4.67 4 5.5 4H18.5C19.33 4 20 4.67 20 5.5V18.5C20 19.33 19.33 20 18.5 20H5.5C4.67 20 4 19.33 4 18.5V5.5Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+      />
+      <circle cx="8.5" cy="8.5" r="1.3" fill="currentColor" />
+      <path
+        d="M4 16L9 11L13 15L15.5 12.5L20 17"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4 19.5V16.5L15.5 5C16.33 4.17 17.67 4.17 18.5 5L19 5.5C19.83 6.33 19.83 7.67 19 8.5L7.5 20H4V19.5Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M14 6.5L17.5 10" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
   );
 }

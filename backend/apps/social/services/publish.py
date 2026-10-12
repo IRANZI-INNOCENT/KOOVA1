@@ -23,6 +23,18 @@ from apps.social.models import SocialAccount, SocialAction, SocialLesson, Social
 
 MAX_ATTEMPTS = 3
 
+_VIDEO_SUFFIXES = (".mp4", ".mov", ".webm", ".m4v", ".mpeg", ".mpg")
+
+
+def _is_video_media(url: str, content: Content) -> bool:
+    lowered = (url or "").lower().split("?", 1)[0]
+    if any(lowered.endswith(suffix) for suffix in _VIDEO_SUFFIXES):
+        return True
+    if content.content_type == Content.ContentType.REEL and content.media_urls:
+        return True
+    return False
+
+
 PLATFORM_ACCOUNT = {
     Content.Platform.INSTAGRAM: SocialAccount.Platform.INSTAGRAM,
     Content.Platform.FACEBOOK: SocialAccount.Platform.FACEBOOK_PAGE,
@@ -146,14 +158,20 @@ def dispatch_post(post: SocialPost) -> SocialPost:
         _maybe_pause(account.business_id)
         raise PublishError(price_error)
     image_url = ""
+    video_url = ""
     if isinstance(content.media_urls, list) and content.media_urls:
-        image_url = absolute_media_url(str(content.media_urls[0] or ""))
+        first = absolute_media_url(str(content.media_urls[0] or ""))
+        if _is_video_media(first, content):
+            video_url = first
+        else:
+            image_url = first
 
     try:
         result = MetaAdapter().publish_post(
             account,
             caption,
             image_url=image_url,
+            video_url=video_url,
         )
     except Exception as exc:
         result_ok = False

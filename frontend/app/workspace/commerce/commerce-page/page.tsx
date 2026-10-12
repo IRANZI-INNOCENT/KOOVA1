@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 
-import { AppShell } from "@/components/workspace/app-shell";
+import { WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
@@ -82,10 +82,9 @@ export default function CommercePageEditor() {
   }
 
   return (
-    <AppShell>
-      <div className="p-6 sm:p-8">
+    <div className={WORKSPACE_PAGE}>
         <div className="mx-auto max-w-4xl">
-          <Link href="/workspace/commerce" className="text-sm font-semibold text-kova-green">← Commerce</Link>
+          <Link href="/workspace/commerce/storefront" className="text-sm font-semibold text-kova-green">← Store</Link>
           <div className="mt-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.16em] text-kova-green">Commerce Page</p>
@@ -137,7 +136,6 @@ export default function CommercePageEditor() {
             </p>
           </div>
         </div>
-      </div>
-    </AppShell>
+    </div>
   );
 }

@@ -4,11 +4,20 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+import { MetricStrip } from "@/components/ui/metric-strip";
+import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
+import { QuickLinks } from "@/components/ui/quick-links";
+import { KovaStepsGuide } from "@/components/workspace/kova-steps-guide";
 import { PageSkeleton } from "@/components/workspace/page-skeleton";
 import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
-import { ApiError } from "@/lib/api";
-import { generateBrief, getLatestBrief } from "@/lib/brief";
 import {
+  OverviewActionPanel,
+  buildOverviewActions,
+} from "@/components/workspace/overview-daily-panel";
+import { ApiError } from "@/lib/api";
+import { getSocialOverview } from "@/lib/social";
+import {
+  getConnectedChannels,
   getProducts,
   getCommercePage,
   getContents,
@@ -22,32 +31,6 @@ import {
 } from "@/lib/commerce";
 import { useAuth } from "@/lib/auth-context";
 import { useWorkspace } from "@/lib/workspace-context";
-
-function localDate() {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${now.getFullYear()}-${month}-${day}`;
-}
-
-async function ensureTodayBrief(businessId: number, token: string) {
-  const today = localDate();
-  const key = `kova-brief-auto-${businessId}-${today}`;
-  if (sessionStorage.getItem(key) === "1") return;
-  try {
-    const latest = await getLatestBrief(businessId, token);
-    if (
-      latest.date === today &&
-      (latest.status === "ready" || latest.status === "generating")
-    ) {
-      return;
-    }
-  } catch (err) {
-    if (!(err instanceof ApiError) || err.status !== 404) return;
-  }
-  sessionStorage.setItem(key, "1");
-  await generateBrief(businessId, token).catch(() => undefined);
-}
 
 function formatName(name: string) {
   if (name === name.toUpperCase() && name.length > 1) {
@@ -76,6 +59,8 @@ export default function OverviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [socialConnected, setSocialConnected] = useState(false);
+  const [pendingSocialActions, setPendingSocialActions] = useState(0);
 
   useEffect(() => {
     if (
@@ -95,7 +80,7 @@ export default function OverviewPage() {
         setLoading(true);
         setError("");
 
-        const [prods, page, contentList, leadList, plans] =
+        const [prods, page, contentList, leadList, plans, channels, social] =
           await Promise.all([
             getProducts(bizId, token),
             getCommercePage(bizId, token),
@@ -108,6 +93,8 @@ export default function OverviewPage() {
             getProductContentPlans(bizId, token).catch(
               () => [] as ProductContentPlan[],
             ),
+            getConnectedChannels(bizId, token).catch(() => null),
+            getSocialOverview(bizId, token).catch(() => null),
           ]);
 
         if (cancelled) {
@@ -121,10 +108,8 @@ export default function OverviewPage() {
         setContentPlans(
           Object.fromEntries(plans.map((plan) => [plan.product_id, plan])),
         );
-        void ensureTodayBrief(
-          bizId,
-          token,
-        );
+        setSocialConnected(!!channels?.connected);
+        setPendingSocialActions(social?.pending_actions ?? 0);
       } catch (err) {
         if (cancelled) {
           return;
@@ -190,8 +175,18 @@ export default function OverviewPage() {
   const draftProducts = products.filter((p) => p.status === "draft");
   const newLeads = leads.filter((l) => l.status === "new");
   const draftContent = contents.filter((c) => c.status === "draft");
+  const approvedContent = contents.filter((c) => c.status === "approved");
   const publishedContent = contents.filter((c) => c.status === "published");
   const storeIsLive = !!commercePage?.is_published;
+  const actionItems = buildOverviewActions({
+    newLeads,
+    socialConnected,
+    approvedContentCount: approvedContent.length,
+    pendingSocialActions,
+    storeLive: storeIsLive,
+    activeProductCount: activeProducts.length,
+    totalProductCount: products.length,
+  });
   const storeUrl = commercePage?.slug
     ? `/store/${commercePage.slug}`
     : null;
@@ -201,54 +196,70 @@ export default function OverviewPage() {
       loading={workspaceLoading || loading}
       skeleton={<PageSkeleton />}
     >
-      <div className="p-4 sm:p-8">
-        <div className="mx-auto max-w-5xl space-y-6">
-          {/* ──── Header ──── */}
-          <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
-                Overview
-              </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-kova-dark sm:text-3xl">
-                {business?.name || "Your business"}
-              </h1>
-              <p className="mt-1 text-sm text-gray-500">
-                {user?.first_name
-                  ? `Welcome back, ${formatName(user.first_name)}.`
-                  : "Welcome back."}{" "}
-                Here is what is happening with your business.
-              </p>
-            </div>
-            {storeIsLive && storeUrl && (
-              <div className="flex gap-2">
-                <a
-                  href={storeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-10 items-center rounded-lg bg-kova-green px-4 text-sm font-bold text-white transition hover:bg-[#12563d]"
-                >
-                  View store
-                </a>
-                <button
-                  type="button"
-                  onClick={copyStoreLink}
-                  className="inline-flex h-10 items-center gap-2 rounded-lg border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark transition hover:border-kova-orange/50"
-                >
-                  {copied ? (
-                    <>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-kova-green"><polyline points="20 6 9 17 4 12" /></svg>
-                      Copied
-                    </>
-                  ) : (
-                    <>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
-                      Share link
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </header>
+      <div className={WORKSPACE_PAGE}>
+        <div className="space-y-6">
+          <PageHeader
+            eyebrow="Overview"
+            title={business?.name || "Your business"}
+            description={
+              user?.first_name
+                ? `Welcome back, ${formatName(user.first_name)}. Kova works in three simple steps — connect, add products, create posts.`
+                : "Kova works in three simple steps — connect, add products, create posts."
+            }
+            actions={
+              storeIsLive && storeUrl ? (
+                <div className="flex gap-2">
+                  <a
+                    href={storeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-10 items-center rounded-lg bg-kova-green px-4 text-sm font-bold text-white transition hover:bg-[#12563d]"
+                  >
+                    View store
+                  </a>
+                  <button
+                    type="button"
+                    onClick={copyStoreLink}
+                    className="inline-flex h-10 items-center gap-2 rounded-lg border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark transition hover:border-kova-orange/50"
+                  >
+                    {copied ? "Copied" : "Share link"}
+                  </button>
+                </div>
+              ) : undefined
+            }
+          />
+
+          <KovaStepsGuide
+            title="Your first day"
+            steps={[
+              {
+                letter: "A",
+                title: "Connect social",
+                description: "Facebook or Instagram — one-time setup.",
+                href: "/workspace/social/channels",
+                done: socialConnected,
+              },
+              {
+                letter: "B",
+                title: "Add a product",
+                description: "Snap a photo or enter details manually.",
+                href:
+                  products.length > 0
+                    ? "/workspace/commerce/products"
+                    : "/workspace/commerce/snap-to-sell",
+                done: products.length > 0,
+              },
+              {
+                letter: "C",
+                title: "Create your first post",
+                description: "Product, tips, or a short video.",
+                href: "/workspace/social/studio",
+                done: publishedContent.length > 0,
+              },
+            ]}
+          />
+
+          <OverviewActionPanel items={actionItems} />
 
           <div className="h-px bg-kova-border" />
 
@@ -276,61 +287,46 @@ export default function OverviewPage() {
             </div>
           )}
 
-          {/* ──── Stats ──── */}
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-kova-border bg-kova-border sm:grid-cols-4">
-            <StatCell
-              label="Products"
-              value={String(products.length)}
-              detail={`${activeProducts.length} active · ${draftProducts.length} draft`}
-              color="green"
-            />
-            <StatCell
-              label="Leads"
-              value={String(leads.length)}
-              detail={`${newLeads.length} new · ${leads.filter((l) => l.created_by_ai).length} from Kova`}
-              color="default"
-            />
-            <StatCell
-              label="Content"
-              value={String(contents.length)}
-              detail={`${publishedContent.length} published · ${draftContent.length} draft`}
-              color="orange"
-            />
-            <StatCell
-              label="Store"
-              value={storeIsLive ? "Live" : "Draft"}
-              detail={storeIsLive ? "Customers can shop" : "Publish to go live"}
-              color={storeIsLive ? "green" : "default"}
-            />
-          </div>
+          <MetricStrip
+            items={[
+              {
+                label: "Products",
+                value: products.length,
+                hint: `${activeProducts.length} active · ${draftProducts.length} draft`,
+                tone: "green",
+              },
+              {
+                label: "Leads",
+                value: leads.length,
+                hint: `${newLeads.length} new · ${leads.filter((l) => l.created_by_ai).length} from Kova`,
+              },
+              {
+                label: "Content",
+                value: contents.length,
+                hint: `${publishedContent.length} published · ${draftContent.length} draft`,
+                tone: "orange",
+              },
+              {
+                label: "Store",
+                value: storeIsLive ? "Live" : "Draft",
+                hint: storeIsLive ? "Customers can shop" : "Publish in Store tab",
+                tone: storeIsLive ? "green" : "default",
+              },
+            ]}
+          />
 
-          {/* ──── Quick actions ──── */}
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <ActionCard
-              label="Talk to Kova"
-              description="Ask Kova about products, content, or customers."
-              href="/workspace/kova"
-              variant="orange"
-            />
-            <ActionCard
-              label="Snap to Sell"
-              description="Photograph a product and list it for sale."
-              href="/workspace/commerce/snap-to-sell"
-              variant="orange"
-            />
-            <ActionCard
-              label="Social"
-              description="Create content and manage social channels."
-              href="/workspace/social"
-              variant="green"
-            />
-            <ActionCard
-              label="Settings"
-              description="Business Brain, goals, and policies."
-              href="/workspace/settings"
-              variant="default"
-            />
-          </div>
+          <QuickLinks
+            links={[
+              { label: "Talk to Kova", href: "/workspace/kova", accent: "orange" },
+              {
+                label: "Snap a product",
+                href: "/workspace/commerce/snap-to-sell",
+                accent: "orange",
+              },
+              { label: "Social", href: "/workspace/social", accent: "green" },
+              { label: "Settings", href: "/workspace/settings" },
+            ]}
+          />
 
           {/* ──── Recent products ──── */}
           {products.length > 0 && (
@@ -347,7 +343,7 @@ export default function OverviewPage() {
                 </Link>
               </div>
 
-              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
                 {products.slice(0, 4).map((product) => {
                   const plan = contentPlans[product.id];
                   const image =
@@ -357,9 +353,9 @@ export default function OverviewPage() {
                     <Link
                       key={product.id}
                       href={`/workspace/commerce/products/${product.id}`}
-                      className="group overflow-hidden rounded-lg border border-kova-border bg-white transition hover:-translate-y-0.5 hover:border-kova-orange/50 hover:shadow-sm"
+                      className="group overflow-hidden rounded-md border border-kova-border/80 bg-white transition hover:border-kova-orange/50"
                     >
-                      <div className="aspect-[4/3] bg-kova-background">
+                      <div className="aspect-square max-h-36 bg-kova-background sm:max-h-none">
                         {image?.url ? (
                           <img
                             src={image.url}
@@ -372,7 +368,7 @@ export default function OverviewPage() {
                           </div>
                         )}
                       </div>
-                      <div className="p-3.5">
+                      <div className="p-2.5 sm:p-3">
                         <h3 className="line-clamp-2 text-sm font-semibold text-kova-dark">
                           {product.name}
                         </h3>
@@ -424,68 +420,3 @@ export default function OverviewPage() {
   );
 }
 
-/* ───── Stat cell ───── */
-
-function StatCell({
-  label,
-  value,
-  detail,
-  color,
-}: {
-  label: string;
-  value: string;
-  detail: string;
-  color: "green" | "orange" | "default";
-}) {
-  const valueColor =
-    color === "green"
-      ? "text-kova-green"
-      : color === "orange"
-        ? "text-kova-orange"
-        : "text-kova-dark";
-  return (
-    <div className="bg-white p-5">
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-gray-400">
-        {label}
-      </p>
-      <p className={`mt-1 text-2xl font-bold ${valueColor}`}>{value}</p>
-      <p className="mt-1 text-xs text-gray-500">{detail}</p>
-    </div>
-  );
-}
-
-/* ───── Action card ───── */
-
-function ActionCard({
-  label,
-  description,
-  href,
-  variant,
-}: {
-  label: string;
-  description: string;
-  href: string;
-  variant: "orange" | "green" | "default";
-}) {
-  const border =
-    variant === "orange"
-      ? "border-kova-orange/40 hover:border-kova-orange"
-      : variant === "green"
-        ? "border-kova-green/30 hover:border-kova-green"
-        : "border-kova-border hover:border-gray-300";
-  const titleColor =
-    variant === "orange"
-      ? "text-kova-orange"
-      : variant === "green"
-        ? "text-kova-green"
-        : "text-kova-dark";
-  return (
-    <Link
-      href={href}
-      className={`block rounded-lg border bg-white px-4 py-3.5 transition-colors ${border}`}
-    >
-      <p className={`text-sm font-bold ${titleColor}`}>{label}</p>
-      <p className="mt-1 text-xs leading-5 text-gray-500">{description}</p>
-    </Link>
-  );
-}

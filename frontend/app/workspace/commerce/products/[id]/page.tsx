@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-import { AppShell } from "@/components/workspace/app-shell";
+import { WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
@@ -169,11 +169,9 @@ export default function ProductDetailPage() {
 
   if (authLoading || loading || !product) {
     return (
-      <AppShell>
-        <div className="flex min-h-[50vh] items-center justify-center">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-kova-green border-t-transparent" />
-        </div>
-      </AppShell>
+      <div className={`${WORKSPACE_PAGE} flex min-h-[50vh] items-center justify-center`}>
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-kova-green border-t-transparent" />
+      </div>
     );
   }
 
@@ -181,9 +179,8 @@ export default function ProductDetailPage() {
     product.images.find((item) => item.is_primary) ?? product.images[0];
 
   return (
-    <AppShell>
-      <div className="p-4 sm:p-8">
-        <div className="mx-auto max-w-6xl space-y-6">
+    <div className={WORKSPACE_PAGE}>
+      <div className="space-y-6">
           {/* Back */}
           <Link
             href="/workspace/commerce/products"
@@ -607,8 +604,7 @@ export default function ProductDetailPage() {
               </div>
             </div>
           </div>
-        </div>
       </div>
-    </AppShell>
+    </div>
   );
 }

@@ -178,8 +178,13 @@ class MetaAdapter(ChannelAdapter):
         caption: str,
         *,
         image_url: str = "",
+        video_url: str = "",
         link: str = "",
     ) -> PublishResult:
+        if video_url:
+            if account.platform == SocialAccount.Platform.INSTAGRAM:
+                return self._ig_video_reel(account, caption, video_url=video_url)
+            return self._fb_video(account, caption, video_url=video_url)
         if account.platform == SocialAccount.Platform.INSTAGRAM:
             return self._ig_publish(account, caption, image_url=image_url)
         return self._fb_publish(account, caption, link=link, image_url=image_url)
@@ -525,6 +530,106 @@ class MetaAdapter(ChannelAdapter):
         return PublishResult(
             success=False,
             error=error or "Facebook did not accept the photo.",
+            raw_response=body,
+        )
+
+    @staticmethod
+    def _ig_video_reel(
+        account: SocialAccount,
+        caption: str,
+        *,
+        video_url: str,
+    ) -> PublishResult:
+        if not video_url:
+            return PublishResult(
+                success=False,
+                error="Instagram Reels require a public video URL.",
+            )
+        token = account.access_token
+        ig_id = account.platform_account_id
+        container = requests.post(
+            f"{GRAPH_URL}/{ig_id}/media",
+            data={
+                "media_type": "REELS",
+                "video_url": video_url,
+                "caption": caption,
+                "access_token": token,
+            },
+            timeout=120,
+        ).json()
+        creation_id = container.get("id")
+        if not creation_id:
+            return PublishResult(
+                success=False,
+                error=container.get("error", {}).get(
+                    "message",
+                    "Video container creation failed.",
+                ),
+                raw_response=container,
+            )
+        publish_resp = requests.post(
+            f"{GRAPH_URL}/{ig_id}/media_publish",
+            data={
+                "creation_id": creation_id,
+                "access_token": token,
+            },
+            timeout=120,
+        ).json()
+        post_id = publish_resp.get("id", "")
+        if post_id:
+            return PublishResult(
+                success=True,
+                external_post_id=post_id,
+                raw_response=publish_resp,
+            )
+        return PublishResult(
+            success=False,
+            error=publish_resp.get("error", {}).get("message", "Publish step failed."),
+            raw_response=publish_resp,
+        )
+
+    @staticmethod
+    def _fb_video(
+        account: SocialAccount,
+        caption: str,
+        *,
+        video_url: str,
+    ) -> PublishResult:
+        data: dict[str, str] = {
+            "description": caption,
+            "access_token": account.access_token,
+        }
+        local_path = _local_media_path(video_url)
+        video_file = None
+        files = None
+        if local_path:
+            video_file = open(local_path, "rb")
+            files = {"source": (os.path.basename(local_path), video_file)}
+        elif video_url.startswith("http://") or video_url.startswith("https://"):
+            data["file_url"] = video_url
+        else:
+            return PublishResult(
+                success=False,
+                error="Kova could not find the video file to publish.",
+            )
+        try:
+            resp = requests.post(
+                f"{GRAPH_URL}/{account.platform_account_id}/videos",
+                data=data,
+                files=files,
+                timeout=180,
+            )
+            body = resp.json()
+        finally:
+            if video_file is not None:
+                video_file.close()
+        external_id = str(body.get("id") or "")
+        if external_id:
+            return PublishResult(success=True, external_post_id=external_id, raw_response=body)
+        error = body.get("error", {}).get("message") if isinstance(body.get("error"), dict) else ""
+        return PublishResult(
+            success=False,
+            error=error or "Facebook did not accept the video.",
             raw_response=body,
         )
 

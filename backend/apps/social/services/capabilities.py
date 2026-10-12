@@ -37,6 +37,13 @@ INSTAGRAM_REQUESTED_SCOPES = (
 # Full list when documenting or checking reconnect after scope changes.
 REQUESTED_SCOPES = INSTAGRAM_REQUESTED_SCOPES
 
+# Kova content modes (studio + autopilot) beyond raw Meta scopes.
+CONTENT_MODES = (
+    ("product_campaign", "Product posts and carousels from your catalog"),
+    ("organic_campaign", "Educational and brand posts without a product push"),
+    ("owner_video", "Upload a short video and publish to Facebook / Instagram Reels"),
+)
+
 
 def oauth_scopes_for_platform(platform: str) -> tuple[str, ...]:
     """

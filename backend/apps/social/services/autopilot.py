@@ -427,6 +427,7 @@ def run_shift(business: Business, *, force: bool = False) -> AutopilotShift:
 
         _polish(shift, business, plan.get("polish") or [])
         _publish(shift, business, plan.get("posts") or [])
+        _publish_organic(shift, business, plan.get("organic_posts") or [])
         _reply(shift, business)
         _report(shift, business)
         dispatch_due(business.id)
@@ -501,10 +502,13 @@ def _plan(business: Business, briefing: str) -> dict:
                     "role": "system",
                     "content": (
                         "You are Kova, newly responsible for this business. "
-                        "Plan today's work from the briefing. Use only the products named. "
+                        "Plan today's work from the briefing. Mix product posts and organic "
+                        "value posts (educate, tips, story — not always selling). "
                         "Return JSON with keys focus (string), "
                         "polish (list of product names that need a stronger public description), "
-                        "posts (list of objects with product_name and note)."
+                        "posts (list of objects with product_name and note), "
+                        "organic_posts (list of objects with theme and note; "
+                        "theme one of: educate, tip, behind_scenes, story, faq, seasonal, community)."
                     ),
                 },
                 {
@@ -531,9 +535,12 @@ def _plan(business: Business, briefing: str) -> dict:
     except (OpenRouterError, KeyError, TypeError, json.JSONDecodeError):
         pass
     return {
-        "focus": "Feature a quiet product, strengthen a thin listing, and answer the inbox.",
+        "focus": "Feature a quiet product, share one organic tip, and answer the inbox.",
         "polish": thin[:1],
         "posts": [{"product_name": name, "note": "Feature this product today."} for name in quiet[:1]],
+        "organic_posts": [
+            {"theme": "tip", "note": "Share one useful tip for your customers today."},
+        ],
     }
 
 
@@ -602,6 +609,49 @@ def _publish(shift: AutopilotShift, business: Business, posts: list) -> None:
         )
     except Exception as exc:
         _event(shift, f"Posts for {product.name} are drafted", str(exc)[:400], failed=True)
+
+
+def _publish_organic(shift: AutopilotShift, business: Business, items: list) -> None:
+    from apps.content.services.organic import ORGANIC_THEMES, draft_organic_campaign
+
+    valid_themes = {t["key"] for t in ORGANIC_THEMES}
+    chosen = None
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        theme = str(item.get("theme") or "tip").strip().lower()
+        if theme in valid_themes:
+            chosen = (theme, str(item.get("note") or "").strip())
+            break
+    if chosen is None:
+        if not items:
+            return
+        chosen = ("educate", "Share something helpful about the business today.")
+
+    theme_key, note = chosen
+    try:
+        result = draft_organic_campaign(
+            business,
+            note=note,
+            organic_theme=theme_key,
+        )
+    except Exception as exc:
+        _event(shift, "Organic content", str(exc)[:400], failed=True)
+        return
+
+    content_ids = [piece["id"] for piece in (result.get("pieces") or []) if piece.get("id")]
+    if not content_ids:
+        _event(shift, "Organic content", "No organic drafts were saved.", failed=True)
+        return
+    try:
+        schedule_posts(business, content_ids, autopilot=True)
+        _event(
+            shift,
+            f"Scheduled organic ({theme_key}) posts",
+            "Educational / brand content added to the calendar.",
+        )
+    except Exception as exc:
+        _event(shift, "Organic drafts saved", str(exc)[:400], failed=True)
 
 
 def _reply(shift: AutopilotShift, business: Business) -> None:

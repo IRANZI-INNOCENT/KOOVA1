@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AppShell } from "@/components/workspace/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError, authenticatedApiRequest } from "@/lib/api";
@@ -298,8 +297,7 @@ export default function BusinessGoalsPage() {
   }
 
   return (
-    <AppShell>
-      <div className="p-6 sm:p-8">
+          <div className="p-6 sm:p-8">
         <div className="mx-auto max-w-3xl">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-kova-green">
@@ -469,6 +467,5 @@ export default function BusinessGoalsPage() {
           </form>
         </div>
       </div>
-    </AppShell>
-  );
+      );
 }

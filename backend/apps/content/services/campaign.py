@@ -130,6 +130,7 @@ def draft_campaign(
         business=business,
         product=product,
         brief=note.strip(),
+        kind=ContentBatch.Kind.PRODUCT,
     )
 
     channels_response: list[dict] = []

@@ -1,8 +1,11 @@
+import hashlib
+import hmac
+import json
 from datetime import timedelta
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -18,6 +21,19 @@ from apps.social.services.publish import dispatch_due, enqueue, outgoing_text
 User = get_user_model()
 
 
+def _webhook_sign(body: bytes, secret: str) -> str:
+    digest = hmac.new(
+        secret.encode("utf-8"),
+        body,
+        hashlib.sha256,
+    ).hexdigest()
+    return f"sha256={digest}"
+
+
+@override_settings(
+    FACEBOOK_APP_SECRET="loop-webhook-secret",
+    FACEBOOK_WEBHOOK_VERIFY_TOKEN="loop-verify",
+)
 class LoopTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(email="loop@test.com", password="testpass123")
@@ -63,22 +79,28 @@ class LoopTests(TestCase):
             "draft_reply": "Yes, it is still available.",
             "create_lead": True,
         }
+        payload = {
+            "entry": [
+                {
+                    "id": "page-1",
+                    "messaging": [
+                        {
+                            "sender": {"id": "cust-1"},
+                            "message": {"mid": "m-1", "text": "Is this still available?"},
+                        }
+                    ],
+                }
+            ]
+        }
+        body = json.dumps(payload).encode("utf-8")
         response = self.client.post(
             "/api/social/meta/webhook/",
-            {
-                "entry": [
-                    {
-                        "id": "page-1",
-                        "messaging": [
-                            {
-                                "sender": {"id": "cust-1"},
-                                "message": {"mid": "m-1", "text": "Is this still available?"},
-                            }
-                        ],
-                    }
-                ]
-            },
-            format="json",
+            data=body,
+            content_type="application/json",
+            HTTP_X_HUB_SIGNATURE_256=_webhook_sign(
+                body,
+                "loop-webhook-secret",
+            ),
         )
         self.assertEqual(response.status_code, 200)
         stored = SocialMessage.objects.get(external_id="m-1")
@@ -93,26 +115,32 @@ class LoopTests(TestCase):
             "draft_reply": "Yes, this one is in stock.",
             "create_lead": False,
         }
+        payload = {
+            "entry": [
+                {
+                    "id": "page-1",
+                    "changes": [
+                        {
+                            "field": "comments",
+                            "value": {
+                                "comment_id": "c-9",
+                                "text": "Do you still have this sofa?",
+                                "from": {"name": "Asha", "id": "cust-9"},
+                            },
+                        }
+                    ],
+                }
+            ]
+        }
+        body = json.dumps(payload).encode("utf-8")
         response = self.client.post(
             "/api/social/meta/webhook/",
-            {
-                "entry": [
-                    {
-                        "id": "page-1",
-                        "changes": [
-                            {
-                                "field": "comments",
-                                "value": {
-                                    "comment_id": "c-9",
-                                    "text": "Do you still have this sofa?",
-                                    "from": {"name": "Asha", "id": "cust-9"},
-                                },
-                            }
-                        ],
-                    }
-                ]
-            },
-            format="json",
+            data=body,
+            content_type="application/json",
+            HTTP_X_HUB_SIGNATURE_256=_webhook_sign(
+                body,
+                "loop-webhook-secret",
+            ),
         )
         self.assertEqual(response.status_code, 200)
         stored = SocialMessage.objects.get(external_id="c-9")

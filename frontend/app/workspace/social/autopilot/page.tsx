@@ -50,7 +50,7 @@ const AREAS: {
     key: "report",
     label: "Report",
     stat: "Daily report",
-    href: "/workspace/brief",
+    href: "/workspace",
     link: "Open",
   },
 ];

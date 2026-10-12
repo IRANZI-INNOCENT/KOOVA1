@@ -1,10 +1,14 @@
+"use client";
+
 import { Suspense, type ReactNode } from "react";
+
+import { AppShell } from "@/components/workspace/app-shell";
 
 function SettingsLoading() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-kova-background">
-      <p className="text-sm text-gray-500">Loading your workspace...</p>
-    </main>
+    <div className="flex flex-1 items-center justify-center p-8">
+      <p className="text-sm text-gray-500">Loading settings…</p>
+    </div>
   );
 }
 
@@ -13,5 +17,9 @@ export default function WorkspaceSettingsLayout({
 }: {
   children: ReactNode;
 }) {
-  return <Suspense fallback={<SettingsLoading />}>{children}</Suspense>;
+  return (
+    <AppShell>
+      <Suspense fallback={<SettingsLoading />}>{children}</Suspense>
+    </AppShell>
+  );
 }

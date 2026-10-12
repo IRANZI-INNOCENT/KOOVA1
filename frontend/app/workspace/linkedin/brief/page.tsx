@@ -32,7 +32,7 @@ export default function LinkedInBriefPage() {
   }
 
   return (
-    <WorkspacePageFrame>
+    <WorkspacePageFrame embedded requireBusiness={false}>
       <div className="mx-auto max-w-2xl px-4 py-8">
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-2xl font-semibold">Weekly brief</h1>

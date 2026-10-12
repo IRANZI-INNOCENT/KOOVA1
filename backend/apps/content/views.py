@@ -226,13 +226,34 @@ class ContentCampaignView(APIView):
                     status=400,
                 )
 
+        organic_theme = (request.data.get("organic_theme") or "").strip()
+        media_urls = request.data.get("media_urls")
+        if media_urls is not None and not isinstance(media_urls, list):
+            media_urls = None
+
         try:
-            result = draft_campaign(
-                business,
-                note=request.data.get("note") or "",
-                product_id=product_id,
-                platform=request.data.get("platform") or "all",
-            )
+            if organic_theme:
+                if product_id:
+                    return Response(
+                        {"detail": "Use either a product or an organic theme."},
+                        status=400,
+                    )
+                from apps.content.services.organic import draft_organic_campaign
+
+                result = draft_organic_campaign(
+                    business,
+                    note=request.data.get("note") or "",
+                    organic_theme=organic_theme,
+                    platform=request.data.get("platform") or "all",
+                    media_urls=media_urls,
+                )
+            else:
+                result = draft_campaign(
+                    business,
+                    note=request.data.get("note") or "",
+                    product_id=product_id,
+                    platform=request.data.get("platform") or "all",
+                )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
         except OpenRouterError as exc:
@@ -328,7 +349,10 @@ class ConnectedChannelsView(APIView):
         business = get_object_or_404(
             Business, id=business_id, owner=request.user,
         )
-        accounts = get_connected_channels(business)
+        from apps.social.services.connection import backfill_missing_profiles
+
+        accounts = list(get_connected_channels(business))
+        backfill_missing_profiles(accounts)
         return Response({
             "connected": len(accounts) > 0,
             "accounts": [
@@ -336,10 +360,156 @@ class ConnectedChannelsView(APIView):
                     "id": a.id,
                     "platform": a.platform,
                     "name": a.account_name or a.account_username,
+                    "profile_picture_url": a.profile_picture_url or "",
                 }
                 for a in accounts
             ],
         })
+
+
+class OrganicSeedsView(APIView):
+    """Return AI-tailored organic post seed ideas for the content studio."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, business_id):
+        from apps.content.services.organic_seeds import generate_organic_seeds
+
+        business = get_object_or_404(
+            Business, id=business_id, owner=request.user,
+        )
+        seeds = generate_organic_seeds(business)
+        return Response({"seeds": seeds})
+
+
+class ContentCapabilitiesView(APIView):
+    """Product, organic, and video capabilities for the content studio."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, business_id):
+        from apps.content.services.content_capabilities import (
+            business_content_capabilities,
+        )
+
+        business = get_object_or_404(
+            Business, id=business_id, owner=request.user,
+        )
+        return Response(business_content_capabilities(business))
+
+
+class ContentMediaUploadView(APIView):
+    """Upload a short video or image for social publishing."""
+
+    permission_classes = [IsAuthenticated]
+
+    MAX_VIDEO_BYTES = 100 * 1024 * 1024
+
+    def post(self, request, business_id):
+        from apps.content.models import OwnerMediaAsset
+        from apps.commerce.services.storefront import absolute_media_url
+
+        business = get_object_or_404(
+            Business, id=business_id, owner=request.user,
+        )
+        upload = request.FILES.get("file")
+        if upload is None:
+            return Response({"detail": "Choose a file to upload."}, status=400)
+
+        content_type = (upload.content_type or "").lower()
+        name = (upload.name or "").lower()
+        is_video = content_type.startswith("video/") or name.endswith(
+            (".mp4", ".mov", ".webm", ".m4v"),
+        )
+        is_image = content_type.startswith("image/") or name.endswith(
+            (".jpg", ".jpeg", ".png", ".webp", ".gif"),
+        )
+        if not is_video and not is_image:
+            return Response(
+                {"detail": "Upload an image or a short video (MP4, MOV, WebM)."},
+                status=400,
+            )
+        if is_video and upload.size > self.MAX_VIDEO_BYTES:
+            return Response(
+                {"detail": "Video must be 100 MB or smaller."},
+                status=400,
+            )
+
+        asset = OwnerMediaAsset.objects.create(
+            business=business,
+            media_type=(
+                OwnerMediaAsset.MediaType.VIDEO
+                if is_video
+                else OwnerMediaAsset.MediaType.IMAGE
+            ),
+            file=upload,
+        )
+        url = absolute_media_url(asset.file.url)
+        return Response(
+            {
+                "id": str(asset.id),
+                "media_type": asset.media_type,
+                "url": url,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class OwnerVideoPublishView(APIView):
+    """Create draft posts from an uploaded video and optionally schedule them."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, business_id):
+        from apps.business_brain.models import BusinessPolicy
+        from apps.content.models import OwnerMediaAsset
+        from apps.content.services.owner_video import create_content_from_owner_video
+        from apps.social.services.publish import dispatch_due
+
+        from .services.schedule import schedule_posts
+
+        business = get_object_or_404(
+            Business, id=business_id, owner=request.user,
+        )
+        asset_id = request.data.get("asset_id")
+        if not asset_id:
+            return Response({"detail": "asset_id is required."}, status=400)
+        asset = OwnerMediaAsset.objects.filter(
+            business=business,
+            id=asset_id,
+        ).first()
+        if asset is None:
+            return Response({"detail": "That upload was not found."}, status=404)
+
+        try:
+            result = create_content_from_owner_video(
+                business,
+                asset,
+                caption=request.data.get("caption") or request.data.get("note") or "",
+                platform=request.data.get("platform") or "all",
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+
+        if request.data.get("schedule") or request.data.get("publish_now"):
+            content_ids = [p["id"] for p in result.get("pieces") or []]
+            policy = BusinessPolicy.objects.filter(business=business).first()
+            autopilot = (
+                policy is not None
+                and policy.social_operating_mode
+                == BusinessPolicy.OperatingMode.AUTOPILOT
+            )
+            try:
+                result["scheduled"] = schedule_posts(
+                    business,
+                    content_ids,
+                    autopilot=autopilot or bool(request.data.get("schedule")),
+                )
+                dispatch_due(business.id)
+            except (ValueError, OpenRouterError) as exc:
+                result["schedule_error"] = str(exc)
+
+        return Response(result, status=status.HTTP_201_CREATED)
 
 
 class ProductContentStatusView(APIView):

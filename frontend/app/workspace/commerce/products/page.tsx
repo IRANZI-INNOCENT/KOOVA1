@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { ListSkeleton } from "@/components/workspace/page-skeleton";
-import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
 import { ApiError } from "@/lib/api";
 import { getProducts, type Product } from "@/lib/commerce";
 import { useWorkspace } from "@/lib/workspace-context";
@@ -71,62 +71,42 @@ export default function ProductsPage() {
 
   const storePath = products.find((item) => item.store_path)?.store_path;
 
+  if (workspaceLoading || loading) {
+    return (
+      <div className={WORKSPACE_PAGE}>
+        <ListSkeleton rows={8} />
+      </div>
+    );
+  }
+
   return (
-    <WorkspacePageFrame
-      loading={workspaceLoading || loading}
-      skeleton={
-        <div className="p-4 sm:p-8">
-          <div className="mx-auto max-w-6xl space-y-6">
-            <ListSkeleton rows={8} />
-          </div>
-        </div>
-      }
-    >
-      <div className="p-4 sm:p-8">
-        <div className="mx-auto max-w-6xl space-y-6">
-          {/* ──── Header ──── */}
-          <div>
-            <Link
-              href="/workspace/commerce"
-              className="text-sm font-semibold text-kova-orange hover:underline"
-            >
-              ← Commerce
-            </Link>
-          </div>
-
-          <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
-                Products
-              </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-kova-dark sm:text-3xl">
-                Your product catalog
-              </h1>
-              <p className="mt-2 text-sm text-gray-500">
-                Your products are business assets Kova can understand and use.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {storePath && (
-                <a
-                  href={storePath}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-10 items-center rounded-lg border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark transition hover:border-kova-orange/50"
+    <div className={WORKSPACE_PAGE}>
+      <div className="space-y-6">
+          <PageHeader
+            eyebrow="Products"
+            title="Your catalog"
+            description="Tap a product to edit price, photos, and status."
+            actions={
+              <div className="flex flex-wrap gap-2">
+                {storePath && (
+                  <a
+                    href={storePath}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-10 items-center rounded-lg border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark transition hover:border-kova-orange/50"
+                  >
+                    View store
+                  </a>
+                )}
+                <Link
+                  href="/workspace/commerce/snap-to-sell"
+                  className="inline-flex h-10 items-center rounded-lg bg-kova-orange px-4 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e]"
                 >
-                  View store
-                </a>
-              )}
-              <Link
-                href="/workspace/commerce/snap-to-sell"
-                className="inline-flex h-10 items-center rounded-lg bg-kova-orange px-4 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e]"
-              >
-                Snap to Sell
-              </Link>
-            </div>
-          </header>
-
-          <div className="h-px bg-kova-border" />
+                  Snap a product
+                </Link>
+              </div>
+            }
+          />
 
           {error && (
             <div
@@ -205,15 +185,17 @@ export default function ProductsPage() {
               })}
             </div>
           ) : (
-            <div className="rounded-lg border-2 border-dashed border-kova-orange/40 bg-kova-orange/5 p-8 text-center">
-              <p className="font-semibold text-kova-dark">No products yet.</p>
-              <p className="mt-2 text-sm text-gray-500">
-                Start with a product photo.
-              </p>
+            <div className="py-6 text-sm text-gray-500">
+              <p className="font-medium text-kova-dark">No products yet</p>
+              <Link
+                href="/workspace/commerce/snap-to-sell"
+                className="mt-2 inline-block font-semibold text-kova-green hover:underline"
+              >
+                Snap your first product →
+              </Link>
             </div>
           )}
         </div>
-      </div>
-    </WorkspacePageFrame>
+    </div>
   );
 }

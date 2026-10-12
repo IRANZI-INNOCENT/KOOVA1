@@ -67,6 +67,25 @@ OPENROUTER_APP_NAME = os.getenv(
     "Kova",
 )
 
+FACEBOOK_APP_SECRET = os.getenv("FACEBOOK_APP_SECRET", "").strip()
+FACEBOOK_WEBHOOK_VERIFY_TOKEN = os.getenv(
+    "FACEBOOK_WEBHOOK_VERIFY_TOKEN",
+    "",
+).strip()
+
+_kova_admin_url = os.getenv("KOVA_ADMIN_URL", "admin/").strip() or "admin/"
+if not _kova_admin_url.endswith("/"):
+    _kova_admin_url = f"{_kova_admin_url}/"
+KOVA_ADMIN_URL = _kova_admin_url
+
+KOVA_ADMIN_GATE_SECRET = os.getenv("KOVA_ADMIN_GATE_SECRET", "").strip()
+KOVA_ADMIN_IP_ALLOWLIST = [
+    entry.strip()
+    for entry in os.getenv("KOVA_ADMIN_IP_ALLOWLIST", "").split(",")
+    if entry.strip()
+]
+KOVA_ADMIN_GATE_COOKIE_SECURE = False
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",

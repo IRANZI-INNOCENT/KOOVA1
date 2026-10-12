@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AppShell } from "@/components/workspace/app-shell";
+import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
+import { KovaStepsGuide } from "@/components/workspace/kova-steps-guide";
 import { authenticatedApiRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
@@ -99,42 +100,50 @@ export default function SettingsPage() {
   const total = businessBrainSections.length;
   const percent = total ? Math.round((completeCount / total) * 100) : 0;
 
+  const nextSection = progress?.sections.find((s) => !s.complete);
+
   return (
-    <AppShell>
-      <div className="p-4 sm:p-8">
+      <div className={WORKSPACE_PAGE}>
         <div className="mx-auto max-w-5xl space-y-6">
-          <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
-                Settings
-              </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-kova-dark sm:text-3xl">
-                Configure Kova
-              </h1>
-              <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                Give Kova the information, preferences, and context it needs
-                to understand and eventually operate your business.
-              </p>
-            </div>
-            {progress && (
-              <div className="w-full sm:w-44">
-                <div className="flex items-baseline justify-between text-xs">
-                  <span className="font-bold uppercase tracking-[0.14em] text-gray-400">
-                    Brain
-                  </span>
-                  <span className="font-semibold text-kova-dark">
-                    {completeCount}/{total}
-                  </span>
+          <PageHeader
+            eyebrow="Settings"
+            title="Teach Kova about your business"
+            description="Short forms — do them once, update anytime."
+            actions={
+              progress ? (
+                <div className="w-full sm:w-44">
+                  <div className="flex items-baseline justify-between text-xs">
+                    <span className="font-bold uppercase tracking-[0.14em] text-gray-400">
+                      Progress
+                    </span>
+                    <span className="font-semibold text-kova-dark">
+                      {completeCount}/{total}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-kova-border">
+                    <div
+                      className="h-full rounded-full bg-kova-green"
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-kova-border">
-                  <div
-                    className="h-full rounded-full bg-kova-green"
-                    style={{ width: `${percent}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </header>
+              ) : undefined
+            }
+          />
+
+          {nextSection && (
+            <KovaStepsGuide
+              title="Continue setup"
+              steps={[
+                {
+                  letter: "1",
+                  title: businessBrainSections.find((b) => b.key === nextSection.key)?.label ?? "Next section",
+                  description: "Pick up where you left off.",
+                  href: nextSection.href,
+                },
+              ]}
+            />
+          )}
 
           <div className="h-px bg-kova-border" />
 
@@ -256,23 +265,11 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          <section className="rounded-lg border border-kova-orange/40 bg-kova-orange/5 px-5 py-5">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-kova-orange">
-              Why this matters
-            </p>
-            <h2 className="mt-2 text-base font-bold text-kova-dark">
-              Kova should understand before it acts.
-            </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-600">
-              The Business Brain gives Kova structured context about the
-              business. This context works together with products, policies,
-              conversations, and other business activity so Kova can make
-              better decisions when creating content, engaging customers,
-              generating leads, and supporting sales.
-            </p>
-          </section>
+          <p className="text-sm leading-6 text-gray-500">
+            The more Kova knows about your business, the better your posts,
+            replies, and recommendations will be.
+          </p>
         </div>
       </div>
-    </AppShell>
   );
 }

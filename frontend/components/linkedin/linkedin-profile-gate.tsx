@@ -45,7 +45,11 @@ export function LinkedInProfileGate({ children }: { children: ReactNode }) {
         }
       })
       .catch(() => {
-        if (!cancelled && !onSetupRoute) {
+        if (cancelled) {
+          return;
+        }
+        setReady(false);
+        if (!onSetupRoute) {
           router.replace(SETUP_PREFIX);
         }
       })

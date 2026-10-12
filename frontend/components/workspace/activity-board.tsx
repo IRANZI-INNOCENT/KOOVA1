@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { MetricStrip } from "@/components/ui/metric-strip";
 import { useAuth } from "@/lib/auth-context";
 import { getBusiness } from "@/lib/commerce";
 import { getActivity, type ActivitySnapshot } from "@/lib/operations";
@@ -57,14 +58,12 @@ export function ActivityBoard({
         </p>
       )}
       {snapshot && (
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-kova-border bg-kova-border sm:grid-cols-5">
-          {cards.map(([label, value]) => (
-            <div key={label} className="bg-white p-4">
-              <p className="text-xs font-bold uppercase tracking-wide text-gray-400">{label}</p>
-              <p className="mt-1 text-2xl font-bold text-kova-dark">{value}</p>
-            </div>
-          ))}
-        </div>
+        <MetricStrip
+          items={cards.map(([label, value]) => ({
+            label,
+            value,
+          }))}
+        />
       )}
       {snapshot?.plan && (
         <p className="text-sm leading-6 text-kova-dark">{snapshot.plan}</p>

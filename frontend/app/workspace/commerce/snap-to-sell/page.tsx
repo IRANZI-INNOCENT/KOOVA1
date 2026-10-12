@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
-import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
+import { WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { useWorkspace } from "@/lib/workspace-context";
 
 const SnapToSellModal = dynamic(
@@ -35,52 +35,46 @@ export default function SnapToSellPage() {
 
   if (
     !workspaceLoading &&
-    (workspaceError ||
-      !business ||
-      !businessId ||
-      !accessToken)
+    (workspaceError || !business || !businessId || !accessToken)
   ) {
     return (
-      <WorkspacePageFrame loading={false}>
-        <div className="p-6 sm:p-8">
-          <div className="mx-auto max-w-5xl">
-            <div className="border border-[#E5E7E5] bg-white p-8">
-              <p className="text-sm font-semibold text-[#17211D]">
-                Unable to open Snap-to-Sell
-              </p>
-              <p className="mt-2 text-sm leading-6 text-gray-500">
-                {workspaceError ||
-                  "We could not load the business required for this workflow."}
-              </p>
-              <button
-                type="button"
-                onClick={() =>
-                  router.push("/workspace/commerce")
-                }
-                className="mt-6 border border-[#176B4D] bg-[#176B4D] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#12583F]"
-              >
-                Back to Commerce
-              </button>
-            </div>
-          </div>
-        </div>
-      </WorkspacePageFrame>
+      <div className={WORKSPACE_PAGE}>
+        <p className="text-sm font-semibold text-kova-dark">
+          Unable to open Snap to Sell
+        </p>
+        <p className="mt-2 text-sm leading-6 text-gray-500">
+          {workspaceError ||
+            "We could not load the business required for this workflow."}
+        </p>
+        <button
+          type="button"
+          onClick={() => router.push("/workspace/commerce")}
+          className="mt-4 text-sm font-semibold text-kova-green hover:underline"
+        >
+          Back to Commerce →
+        </button>
+      </div>
+    );
+  }
+
+  if (workspaceLoading) {
+    return (
+      <div className={WORKSPACE_PAGE}>
+        <p className="text-sm text-gray-500">Loading…</p>
+      </div>
     );
   }
 
   return (
-    <WorkspacePageFrame loading={workspaceLoading}>
-      {!workspaceLoading &&
-        businessId &&
-        accessToken && (
-          <SnapToSellModal
-            open={true}
-            onClose={handleClose}
-            businessId={businessId}
-            accessToken={accessToken}
-            onCreated={handleCreated}
-          />
-        )}
-    </WorkspacePageFrame>
+    businessId &&
+    accessToken && (
+      <SnapToSellModal
+        open={true}
+        onClose={handleClose}
+        businessId={businessId}
+        accessToken={accessToken}
+        onCreated={handleCreated}
+      />
+    )
   );
 }

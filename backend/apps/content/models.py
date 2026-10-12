@@ -57,6 +57,23 @@ class ContentBatch(models.Model):
         help_text="What the owner asked Kova to create.",
     )
 
+    class Kind(models.TextChoices):
+        PRODUCT = "product", "Product campaign"
+        ORGANIC = "organic", "Organic campaign"
+        OWNER_VIDEO = "owner_video", "Owner video"
+
+    kind = models.CharField(
+        max_length=20,
+        choices=Kind.choices,
+        default=Kind.PRODUCT,
+    )
+
+    organic_theme = models.CharField(
+        max_length=40,
+        blank=True,
+        help_text="Theme key when kind is organic (educate, tip, etc.).",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -190,3 +207,34 @@ class Content(models.Model):
 
     def __str__(self):
         return f"{self.platform} {self.content_type} — {self.business.name}"
+
+
+class OwnerMediaAsset(models.Model):
+    """Owner-uploaded image or short video for social publishing."""
+
+    class MediaType(models.TextChoices):
+        IMAGE = "image", "Image"
+        VIDEO = "video", "Video"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    business = models.ForeignKey(
+        Business,
+        on_delete=models.CASCADE,
+        related_name="owner_media",
+    )
+
+    media_type = models.CharField(
+        max_length=10,
+        choices=MediaType.choices,
+    )
+
+    file = models.FileField(upload_to="content/owner_media/")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.media_type} — {self.business.name}"

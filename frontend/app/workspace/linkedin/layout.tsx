@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { LinkedInProfileGate } from "@/components/linkedin/linkedin-profile-gate";
+import { AppShell } from "@/components/workspace/app-shell";
 
 const tabs = [
   { href: "/workspace/linkedin", label: "Home" },
@@ -21,7 +22,8 @@ export default function LinkedInLayout({ children }: { children: ReactNode }) {
   const isSetup = pathname.startsWith("/workspace/linkedin/setup");
 
   return (
-    <LinkedInProfileGate>
+    <AppShell>
+      <LinkedInProfileGate>
       <div className="flex min-h-0 flex-1 flex-col">
         {!isSetup && (
           <div className="border-b border-kova-border bg-white px-4 pt-2">
@@ -53,6 +55,7 @@ export default function LinkedInLayout({ children }: { children: ReactNode }) {
         )}
         <div className="flex-1 overflow-y-auto">{children}</div>
       </div>
-    </LinkedInProfileGate>
+      </LinkedInProfileGate>
+    </AppShell>
   );
 }

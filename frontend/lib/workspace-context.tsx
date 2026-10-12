@@ -28,8 +28,6 @@ const WORKSPACE_PREFETCH_ROUTES = [
   "/workspace/commerce",
   "/workspace/commerce/products",
   "/workspace/commerce/snap-to-sell",
-  "/workspace/brief",
-  "/workspace/analytics",
   "/workspace/linkedin",
   "/workspace/linkedin/topic-week",
   "/workspace/linkedin/calendar",

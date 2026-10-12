@@ -52,6 +52,19 @@ REFRESH_COOKIE_SAMESITE = "None"
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
+KOVA_ADMIN_GATE_COOKIE_SECURE = True
+
+if not KOVA_ADMIN_GATE_SECRET:
+    raise ImproperlyConfigured(
+        "Set KOVA_ADMIN_GATE_SECRET on the API service (long random string). "
+        "Open admin once with /admin/?kova_admin_gate=that-secret",
+    )
+
+MIDDLEWARE.insert(
+    2,
+    "config.middleware.admin_access.AdminAccessMiddleware",
+)
+
 database_url = os.getenv("DATABASE_URL", "").strip()
 if database_url:
     parsed = urlparse(database_url)

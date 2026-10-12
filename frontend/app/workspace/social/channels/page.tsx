@@ -11,6 +11,9 @@ import {
   instagramNotLinkedPageName,
   isInstagramNotLinkedError,
 } from "@/components/social/instagram-professional-guide";
+import { PlatformAvatar } from "@/components/social/platform-avatar";
+import { PlatformBrandIcon } from "@/components/social/platform-brand";
+import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
 import {
   disconnectSocialAccount,
   getInstagramReadiness,
@@ -25,12 +28,7 @@ import {
 
 const PLATFORM_LABELS: Record<string, string> = {
   facebook_page: "Facebook Page",
-  instagram: "Instagram Professional",
-};
-
-const PLATFORM_SHORT: Record<string, string> = {
-  facebook_page: "FB",
-  instagram: "IG",
+  instagram: "Instagram",
 };
 
 function oauthPlatformForAccount(
@@ -296,40 +294,33 @@ export default function ChannelsPage() {
   }
 
   return (
-    <div className="p-4 sm:p-8">
-      <div className="mx-auto max-w-6xl space-y-6">
-        {/* ──── Header ──── */}
-        <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
-              Channels
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-kova-dark sm:text-4xl">
-              Connect your social accounts
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-gray-600 sm:text-base">
-              Link your Facebook Page and Instagram so Kova can help draft
-              content, schedule posts, monitor engagement, and grow your
-              audience.
-            </p>
-          </div>
-          <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto">
-            <button
-              type="button"
-              onClick={() => connectMeta("facebook")}
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-kova-orange px-5 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e]"
-            >
-              Connect Facebook
-            </button>
-            <button
-              type="button"
-              onClick={() => connectMeta("instagram")}
-              className="inline-flex h-11 items-center justify-center rounded-lg border border-kova-orange bg-white px-5 text-sm font-bold text-kova-dark transition hover:bg-kova-orange/10"
-            >
-              Connect Instagram
-            </button>
-          </div>
-        </header>
+    <div className={WORKSPACE_PAGE}>
+      <div className="space-y-5">
+        <PageHeader
+          eyebrow="Connect"
+          title="Facebook & Instagram"
+          description="Link accounts so Kova can post, read comments, and reply."
+          actions={
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => connectMeta("facebook")}
+                className="inline-flex h-10 items-center gap-2 rounded-lg bg-kova-orange/15 px-3 text-sm font-semibold text-kova-dark ring-1 ring-kova-orange/40 transition hover:bg-kova-orange/25"
+              >
+                <PlatformBrandIcon platform="facebook_page" size={18} />
+                Connect Facebook
+              </button>
+              <button
+                type="button"
+                onClick={() => connectMeta("instagram")}
+                className="inline-flex h-10 items-center gap-2 rounded-lg bg-white px-3 text-sm font-semibold text-kova-dark ring-1 ring-kova-border transition hover:ring-kova-orange/40"
+              >
+                <PlatformBrandIcon platform="instagram" size={18} />
+                Connect Instagram
+              </button>
+            </div>
+          }
+        />
 
         <div className="h-px bg-kova-border" />
 
@@ -362,20 +353,9 @@ export default function ChannelsPage() {
         {/* ──── Account list ──── */}
         {accounts.length === 0 ? (
           <section className="rounded-lg border-2 border-dashed border-kova-orange/40 bg-kova-orange/5 p-8 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-kova-orange/20">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-kova-orange"
-              >
-                <path d="M17 2H7a2 2 0 00-2 2v16l7-4 7 4V4a2 2 0 00-2-2z" />
-              </svg>
+            <div className="mx-auto flex items-center justify-center gap-2">
+              <PlatformBrandIcon platform="facebook_page" size={28} />
+              <PlatformBrandIcon platform="instagram" size={28} />
             </div>
             <p className="mt-4 text-lg font-semibold text-kova-dark">
               No accounts connected yet
@@ -404,17 +384,15 @@ export default function ChannelsPage() {
                 >
                   <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">
-                      {account.profile_picture_url ? (
-                        <img
-                          src={account.profile_picture_url}
-                          alt=""
-                          className="h-12 w-12 rounded-full object-cover ring-2 ring-kova-orange/30"
-                        />
-                      ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-kova-orange/15 text-sm font-bold text-kova-orange ring-2 ring-kova-orange/20">
-                          {PLATFORM_SHORT[account.platform] ?? "?"}
-                        </div>
-                      )}
+                      <PlatformAvatar
+                        platform={account.platform}
+                        imageUrl={account.profile_picture_url}
+                        name={
+                          account.account_name ||
+                          account.account_username
+                        }
+                        size="md"
+                      />
                       <div>
                         <p className="font-semibold text-kova-dark">
                           {account.account_name ||

@@ -3,7 +3,9 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
+import { PlatformAvatar } from "@/components/social/platform-avatar";
+import { PlatformBrandIcon } from "@/components/social/platform-brand";
+import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -14,6 +16,36 @@ import {
   getProfessionalProfile,
   type ProfessionalProfile,
 } from "@/lib/professional";
+
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; dot: string; bg: string; text: string }
+> = {
+  connected: {
+    label: "Connected",
+    dot: "bg-kova-green",
+    bg: "bg-kova-green/10",
+    text: "text-kova-green",
+  },
+  disconnected: {
+    label: "Not connected",
+    dot: "bg-gray-300",
+    bg: "bg-gray-100",
+    text: "text-gray-500",
+  },
+  expired: {
+    label: "Token expired",
+    dot: "bg-kova-orange",
+    bg: "bg-kova-orange/10",
+    text: "text-kova-orange",
+  },
+  error: {
+    label: "Error",
+    dot: "bg-red-500",
+    bg: "bg-red-50",
+    text: "text-red-600",
+  },
+};
 
 function ConnectContent() {
   const { accessToken } = useAuth();
@@ -27,9 +59,14 @@ function ConnectContent() {
   } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  async function reloadProfile() {
+    if (!accessToken) return;
+    setProfile(await getProfessionalProfile(accessToken));
+  }
+
   useEffect(() => {
     if (!accessToken) return;
-    getProfessionalProfile(accessToken).then(setProfile);
+    reloadProfile();
     getLinkedInConnectConfig(accessToken)
       .then((data) =>
         setConnectConfig({
@@ -43,6 +80,7 @@ function ConnectContent() {
   useEffect(() => {
     if (searchParams.get("connected") === "1") {
       setMessage("LinkedIn connected.");
+      void reloadProfile();
     }
     const err = searchParams.get("error");
     if (err) {
@@ -83,7 +121,7 @@ function ConnectContent() {
     setMessage("");
     try {
       await refreshLinkedInProfile(accessToken);
-      setProfile(await getProfessionalProfile(accessToken));
+      await reloadProfile();
       setMessage("LinkedIn profile refreshed for Kova's brain.");
     } catch {
       setMessage("Could not refresh LinkedIn profile. Try reconnecting.");
@@ -95,91 +133,142 @@ function ConnectContent() {
   async function disconnect() {
     if (!accessToken) return;
     await disconnectLinkedIn(accessToken);
-    setProfile(await getProfessionalProfile(accessToken));
+    await reloadProfile();
     setMessage("Disconnected.");
   }
 
   const linkedin = profile?.linkedin;
+  const statusKey = linkedin?.connection_status ?? "disconnected";
+  const status = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG.disconnected;
+  const displayName =
+    linkedin?.display_name ||
+    linkedin?.profile_knowledge?.name ||
+    "LinkedIn account";
+  const photoUrl = linkedin?.profile_knowledge?.photo_url;
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-8">
-      <h1 className="text-2xl font-semibold">Connect LinkedIn</h1>
-      <p className="mt-2 text-sm text-kova-muted">
-        Optional for v1: you can always copy drafts into LinkedIn. When OAuth
-        is configured, Kova can publish text posts and run your schedule.
-      </p>
+    <div className={WORKSPACE_PAGE}>
+      <div className="mx-auto max-w-2xl space-y-5">
+        <PageHeader
+          eyebrow="Connect"
+          title="LinkedIn"
+          description="Optional for v1: copy drafts into LinkedIn anytime. With OAuth, Kova can publish text posts and run your schedule."
+          actions={
+            <button
+              type="button"
+              disabled={loading}
+              onClick={connect}
+              className="inline-flex h-10 items-center gap-2 rounded-lg bg-kova-orange/15 px-3 text-sm font-semibold text-kova-dark ring-1 ring-kova-orange/40 transition hover:bg-kova-orange/25 disabled:opacity-60"
+            >
+              <PlatformBrandIcon platform="linkedin" size={18} />
+              {loading ? "Opening LinkedIn…" : "Connect LinkedIn"}
+            </button>
+          }
+        />
 
-      {message && (
-        <p className="mt-4 rounded-lg bg-kova-cream px-3 py-2 text-sm">{message}</p>
-      )}
+        <div className="h-px bg-kova-border" />
 
-      <div className="mt-6 rounded-xl border border-kova-border bg-white p-5">
-        <p className="text-sm">
-          Status:{" "}
-          <span className="font-medium capitalize">
-            {linkedin?.connection_status ?? "disconnected"}
-          </span>
-        </p>
-        {linkedin?.display_name && (
-          <p className="mt-1 text-sm text-kova-muted">{linkedin.display_name}</p>
-        )}
-        {!linkedin?.configured && (
-          <p className="mt-3 text-sm text-amber-700">
-            Server env LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET are not set
-            yet.
+        {message && (
+          <p className="rounded-lg border border-kova-green/30 bg-kova-green/5 px-4 py-3 text-sm text-kova-dark">
+            {message}
           </p>
         )}
-        {connectConfig?.redirect_uri && (
-          <div className="mt-4 rounded-lg bg-kova-cream/80 px-3 py-2 text-xs text-kova-ink">
-            <p className="font-semibold">LinkedIn redirect URL (must match exactly)</p>
-            <p className="mt-1 break-all font-mono">{connectConfig.redirect_uri}</p>
-            <p className="mt-2 text-kova-muted">
-              Add this in LinkedIn Developer → Auth → Authorized redirect URLs.
-              Kova builds it from{" "}
-              <span className="font-medium">{connectConfig.redirect_source}</span>{" "}
-              on the API service.
-            </p>
+
+        <div className="overflow-hidden rounded-lg border border-kova-border bg-white">
+          <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <PlatformAvatar
+                platform="linkedin"
+                imageUrl={photoUrl}
+                name={displayName}
+                size="md"
+              />
+              <div>
+                <p className="font-semibold text-kova-dark">{displayName}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                  <span className="inline-flex items-center gap-1 font-medium text-gray-500">
+                    <PlatformBrandIcon platform="linkedin" size={14} />
+                    LinkedIn
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-semibold ${status.bg} ${status.text}`}
+                  >
+                    <span
+                      className={`inline-block h-1.5 w-1.5 rounded-full ${status.dot}`}
+                    />
+                    {status.label}
+                  </span>
+                </div>
+                {linkedin?.profile_knowledge?.headline && (
+                  <p className="mt-2 text-sm text-gray-600">
+                    {linkedin.profile_knowledge.headline}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {linkedin?.connection_status === "connected" && (
+                <button
+                  type="button"
+                  disabled={refreshing}
+                  onClick={refreshProfile}
+                  className="inline-flex h-9 items-center rounded-md border border-kova-border bg-white px-3 text-sm font-semibold text-kova-dark transition hover:border-kova-green disabled:opacity-60"
+                >
+                  {refreshing ? "Syncing…" : "Sync profile"}
+                </button>
+              )}
+              {linkedin?.connection_status === "connected" && (
+                <button
+                  type="button"
+                  onClick={disconnect}
+                  className="inline-flex h-9 items-center rounded-md px-3 text-sm font-semibold text-gray-400 transition hover:text-red-600"
+                >
+                  Disconnect
+                </button>
+              )}
+            </div>
           </div>
-        )}
-        {linkedin?.profile_knowledge?.available && (
-          <div className="mt-4 space-y-1 text-sm text-kova-muted">
-            {linkedin.profile_knowledge.headline && (
-              <p>
-                <span className="font-medium text-kova-ink">Headline: </span>
-                {linkedin.profile_knowledge.headline}
-              </p>
-            )}
-            {(linkedin.profile_knowledge.positions?.length ?? 0) > 0 && (
-              <p>
-                <span className="font-medium text-kova-ink">Roles: </span>
-                {linkedin.profile_knowledge.positions?.slice(0, 4).join(" · ")}
-              </p>
-            )}
-            {linkedin.profile_synced_at && (
-              <p className="text-xs">
-                Last synced{" "}
-                {new Date(linkedin.profile_synced_at).toLocaleString()}
-              </p>
-            )}
-          </div>
-        )}
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button type="button" disabled={loading} onClick={connect}>
-            Connect LinkedIn
-          </Button>
-          {linkedin?.connection_status === "connected" && (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={refreshing}
-              onClick={refreshProfile}
-            >
-              {refreshing ? "Syncing…" : "Sync profile to brain"}
-            </Button>
+
+          {!linkedin?.configured && (
+            <div className="border-t border-kova-border bg-amber-50 px-5 py-3 text-sm text-amber-800">
+              Server env LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET are not
+              set yet.
+            </div>
           )}
-          <Button type="button" variant="outline" onClick={disconnect}>
-            Disconnect
-          </Button>
+
+          {connectConfig?.redirect_uri && (
+            <div className="border-t border-kova-border px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                Redirect URL (must match LinkedIn app)
+              </p>
+              <p className="mt-1 break-all font-mono text-xs text-kova-ink">
+                {connectConfig.redirect_uri}
+              </p>
+              <p className="mt-2 text-xs text-kova-muted">
+                Built from{" "}
+                <span className="font-medium">{connectConfig.redirect_source}</span>{" "}
+                on the API service.
+              </p>
+            </div>
+          )}
+
+          {linkedin?.profile_knowledge?.available && (
+            <div className="border-t border-kova-border px-5 py-4 text-sm text-kova-muted">
+              {(linkedin.profile_knowledge.positions?.length ?? 0) > 0 && (
+                <p>
+                  <span className="font-medium text-kova-ink">Roles: </span>
+                  {linkedin.profile_knowledge.positions?.slice(0, 4).join(" · ")}
+                </p>
+              )}
+              {linkedin.profile_synced_at && (
+                <p className="mt-1 text-xs">
+                  Last synced{" "}
+                  {new Date(linkedin.profile_synced_at).toLocaleString()}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -188,7 +277,7 @@ function ConnectContent() {
 
 export default function LinkedInConnectPage() {
   return (
-    <WorkspacePageFrame>
+    <WorkspacePageFrame embedded requireBusiness={false}>
       <Suspense
         fallback={
           <div className="p-8 text-sm text-kova-muted">Loading…</div>

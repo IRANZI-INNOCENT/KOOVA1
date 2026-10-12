@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 
+import { MobileNavMenu } from "@/components/workspace/mobile-nav-menu";
 import { useAuth } from "@/lib/auth-context";
 
 const PAGE_TITLES: Record<string, { section: string; title: string }> = {
@@ -120,48 +121,17 @@ export function Topbar() {
 
       {/* Mobile navigation overlay */}
       {mobileMenuOpen && (
-        <div className="max-h-[min(70dvh,28rem)] overflow-y-auto border-b border-kova-border bg-white px-4 py-4 lg:hidden">
-          <nav className="space-y-1">
-            <MobileLink href="/workspace/brief" label="Morning Brief" pathname={pathname} onClick={() => setMobileMenuOpen(false)} />
-            <MobileLink href="/workspace/leads" label="Leads" pathname={pathname} onClick={() => setMobileMenuOpen(false)} />
-            <MobileLink href="/workspace/analytics" label="Analytics" pathname={pathname} onClick={() => setMobileMenuOpen(false)} />
-            <MobileLink href="/workspace/settings" label="Settings" pathname={pathname} onClick={() => setMobileMenuOpen(false)} />
-          </nav>
+        <div className="max-h-[min(75dvh,32rem)] overflow-y-auto border-b border-kova-border bg-white px-4 py-4 lg:hidden">
+          <p className="mb-2 px-3 text-xs font-bold uppercase tracking-wide text-gray-400">
+            Workspace
+          </p>
+          <MobileNavMenu
+            pathname={pathname}
+            onNavigate={() => setMobileMenuOpen(false)}
+          />
         </div>
       )}
     </>
   );
 }
 
-function MobileLink({
-  href,
-  label,
-  pathname,
-  onClick,
-  exact,
-  accent,
-}: {
-  href: string;
-  label: string;
-  pathname: string;
-  onClick: () => void;
-  exact?: boolean;
-  accent?: boolean;
-}) {
-  const active = exact ? pathname === href : pathname.startsWith(href);
-  return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className={`block rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
-        accent && !active
-          ? "bg-kova-green/5 text-kova-green"
-          : active
-            ? "bg-kova-background text-kova-green"
-            : "text-gray-600 hover:bg-kova-background hover:text-kova-dark"
-      }`}
-    >
-      {label}
-    </Link>
-  );
-}

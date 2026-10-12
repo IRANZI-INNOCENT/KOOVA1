@@ -190,7 +190,8 @@ In the Meta developer app used by the local `.env` values:
 3. For comment delivery, add a webhook:
 
    - Callback URL: `https://YOUR-API.up.railway.app/api/social/meta/webhook/`
-   - Verify token: the same value as `FACEBOOK_WEBHOOK_VERIFY_TOKEN` (`kova` unless you changed it)
+   - Verify token: the same long random string as `FACEBOOK_WEBHOOK_VERIFY_TOKEN` on the API service
+   - POST payloads are rejected unless `X-Hub-Signature-256` matches `FACEBOOK_APP_SECRET` (Meta signs every delivery)
 
 The login dialog requests these scopes (see `apps/social/services/capabilities.py`):
 
@@ -200,6 +201,31 @@ The login dialog requests these scopes (see `apps/social/services/capabilities.p
 Owners who connected before new scopes were added must reconnect from **Channels**.
 
 The scheduler also pulls comments every minute, so a missed webhook is picked up on the next loop.
+
+## 9b. Django admin and deploy superuser (API service)
+
+Set on the **API** service only:
+
+| Variable | Purpose |
+|----------|---------|
+| `KOVA_SUPERUSER_EMAIL` | Admin login email (created on first deploy) |
+| `KOVA_SUPERUSER_PASSWORD` | At least 12 characters; used only when the user is first created |
+| `KOVA_SUPERUSER_FORCE_PASSWORD` | Set to `1` to reset that password on the next deploy |
+| `KOVA_ADMIN_GATE_SECRET` | Long random secret; required to open admin (see below) |
+| `KOVA_ADMIN_URL` | Optional path prefix (default `admin/`) |
+| `KOVA_ADMIN_IP_ALLOWLIST` | Optional comma-separated IPs/CIDRs allowed to reach admin |
+
+`ensure_superuser` runs in the Railway **preDeploy** hook after migrations.
+
+**Opening admin in production**
+
+1. Visit once (bookmark this; do not share publicly):
+
+   `https://YOUR-API.up.railway.app/admin/?kova_admin_gate=YOUR_KOVA_ADMIN_GATE_SECRET`
+
+2. The gate sets an HttpOnly cookie for seven days; then sign in with `KOVA_SUPERUSER_EMAIL` / your password.
+
+Without the gate query param (when `KOVA_ADMIN_GATE_SECRET` is set), `/admin/` returns 403.
 
 ## 10. Check the live site
 

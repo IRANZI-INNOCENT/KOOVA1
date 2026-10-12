@@ -5,12 +5,16 @@ from .views import (
     ContentApproveView,
     ContentBatchListView,
     ContentCampaignView,
+    ContentCapabilitiesView,
+    OrganicSeedsView,
     ContentDetailView,
+    ContentMediaUploadView,
     ContentScheduleView,
     ContentDraftView,
     ContentListView,
     ContentPublishView,
     ContentRejectView,
+    OwnerVideoPublishView,
     ProductContentStatusView,
 )
 
@@ -21,6 +25,26 @@ urlpatterns = [
         "<int:business_id>/channels/",
         ConnectedChannelsView.as_view(),
         name="connected-channels",
+    ),
+    path(
+        "<int:business_id>/capabilities/",
+        ContentCapabilitiesView.as_view(),
+        name="content-capabilities",
+    ),
+    path(
+        "<int:business_id>/organic-seeds/",
+        OrganicSeedsView.as_view(),
+        name="organic-seeds",
+    ),
+    path(
+        "<int:business_id>/media/upload/",
+        ContentMediaUploadView.as_view(),
+        name="content-media-upload",
+    ),
+    path(
+        "<int:business_id>/owner-video/",
+        OwnerVideoPublishView.as_view(),
+        name="content-owner-video",
     ),
     path(
         "<int:business_id>/campaign/",

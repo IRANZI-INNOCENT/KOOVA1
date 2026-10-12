@@ -7,7 +7,8 @@ import {
 
 import { useRouter } from "next/navigation";
 
-import { AppShell } from "@/components/workspace/app-shell";
+import { StoreShareLink } from "@/components/commerce/store-share-link";
+import { WORKSPACE_PAGE } from "@/components/ui/page-header";
 
 import {
   useAuth,
@@ -441,7 +442,7 @@ export default function StorefrontPage() {
 
   if (loading) {
     return (
-      <AppShell>
+      <div className={WORKSPACE_PAGE}>
         <div className="flex min-h-[60vh] items-center justify-center">
           <div className="text-center">
             <div
@@ -454,13 +455,13 @@ export default function StorefrontPage() {
             </p>
           </div>
         </div>
-      </AppShell>
+      </div>
     );
   }
 
 
   return (
-    <AppShell>
+    <div className={WORKSPACE_PAGE}>
       <div className="p-6 sm:p-8">
         <div className="mx-auto max-w-5xl">
 
@@ -753,6 +754,13 @@ export default function StorefrontPage() {
                 </p>
 
 
+                {page?.slug && (
+                  <StoreShareLink
+                    slug={page.slug}
+                    published={!!page.is_published}
+                  />
+                )}
+
                 <button
                   type="button"
                   onClick={
@@ -774,24 +782,6 @@ export default function StorefrontPage() {
               </div>
 
 
-              {page?.slug && (
-                <div className="border border-kova-border bg-white p-6">
-                  <p className="text-sm font-semibold text-kova-dark">
-                    Storefront address
-                  </p>
-
-                  <p className="mt-2 break-all text-sm text-gray-500">
-                    /commerce/{page.slug}
-                  </p>
-
-                  <p className="mt-3 text-xs leading-5 text-gray-400">
-                    The public storefront route will use this
-                    unique business slug.
-                  </p>
-                </div>
-              )}
-
-
               <div className="border border-kova-border bg-kova-background p-6">
                 <p className="font-semibold text-kova-dark">
                   What happens next?
@@ -811,6 +801,6 @@ export default function StorefrontPage() {
 
         </div>
       </div>
-    </AppShell>
+    </div>
   );
 }
