@@ -56,11 +56,16 @@ export function setStoredActiveBusinessId(businessId: number): void {
   );
 }
 
+export type BusinessPickCandidate = {
+  id: number;
+  created_at?: string;
+};
+
 /** First-created business is the default brain; user can switch in the shell. */
-export function pickActiveBusiness(
-  businesses: Business[],
+export function pickActiveBusiness<T extends BusinessPickCandidate>(
+  businesses: readonly T[],
   preferredId?: number | null,
-): Business {
+): T {
   if (!businesses.length) {
     throw new Error("No business is configured.");
   }
@@ -72,11 +77,15 @@ export function pickActiveBusiness(
       return match;
     }
   }
-  const sorted = [...businesses].sort(
-    (a, b) =>
-      new Date(a.created_at).getTime() -
-      new Date(b.created_at).getTime(),
-  );
+  const sorted = [...businesses].sort((a, b) => {
+    const aTime = a.created_at
+      ? new Date(a.created_at).getTime()
+      : 0;
+    const bTime = b.created_at
+      ? new Date(b.created_at).getTime()
+      : 0;
+    return aTime - bTime;
+  });
   return sorted[0];
 }
 

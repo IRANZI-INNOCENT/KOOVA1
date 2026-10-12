@@ -116,26 +116,33 @@ export async function getBusiness(
     businessId?: number | null;
   },
 ): Promise<Business> {
+  const activeKey = options?.businessId ?? "active";
   const cacheKey = options?.userId
-    ? `business:uid:${options.userId}:${options.businessId ?? "active"}`
-    : `business:token:${token.slice(-12)}:${options.businessId ?? "active"}`;
+    ? `business:uid:${options.userId}:${activeKey}`
+    : `business:token:${token.slice(-12)}:${activeKey}`;
 
   return cachedResource(
     cacheKey,
     BUSINESS_CACHE_TTL_MS,
     async () => {
-      const businesses =
-        await authenticatedApiRequest<Business[]>(
-          "/businesses/",
-          token,
-        );
-
-      const { pickActiveBusiness } = await import("@/lib/business");
-
-      return pickActiveBusiness(
+      const { getBusinesses, pickActiveBusiness } =
+        await import("@/lib/business");
+      const businesses = await getBusinesses(token);
+      const picked = pickActiveBusiness(
         businesses,
         options?.businessId,
       );
+      return {
+        id: picked.id,
+        name: picked.name,
+        description: picked.description,
+        industry: picked.industry,
+        location: picked.location,
+        email: picked.email,
+        phone: picked.phone,
+        created_at: picked.created_at,
+        updated_at: picked.updated_at,
+      };
     },
     { revalidate: options?.revalidate },
   );
