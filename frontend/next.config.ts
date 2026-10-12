@@ -5,6 +5,9 @@ const apiProxyTarget = (
 ).replace(/\/$/, "");
 
 const nextConfig: NextConfig = {
+  // Django API routes use trailing slashes (APPEND_SLASH). Without this, Next
+  // 308-strips the slash and Django 301-adds it → redirect loop on /api/* proxy.
+  skipTrailingSlashRedirect: true,
   async rewrites() {
     if (!apiProxyTarget) {
       return [];
