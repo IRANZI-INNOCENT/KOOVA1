@@ -18,7 +18,7 @@ export function AutopilotStudioPanel({
 }) {
   const [desk, setDesk] = useState<AutopilotDesk | null>(null);
   const [loading, setLoading] = useState(true);
-  const [running, setRunning] = useState(false);
+  const [startingShift, setStartingShift] = useState(false);
   const [error, setError] = useState("");
 
   async function refresh() {
@@ -49,19 +49,20 @@ export function AutopilotStudioPanel({
   }, [businessId, accessToken]);
 
   async function runShift() {
-    setRunning(true);
+    setStartingShift(true);
     setError("");
     try {
       setDesk(await startAutopilotShift(businessId, accessToken, true));
     } catch {
       setError("Could not start a shift. Try again from Autopilot.");
     } finally {
-      setRunning(false);
+      setStartingShift(false);
     }
   }
 
   const postItems = desk?.work?.posts ?? [];
-  const running = desk?.shift?.status === "running";
+  const shiftRunning = desk?.shift?.status === "running";
+  const busy = startingShift || shiftRunning;
 
   return (
     <div className="overflow-hidden rounded-lg border border-kova-orange/35 bg-kova-orange/5">
@@ -80,7 +81,7 @@ export function AutopilotStudioPanel({
           <p className="text-sm text-gray-500">Checking the latest shift…</p>
         )}
 
-        {running && (
+        {busy && (
           <p className="flex items-center gap-2 text-sm font-medium text-kova-dark">
             <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-kova-orange" />
             Kova is running a shift (seeds, products, publish)…
@@ -110,11 +111,11 @@ export function AutopilotStudioPanel({
         <div className="flex flex-wrap gap-2 pt-1">
           <button
             type="button"
-            disabled={running}
+            disabled={busy}
             onClick={() => void runShift()}
             className="inline-flex h-9 items-center rounded-md bg-kova-orange px-4 text-xs font-bold text-kova-dark hover:bg-[#f0a46e] disabled:opacity-60"
           >
-            {running ? "Running shift…" : "Run shift now"}
+            {busy ? "Running shift…" : "Run shift now"}
           </button>
           <Link
             href="/workspace/social/autopilot"

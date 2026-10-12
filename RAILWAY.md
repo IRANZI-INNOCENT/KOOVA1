@@ -211,7 +211,7 @@ Set on the **API** service only:
 | `KOVA_SUPERUSER_EMAIL` | Admin login email (created on first deploy) |
 | `KOVA_SUPERUSER_PASSWORD` | At least 12 characters; used only when the user is first created |
 | `KOVA_SUPERUSER_FORCE_PASSWORD` | Set to `1` to reset that password on the next deploy |
-| `KOVA_ADMIN_GATE_SECRET` | Long random secret; required to open admin (see below) |
+| `KOVA_ADMIN_GATE_SECRET` | Long random secret to open admin (optional if `DJANGO_SECRET_KEY` is set — see below) |
 | `KOVA_ADMIN_URL` | Optional path prefix (default `admin/`) |
 | `KOVA_ADMIN_IP_ALLOWLIST` | Optional comma-separated IPs/CIDRs allowed to reach admin |
 
@@ -225,7 +225,9 @@ Set on the **API** service only:
 
 2. The gate sets an HttpOnly cookie for seven days; then sign in with `KOVA_SUPERUSER_EMAIL` / your password.
 
-Without the gate query param (when `KOVA_ADMIN_GATE_SECRET` is set), `/admin/` returns 403.
+Without the gate query param, `/admin/` returns 403.
+
+If you omit `KOVA_ADMIN_GATE_SECRET`, the gate value is derived from `DJANGO_SECRET_KEY` (SHA-256 of `SECRET_KEY + ":kova-admin-gate-v1"`). Set an explicit `KOVA_ADMIN_GATE_SECRET` when you want admin access independent of rotating the Django secret.
 
 ## 10. Check the live site
 

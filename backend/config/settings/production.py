@@ -1,3 +1,4 @@
+import hashlib
 import os
 from urllib.parse import unquote, urlparse
 
@@ -55,10 +56,16 @@ CSRF_COOKIE_SECURE = True
 KOVA_ADMIN_GATE_COOKIE_SECURE = True
 
 if not KOVA_ADMIN_GATE_SECRET:
-    raise ImproperlyConfigured(
-        "Set KOVA_ADMIN_GATE_SECRET on the API service (long random string). "
-        "Open admin once with /admin/?kova_admin_gate=that-secret",
-    )
+    if SECRET_KEY:
+        # Boot without a separate Railway var; override with KOVA_ADMIN_GATE_SECRET when you can.
+        KOVA_ADMIN_GATE_SECRET = hashlib.sha256(
+            f"{SECRET_KEY}:kova-admin-gate-v1".encode("utf-8"),
+        ).hexdigest()
+    else:
+        raise ImproperlyConfigured(
+            "Set DJANGO_SECRET_KEY on the API service, or set KOVA_ADMIN_GATE_SECRET "
+            "explicitly. Open admin once with /admin/?kova_admin_gate=that-secret",
+        )
 
 MIDDLEWARE.insert(
     2,

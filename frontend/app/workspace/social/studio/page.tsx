@@ -187,7 +187,6 @@ export default function ContentStudioPage() {
         await publishOwnerVideo(businessId, accessToken, {
           asset_id: uploaded.id,
           caption: note,
-          schedule: mode === "autopilot",
         });
       } else {
         await authenticatedApiRequest(
