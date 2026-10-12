@@ -15,7 +15,12 @@ from apps.leads.models import Lead
 from apps.social.adapters.base import PublishResult
 from apps.social.models import SocialAccount, SocialMessage, SocialPost
 from apps.social.services.inbox import record_inbound
-from apps.social.services.publish import dispatch_due, enqueue, outgoing_text
+from apps.social.services.publish import (
+    dispatch_due,
+    enqueue,
+    outgoing_text,
+    publish_autopilot_batch,
+)
 
 
 User = get_user_model()
@@ -171,6 +176,35 @@ class LoopTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["delivery_status"], "sent")
         adapter.return_value.send_reply.assert_called_once()
+
+    @patch("apps.social.services.publish.MetaAdapter.publish_post")
+    def test_autopilot_batch_publishes_first_piece_immediately(self, publish_post):
+        publish_post.return_value = PublishResult(success=True, external_post_id="fb-auto-1")
+        first = Content.objects.create(
+            business=self.business,
+            platform="facebook",
+            content_type="post",
+            caption="Autopilot now.",
+        )
+        second = Content.objects.create(
+            business=self.business,
+            platform="instagram",
+            content_type="post",
+            caption="Autopilot soon.",
+        )
+        ig_account = SocialAccount.objects.create(
+            business=self.business,
+            platform=SocialAccount.Platform.INSTAGRAM,
+            connection_status=SocialAccount.ConnectionStatus.CONNECTED,
+            account_name="Loop IG",
+        )
+        publish_autopilot_batch(self.business, [first.id, second.id])
+        first.refresh_from_db()
+        second_post = SocialPost.objects.get(content=second)
+        self.assertEqual(first.status, Content.Status.PUBLISHED)
+        publish_post.assert_called_once()
+        self.assertEqual(second_post.publishing_status, SocialPost.PublishingStatus.SCHEDULED)
+        self.assertIsNotNone(second_post.scheduled_at)
 
     @patch("apps.social.services.publish.MetaAdapter.publish_post")
     def test_future_post_waits_until_dispatch(self, publish_post):

@@ -33,6 +33,11 @@ def schedule_posts(
     if not contents:
         raise ValueError("There is no content to schedule.")
 
+    if autopilot:
+        from apps.social.services.publish import publish_autopilot_batch
+
+        return publish_autopilot_batch(business, content_ids)
+
     try:
         plan = _ask_for_times(business, contents, autopilot=autopilot)
     except OpenRouterError:

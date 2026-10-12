@@ -503,7 +503,7 @@ class OwnerVideoPublishView(APIView):
                 result["scheduled"] = schedule_posts(
                     business,
                     content_ids,
-                    autopilot=autopilot or bool(request.data.get("schedule")),
+                    autopilot=autopilot,
                 )
                 dispatch_due(business.id)
             except (ValueError, OpenRouterError) as exc:

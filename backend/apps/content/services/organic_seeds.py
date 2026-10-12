@@ -96,6 +96,25 @@ def _normalize_seeds(raw: list) -> list[dict]:
     return out[:8]
 
 
+def pick_autopilot_organic_seed(business: Business) -> dict:
+    """
+    One seed for today's autopilot shift (rotates so angles do not repeat daily).
+    """
+    from datetime import date
+
+    seeds = generate_organic_seeds(business)
+    if not seeds:
+        return {
+            "id": "fallback",
+            "title": "Quick tip",
+            "brief": "Share one useful tip for your customers today.",
+            "theme_key": "tip",
+            "theme_label": "Quick tip",
+        }
+    idx = date.today().toordinal() % len(seeds)
+    return seeds[idx]
+
+
 def generate_organic_seeds(business: Business) -> list[dict]:
     """
     Return 5–8 organic post angles for the owner to pick from.

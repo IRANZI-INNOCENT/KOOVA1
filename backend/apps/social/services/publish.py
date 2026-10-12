@@ -108,6 +108,46 @@ def enqueue(content: Content, scheduled_at: datetime | None = None) -> SocialPos
     return dispatch_post(post)
 
 
+def publish_autopilot_batch(business, content_ids: list[int]) -> list[dict]:
+    """
+    Autopilot: send drafts live with a short stagger (not a distant calendar slot).
+
+    The first piece publishes during the shift; the rest follow within a few minutes
+    and are picked up by dispatch_due (shift end or the worker loop).
+    """
+    contents = list(
+        Content.objects.filter(business=business, pk__in=content_ids)
+        .exclude(status=Content.Status.REJECTED)
+        .order_by("id")
+    )
+    if not contents:
+        raise ValueError("There is no content to publish.")
+
+    now = timezone.now()
+    gap = timedelta(seconds=75)
+    rows: list[dict] = []
+    for index, content in enumerate(contents):
+        when = now if index == 0 else now + gap * index
+        enqueue(content, when)
+        rows.append(
+            {
+                "content_id": content.id,
+                "platform": content.platform,
+                "content_type": content.content_type,
+                "product_name": content.product.name if content.product_id else "",
+                "scheduled_at": when.isoformat(),
+                "reason": (
+                    "Autopilot: publishing now."
+                    if index == 0
+                    else f"Autopilot: sending in about {index * 75 // 60 or 1} min."
+                ),
+            }
+        )
+
+    dispatch_due(business.id)
+    return rows
+
+
 def dispatch_due(business_id: int | None = None) -> int:
     """Send every post that is due. Returns how many were attempted."""
     now = timezone.now()

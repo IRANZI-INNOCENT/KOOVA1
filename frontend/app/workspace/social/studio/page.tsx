@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+import { AutopilotStudioPanel } from "@/components/social/autopilot-studio-panel";
 import { PlatformAvatar } from "@/components/social/platform-avatar";
 import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { ApiError, authenticatedApiRequest } from "@/lib/api";
@@ -160,6 +161,12 @@ export default function ContentStudioPage() {
 
   async function generateCampaign() {
     if (!businessId || !accessToken) return;
+    if (mode === "autopilot") {
+      setError(
+        "Autopilot creates and schedules content on each shift. Use Run shift now below or open Autopilot.",
+      );
+      return;
+    }
     setGenerating(true);
     setError("");
     try {
@@ -364,7 +371,15 @@ export default function ContentStudioPage() {
           </div>
         )}
 
-        {/* ──── Brief composer ──── */}
+        {mode === "autopilot" && businessId && accessToken && (
+          <AutopilotStudioPanel
+            businessId={businessId}
+            accessToken={accessToken}
+          />
+        )}
+
+        {/* ──── Brief composer (assist / approval only) ──── */}
+        {mode !== "autopilot" && (
         <div className="overflow-hidden rounded-lg border border-kova-border bg-white">
           <div className="border-b border-kova-border bg-gradient-to-r from-kova-orange/10 to-kova-orange/5 px-5 py-4 sm:px-6">
             <h2 className="text-sm font-bold text-kova-dark">
@@ -590,9 +605,10 @@ export default function ContentStudioPage() {
             </button>
           </div>
         </div>
+        )}
 
         {/* ──── Empty state ──── */}
-        {batches.length === 0 && !generating && (
+        {mode !== "autopilot" && batches.length === 0 && !generating && (
           <div className="rounded-lg border-2 border-dashed border-kova-border bg-white p-8 text-center">
             <p className="font-semibold text-kova-dark">
               No content generated yet

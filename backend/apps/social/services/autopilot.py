@@ -178,13 +178,49 @@ def _items_from_events(events, reader) -> list[dict]:
 
 def _post_event(event: AutopilotEvent) -> dict | None:
     title = event.title
+    if title.startswith("Published posts for "):
+        return _item(
+            f"event-{event.id}",
+            title.removeprefix("Published posts for "),
+            event.detail or "Live on your channels",
+            "done",
+            "/workspace/social/calendar",
+            event.created_at,
+        )
     if title.startswith("Scheduled posts for "):
         return _item(
             f"event-{event.id}",
             title.removeprefix("Scheduled posts for "),
-            "On the calendar",
+            event.detail or "On the calendar",
             "scheduled",
             "/workspace/social/calendar",
+            event.created_at,
+        )
+    if title.startswith("Published organic"):
+        return _item(
+            f"event-{event.id}",
+            "Organic posts",
+            event.detail or "Live on your channels",
+            "done",
+            "/workspace/social/calendar",
+            event.created_at,
+        )
+    if title.startswith("Scheduled organic"):
+        return _item(
+            f"event-{event.id}",
+            "Organic posts",
+            event.detail or "On the calendar",
+            "scheduled",
+            "/workspace/social/calendar",
+            event.created_at,
+        )
+    if title.startswith("Content seed:"):
+        return _item(
+            f"event-{event.id}",
+            title.removeprefix("Content seed:").strip(),
+            event.detail or "Used for organic content",
+            "scheduled",
+            "/workspace/social/studio",
             event.created_at,
         )
     if title.startswith("Could not write a post for ") or title.startswith("No post was saved for "):
@@ -602,10 +638,11 @@ def _publish(shift: AutopilotShift, business: Business, posts: list) -> None:
         return
     try:
         schedule_posts(business, content_ids, autopilot=True)
+        detail = _autopilot_publish_detail(content_ids)
         _event(
             shift,
-            f"Scheduled posts for {product.name}",
-            "Kova placed them on the calendar and will send each one when its time arrives.",
+            f"Published posts for {product.name}",
+            detail,
         )
     except Exception as exc:
         _event(shift, f"Posts for {product.name} are drafted", str(exc)[:400], failed=True)
@@ -613,22 +650,50 @@ def _publish(shift: AutopilotShift, business: Business, posts: list) -> None:
 
 def _publish_organic(shift: AutopilotShift, business: Business, items: list) -> None:
     from apps.content.services.organic import ORGANIC_THEMES, draft_organic_campaign
+    from apps.content.services.organic_seeds import (
+        generate_organic_seeds,
+        pick_autopilot_organic_seed,
+    )
 
     valid_themes = {t["key"] for t in ORGANIC_THEMES}
-    chosen = None
+    seeds = generate_organic_seeds(business)
+    seed_by_theme = {s["theme_key"]: s for s in seeds}
+
+    theme_key = ""
+    note = ""
+    seed_title = ""
+
     for item in items:
         if not isinstance(item, dict):
             continue
-        theme = str(item.get("theme") or "tip").strip().lower()
-        if theme in valid_themes:
-            chosen = (theme, str(item.get("note") or "").strip())
-            break
-    if chosen is None:
-        if not items:
-            return
-        chosen = ("educate", "Share something helpful about the business today.")
+        theme = str(item.get("theme") or "").strip().lower()
+        if theme not in valid_themes:
+            continue
+        theme_key = theme
+        note = str(item.get("note") or "").strip()
+        break
 
-    theme_key, note = chosen
+    if not theme_key:
+        picked = pick_autopilot_organic_seed(business)
+        theme_key = picked["theme_key"]
+        note = picked["brief"]
+        seed_title = picked.get("title") or picked.get("theme_label") or theme_key
+        _event(
+            shift,
+            f"Content seed: {seed_title}",
+            note[:500],
+        )
+    else:
+        matched = seed_by_theme.get(theme_key)
+        if matched and len(note) < 40:
+            note = matched["brief"]
+            seed_title = matched.get("title") or theme_key
+        elif matched:
+            seed_title = matched.get("title") or theme_key
+        else:
+            seed_title = theme_key
+        if seed_title:
+            _event(shift, f"Content seed: {seed_title}", note[:500] if note else "")
     try:
         result = draft_organic_campaign(
             business,
@@ -645,10 +710,11 @@ def _publish_organic(shift: AutopilotShift, business: Business, items: list) -> 
         return
     try:
         schedule_posts(business, content_ids, autopilot=True)
+        detail = _autopilot_publish_detail(content_ids)
         _event(
             shift,
-            f"Scheduled organic ({theme_key}) posts",
-            "Educational / brand content added to the calendar.",
+            f"Published organic ({theme_key}) posts",
+            detail or "Educational / brand content sent to your channels.",
         )
     except Exception as exc:
         _event(shift, "Organic drafts saved", str(exc)[:400], failed=True)
@@ -697,6 +763,31 @@ def _report(shift: AutopilotShift, business: Business) -> None:
         _event(shift, "Filed today's report", brief.greeting or brief.sections.get("pulse", {}).get("summary", ""))
     else:
         _event(shift, "The report did not finish", brief.error_message[:400], failed=True)
+
+
+def _autopilot_publish_detail(content_ids: list[int]) -> str:
+    from apps.social.models import SocialPost
+
+    if not content_ids:
+        return ""
+    rows = SocialPost.objects.filter(content_id__in=content_ids)
+    published = rows.filter(
+        publishing_status=SocialPost.PublishingStatus.PUBLISHED,
+    ).count()
+    scheduled = rows.filter(
+        publishing_status=SocialPost.PublishingStatus.SCHEDULED,
+    ).count()
+    failed = rows.filter(
+        publishing_status=SocialPost.PublishingStatus.FAILED,
+    ).count()
+    parts: list[str] = []
+    if published:
+        parts.append(f"{published} live on your channel{'s' if published != 1 else ''}.")
+    if scheduled:
+        parts.append(f"{scheduled} sending in the next few minutes.")
+    if failed:
+        parts.append(f"{failed} failed — open Calendar to retry.")
+    return " ".join(parts) or "Queued to publish."
 
 
 def _products_named(business: Business, names: list) -> list[Product]:
