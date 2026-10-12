@@ -19,10 +19,14 @@ function ConnectContent() {
   const [profile, setProfile] = useState<ProfessionalProfile | null>(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [redirectUri, setRedirectUri] = useState("");
 
   useEffect(() => {
     if (!accessToken) return;
     getProfessionalProfile(accessToken).then(setProfile);
+    getLinkedInOAuthUrl(accessToken)
+      .then((data) => setRedirectUri(data.redirect_uri ?? ""))
+      .catch(() => setRedirectUri(""));
   }, [accessToken]);
 
   useEffect(() => {
@@ -85,6 +89,16 @@ function ConnectContent() {
             Server env LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET are not set
             yet.
           </p>
+        )}
+        {redirectUri && (
+          <div className="mt-4 rounded-lg bg-kova-cream/80 px-3 py-2 text-xs text-kova-ink">
+            <p className="font-semibold">LinkedIn redirect URL (must match exactly)</p>
+            <p className="mt-1 break-all font-mono">{redirectUri}</p>
+            <p className="mt-2 text-kova-muted">
+              Paste this under your LinkedIn app → Auth → Authorized redirect
+              URLs for OAuth 2.0.
+            </p>
+          </div>
         )}
         <div className="mt-4 flex gap-2">
           <Button type="button" disabled={loading} onClick={connect}>

@@ -393,8 +393,8 @@ export async function generateWeeklyBrief(
 
 export async function getLinkedInOAuthUrl(
   token: string,
-): Promise<{ url: string }> {
-  return authenticatedApiRequest<{ url: string }>(
+): Promise<{ url: string; redirect_uri?: string }> {
+  return authenticatedApiRequest<{ url: string; redirect_uri?: string }>(
     "/professional/linkedin/oauth-url/",
     token,
   );

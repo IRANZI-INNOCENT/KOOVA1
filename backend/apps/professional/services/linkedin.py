@@ -22,6 +22,24 @@ def linkedin_configured() -> bool:
     )
 
 
+def linkedin_oauth_redirect_uri(request) -> str:
+    """
+    Redirect URI sent to LinkedIn — must match the Developer app exactly.
+
+    With Next.js proxying /api to the API service, use the public site origin
+    (FRONTEND_URL), not the API Railway hostname. Override with LINKEDIN_REDIRECT_URI.
+    """
+    explicit = os.getenv("LINKEDIN_REDIRECT_URI", "").strip()
+    if explicit:
+        return explicit if explicit.endswith("/") else f"{explicit}/"
+
+    front = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
+    if front:
+        return f"{front}/api/professional/linkedin/callback/"
+
+    return request.build_absolute_uri("/api/professional/linkedin/callback/")
+
+
 def oauth_authorize_url(*, state: str, redirect_uri: str) -> str:
     client_id = os.getenv("LINKEDIN_CLIENT_ID", "")
     scopes = " ".join(

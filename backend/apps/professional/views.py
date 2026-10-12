@@ -609,9 +609,9 @@ class LinkedInOAuthURLView(APIView):
             )
         profile = get_profile(request.user)
         state = signing.dumps({"profile_id": profile.id})
-        redirect_uri = request.build_absolute_uri("/api/professional/linkedin/callback/")
+        redirect_uri = linkedin_service.linkedin_oauth_redirect_uri(request)
         url = linkedin_service.oauth_authorize_url(state=state, redirect_uri=redirect_uri)
-        return Response({"url": url})
+        return Response({"url": url, "redirect_uri": redirect_uri})
 
 
 class LinkedInOAuthCallbackView(APIView):
@@ -628,7 +628,7 @@ class LinkedInOAuthCallbackView(APIView):
         if not code or not state:
             return redirect(f"{front}/workspace/linkedin/connect?error=state")
 
-        redirect_uri = request.build_absolute_uri("/api/professional/linkedin/callback/")
+        redirect_uri = linkedin_service.linkedin_oauth_redirect_uri(request)
         try:
             payload = signing.loads(state, max_age=900)
             profile_id = int(payload["profile_id"])
