@@ -188,9 +188,13 @@ export function WorkspaceProvider({
       return;
     }
 
-    for (const href of WORKSPACE_PREFETCH_ROUTES) {
-      router.prefetch(href);
-    }
+    const timer = window.setTimeout(() => {
+      for (const href of WORKSPACE_PREFETCH_ROUTES) {
+        router.prefetch(href);
+      }
+    }, 1500);
+
+    return () => window.clearTimeout(timer);
   }, [authLoading, isAuthenticated, router]);
 
   const value = useMemo<WorkspaceContextValue>(

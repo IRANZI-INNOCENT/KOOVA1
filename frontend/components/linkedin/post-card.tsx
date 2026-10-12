@@ -5,6 +5,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { ProfessionalPost } from "@/lib/professional";
 
+function stripDeckLabel(text: string): string {
+  return text.replace(/^slide\s+\d+\s*[:.\-–—]\s*/i, "").trim();
+}
+
 interface PostCardProps {
   post: ProfessionalPost;
   operatingMode: "assist" | "approval";
@@ -24,7 +28,12 @@ export function PostCard({
   onPublish,
   onCopied,
 }: PostCardProps) {
-  const [body, setBody] = useState(post.body);
+  const isCarouselOutline = post.format === "carousel_outline";
+  const initialBody =
+    isCarouselOutline && post.copy_text
+      ? post.copy_text
+      : post.body;
+  const [body, setBody] = useState(initialBody);
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
 
@@ -84,12 +93,17 @@ export function PostCard({
         value={body}
         onChange={(e) => setBody(e.target.value)}
       />
-      {post.carousel_slides?.length > 0 && (
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-kova-muted">
+      {!isCarouselOutline && post.carousel_slides?.length > 0 && (
+        <div className="mt-3 space-y-2 border-t border-kova-border pt-3">
           {post.carousel_slides.map((slide, index) => (
-            <li key={index}>{slide}</li>
+            <p
+              key={index}
+              className="border-l-2 border-kova-green/40 pl-3 text-sm text-kova-muted"
+            >
+              {stripDeckLabel(slide)}
+            </p>
           ))}
-        </ul>
+        </div>
       )}
       {message && <p className="mt-2 text-sm text-kova-green">{message}</p>}
       {post.publish_error && (

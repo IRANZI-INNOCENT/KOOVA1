@@ -88,9 +88,8 @@ export default function LoginPage() {
         password,
       });
 
-      router.push("/workspace");
-
-        } catch (error) {
+      router.replace("/workspace");
+    } catch (error) {
       console.error(
         "Kova login failed:",
         error,

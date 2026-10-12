@@ -269,10 +269,7 @@ class SocialOverviewView(APIView):
         business = get_object_or_404(
             Business, id=business_id, owner=request.user,
         )
-        from .services.connection import backfill_missing_profiles
-
         accounts = list(SocialAccount.objects.filter(business=business))
-        backfill_missing_profiles(accounts)
         connected = sum(
             1
             for a in accounts
@@ -305,6 +302,22 @@ class SocialOverviewView(APIView):
 
         from .services.command import build_social_command
 
+        try:
+            command = build_social_command(business)
+        except Exception:
+            command = {
+                "scheduled_posts": 0,
+                "conversations_to_review": 0,
+                "potential_leads": 0,
+                "actions_verified_today": 0,
+                "automation_paused": False,
+                "pause_reason": "",
+                "response_hours": None,
+                "recommendations": [],
+                "plan": "",
+                "lessons": [],
+            }
+
         return Response({
             "channels": {
                 "connected": connected,
@@ -318,7 +331,7 @@ class SocialOverviewView(APIView):
             },
             "pending_actions": pending_actions,
             "recent_actions": recent_actions,
-            "command": build_social_command(business),
+            "command": command,
         })
 
 

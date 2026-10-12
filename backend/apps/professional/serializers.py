@@ -189,10 +189,26 @@ class ProfessionalPostSerializer(serializers.ModelSerializer):
         ]
 
     def get_copy_text(self, obj: ProfessionalPost) -> str:
-        if obj.format == ProfessionalPost.Format.CAROUSEL_OUTLINE and obj.carousel_slides:
-            slides = "\n\n---\n\n".join(str(s) for s in obj.carousel_slides)
-            return f"{obj.body.strip()}\n\n[Carousel slides]\n{slides}".strip()
+        from apps.professional.services.carousel_copy import (
+            linkedin_carousel_copy,
+            normalize_carousel_slides,
+        )
+
+        if obj.format == ProfessionalPost.Format.CAROUSEL_OUTLINE:
+            slides = normalize_carousel_slides(obj.carousel_slides)
+            if slides:
+                return linkedin_carousel_copy(obj.body, slides)
         return obj.body
+
+    def to_representation(self, instance):
+        from apps.professional.services.carousel_copy import normalize_carousel_slides
+
+        data = super().to_representation(instance)
+        if data.get("carousel_slides"):
+            data["carousel_slides"] = normalize_carousel_slides(
+                data["carousel_slides"],
+            )
+        return data
 
 
 class ProfessionalWeeklyBriefSerializer(serializers.ModelSerializer):

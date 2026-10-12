@@ -73,15 +73,19 @@ export default function SocialOverviewPage() {
 
     async function load() {
       try {
-        const [data, policy] = await Promise.all([
-          getSocialOverview(bizId, token),
-          getBusinessPolicy(bizId, token),
-        ]);
+        const data = await getSocialOverview(bizId, token);
         if (cancelled) {
           return;
         }
         setOverview(data);
-        setMode(policy.social_operating_mode);
+        try {
+          const policy = await getBusinessPolicy(bizId, token);
+          if (!cancelled) {
+            setMode(policy.social_operating_mode);
+          }
+        } catch {
+          /* overview still usable; mode defaults to assist */
+        }
       } catch (err) {
         if (cancelled) {
           return;

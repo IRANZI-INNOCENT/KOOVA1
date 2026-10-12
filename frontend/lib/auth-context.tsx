@@ -93,6 +93,10 @@ export function AuthProvider({
   const initializationStarted =
     useRef(false);
 
+  /** Bumped on sign-in so a slow session-restore cannot wipe a fresh login. */
+  const sessionEpoch =
+    useRef(0);
+
 
   /**
    * Keep the API layer synchronized with the access token
@@ -120,10 +124,27 @@ export function AuthProvider({
 
     initializationStarted.current = true;
 
+    const path =
+      typeof window !== "undefined"
+        ? window.location.pathname
+        : "";
+    const isAuthEntryPage =
+      path === "/login" || path === "/signup";
+
+    if (isAuthEntryPage) {
+      setIsLoading(false);
+      return;
+    }
+
+    const epochAtStart = sessionEpoch.current;
 
     async function restoreSession(): Promise<void> {
       try {
         let restored = await renewSession();
+
+        if (epochAtStart !== sessionEpoch.current) {
+          return;
+        }
 
         if (
           !restored.ok &&
@@ -132,7 +153,14 @@ export function AuthProvider({
           await new Promise((resolve) => {
             window.setTimeout(resolve, 400);
           });
+          if (epochAtStart !== sessionEpoch.current) {
+            return;
+          }
           restored = await renewSession();
+        }
+
+        if (epochAtStart !== sessionEpoch.current) {
+          return;
         }
 
         if (restored.ok) {
@@ -141,11 +169,18 @@ export function AuthProvider({
               restored.access,
             );
 
+            if (epochAtStart !== sessionEpoch.current) {
+              return;
+            }
+
             flushSync(() => {
               setAccessToken(restored.access);
               setUser(restoredUser);
             });
           } catch (profileError) {
+            if (epochAtStart !== sessionEpoch.current) {
+              return;
+            }
             if (
               profileError instanceof ApiError &&
               profileError.status === 401
@@ -170,12 +205,14 @@ export function AuthProvider({
           });
         }
       } finally {
-        setIsLoading(false);
+        if (epochAtStart === sessionEpoch.current) {
+          setIsLoading(false);
+        }
       }
     }
 
 
-    restoreSession();
+    void restoreSession();
 
   }, []);
 
@@ -209,6 +246,8 @@ export function AuthProvider({
   async function signIn(
     credentials: LoginCredentials,
   ): Promise<void> {
+
+    sessionEpoch.current += 1;
 
     const response =
       await login(credentials);

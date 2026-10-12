@@ -219,13 +219,18 @@ export async function apiRequest<T>(
     const errorData =
       await readErrorResponse(response);
 
-    throw new ApiError(
-      extractApiErrorMessage(
-        errorData,
-      ),
-      response.status,
-      errorData,
-    );
+    let message = extractApiErrorMessage(errorData);
+    if (
+      (response.status === 502 ||
+        response.status === 503 ||
+        response.status === 504) &&
+      message.includes("could not finish")
+    ) {
+      message =
+        "The Kova API is restarting or unavailable. Wait a minute, then refresh.";
+    }
+
+    throw new ApiError(message, response.status, errorData);
   }
 
 

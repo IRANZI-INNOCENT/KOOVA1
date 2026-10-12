@@ -10,6 +10,7 @@ from apps.business_brain.services.draft import _parse_json
 from apps.kova_ai.services.openrouter import OpenRouterError, OpenRouterService
 
 from ..models import ProfessionalPost, ProfessionalProgram, ProfessionalProfile
+from .carousel_copy import normalize_carousel_slides
 from .linkedin_content import LINKEDIN_ALGORITHM_RULES
 from .professional_brain import (
     attach_brain_to_program_input,
@@ -230,14 +231,15 @@ def run_topic_week_pipeline(
 DRAFTS_PROMPT = (
     "Draft LinkedIn posts that match the LinkedIn Brain voice and pillars.\n"
     f"{LINKEDIN_ALGORITHM_RULES}\n"
-    "For carousel_outline format, return slides as a list of strings in carousel_slides.\n"
+    "For carousel_outline: put the feed hook and intro in body; put each PDF/page "
+    "outline point in carousel_slides as plain sentences (no \"Slide 1\", no deck labels).\n"
     "Keep each text post under 2800 characters. Strong hook in line 1.\n"
     "Each post should connect to the primary pillar when one is listed.\n"
     "When program input mentions event photos or image hints, weave them into the event post naturally.\n\n"
     "Return JSON only:\n"
     '{"posts": [{"arc_index": 1, "post_role": "...", "format": "text|carousel_outline", '
     '"title": "...", "body": "full post text for text format", '
-    '"carousel_slides": ["slide 1", "..."]}]}\n'
+    '"carousel_slides": ["First outline point as a sentence.", "..."]}]}\n'
 )
 
 
@@ -297,7 +299,9 @@ def generate_drafts_for_program(program: ProfessionalProgram) -> list[Profession
             format=fmt,
             title=item.get("title", "")[:200],
             body=item.get("body", ""),
-            carousel_slides=item.get("carousel_slides") or [],
+            carousel_slides=normalize_carousel_slides(
+                item.get("carousel_slides") or [],
+            ),
             status=ProfessionalPost.Status.DRAFT,
         )
         created.append(post)

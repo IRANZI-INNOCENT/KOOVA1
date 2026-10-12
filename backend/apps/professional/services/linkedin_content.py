@@ -10,4 +10,5 @@ LinkedIn algorithm and format rules (2024–2026 feed behavior):
 - Avoid external link in the first lines; if a link is needed, place it after the story.
 - For posts with photos: reference what the images show; do not describe photos you were not given.
 - Dwell time matters: teach, reflect, or tell a mini-story—avoid empty motivational filler.
+- Never label copy as "Slide 1" or deck slides; write like a native LinkedIn post or outline.
 """
