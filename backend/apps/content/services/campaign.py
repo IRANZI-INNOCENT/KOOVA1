@@ -115,6 +115,9 @@ def draft_campaign(
                 "account_name": account.account_name or account.account_username,
                 "platform": content_platform,
                 "content_type": content_type,
+                "ai_key": (
+                    f"account_{account.id}_{content_platform}_{content_type}"
+                ),
             })
 
     if not format_specs:
@@ -137,8 +140,13 @@ def draft_campaign(
     account_map = {a.id: a for a in accounts}
 
     for spec in format_specs:
-        key = f"{spec['platform']}_{spec['content_type']}"
-        piece_data = ai_result.get(key, {})
+        ai_key = spec.get("ai_key") or (
+            f"{spec['platform']}_{spec['content_type']}"
+        )
+        piece_data = ai_result.get(ai_key, {})
+        if not piece_data.get("caption"):
+            fallback = f"{spec['platform']}_{spec['content_type']}"
+            piece_data = ai_result.get(fallback, piece_data)
         if not piece_data.get("caption"):
             continue
 
@@ -261,17 +269,22 @@ def _build_facts(business: Business, note: str, product: Product | None) -> dict
 def _call_ai(facts: dict, format_specs: list[dict]) -> dict:
     formats_desc = []
     for spec in format_specs:
-        key = f"{spec['platform']}_{spec['content_type']}"
+        ai_key = spec.get("ai_key") or (
+            f"{spec['platform']}_{spec['content_type']}"
+        )
         formats_desc.append({
-            "key": key,
+            "key": ai_key,
             "platform": spec["platform"],
             "type": spec["content_type"],
+            "account_name": spec.get("account_name") or "",
         })
 
     system = (
         "You are Kova, a social media manager for a small business. "
         "You create adapted content for multiple platforms simultaneously "
-        "from the same brief. Each piece must be native to its platform: "
+        "from the same brief. When several Facebook Pages are listed, "
+        "write separate copy per account_name (each Page is its own brand voice). "
+        "Each piece must be native to its platform: "
         "Instagram posts use hashtags and a visual voice, "
         "Facebook posts can be slightly longer with a conversational tone, "
         "reels need a punchy script (hook → value → CTA), "
@@ -287,8 +300,8 @@ def _call_ai(facts: dict, format_specs: list[dict]) -> dict:
     user_prompt = (
         "Generate adapted content for these formats:\n"
         f"{json.dumps(formats_desc, ensure_ascii=True)}\n\n"
-        "Return a JSON object where each key is the format key "
-        "(e.g. instagram_post, facebook_carousel) and each value is an object with:\n"
+        "Return a JSON object where each key matches the \"key\" field from the "
+        "formats list (e.g. account_12_facebook_post) and each value is an object with:\n"
         '- "caption": the post text adapted to that platform and format.\n'
         '- "call_to_action": one short action line.\n'
         '- "hashtags": array of 5–10 hashtag strings without #.\n'

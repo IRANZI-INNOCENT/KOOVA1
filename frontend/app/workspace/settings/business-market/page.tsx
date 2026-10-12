@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { useSectionSetup } from "@/components/workspace/use-section-setup";
 import { ApiError, authenticatedApiRequest } from "@/lib/api";
+import { pickActiveBusiness } from "@/lib/business";
 import { useAuth } from "@/lib/auth-context";
 import { SETUP_LABELS, SETUP_SECTIONS } from "@/lib/setup-flow";
 
@@ -110,7 +111,7 @@ export default function BusinessMarketPage() {
           router.replace("/workspace/setup");
           return;
         }
-        const current = businesses[0];
+        const current = pickActiveBusiness(businesses);
         setBusiness(current);
         const brief = await authenticatedApiRequest<MarketBrief>(
           `/business-brain/${current.id}/market/`,

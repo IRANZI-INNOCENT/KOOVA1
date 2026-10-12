@@ -12,6 +12,7 @@ export interface Business {
   location: string;
   email: string;
   phone: string;
+  has_facebook_page?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -26,6 +27,58 @@ export interface CreateBusinessPayload {
   phone: string;
 }
 
+
+export const ACTIVE_BUSINESS_STORAGE_KEY = "kova_active_business_id";
+
+export function getStoredActiveBusinessId(): number | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const raw = window.localStorage.getItem(ACTIVE_BUSINESS_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+    const id = Number(raw);
+    return Number.isFinite(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredActiveBusinessId(businessId: number): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(
+    ACTIVE_BUSINESS_STORAGE_KEY,
+    String(businessId),
+  );
+}
+
+/** First-created business is the default brain; user can switch in the shell. */
+export function pickActiveBusiness(
+  businesses: Business[],
+  preferredId?: number | null,
+): Business {
+  if (!businesses.length) {
+    throw new Error("No business is configured.");
+  }
+  const preferred =
+    preferredId ?? getStoredActiveBusinessId();
+  if (preferred != null) {
+    const match = businesses.find((item) => item.id === preferred);
+    if (match) {
+      return match;
+    }
+  }
+  const sorted = [...businesses].sort(
+    (a, b) =>
+      new Date(a.created_at).getTime() -
+      new Date(b.created_at).getTime(),
+  );
+  return sorted[0];
+}
 
 export async function getBusinesses(
   token: string,
@@ -43,7 +96,10 @@ export async function getCurrentBusiness(
   const businesses =
     await getBusinesses(token);
 
-  return businesses[0] ?? null;
+  if (!businesses.length) {
+    return null;
+  }
+  return pickActiveBusiness(businesses);
 }
 
 

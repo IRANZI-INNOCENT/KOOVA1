@@ -11,6 +11,8 @@ class BusinessSerializer(serializers.ModelSerializer):
     by the frontend.
     """
 
+    has_facebook_page = serializers.SerializerMethodField()
+
     class Meta:
         model = Business
         fields = [
@@ -22,15 +24,26 @@ class BusinessSerializer(serializers.ModelSerializer):
             "location",
             "email",
             "phone",
+            "has_facebook_page",
             "created_at",
             "updated_at",
         ]
         read_only_fields = [
             "id",
             "owner",
+            "has_facebook_page",
             "created_at",
             "updated_at",
         ]
+
+    def get_has_facebook_page(self, obj: Business) -> bool:
+        from apps.social.models import SocialAccount
+
+        return SocialAccount.objects.filter(
+            business=obj,
+            platform=SocialAccount.Platform.FACEBOOK_PAGE,
+            connection_status=SocialAccount.ConnectionStatus.CONNECTED,
+        ).exists()
 
     def validate_name(self, value):
         """Require a meaningful business name."""

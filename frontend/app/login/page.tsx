@@ -199,7 +199,17 @@ export default function LoginPage() {
             role="alert"
             className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700"
           >
-            {error}
+            <p>{error}</p>
+            {error.toLowerCase().includes("invalid email or password") && (
+              <p className="mt-2 text-xs text-red-600/90">
+                Use the same email and password as when you signed up on this
+                site. Local and live sites use separate accounts. If this is
+                the hosted app, check Railway{" "}
+                <span className="font-medium">KOVA_SUPERUSER_EMAIL</span> /
+                <span className="font-medium"> KOVA_SUPERUSER_PASSWORD</span>{" "}
+                or create an account via Sign up.
+              </p>
+            )}
           </div>
         )}
 

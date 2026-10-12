@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { authenticatedApiRequest, ApiError } from "@/lib/api";
+import { pickActiveBusiness } from "@/lib/business";
 import { useAuth } from "@/lib/auth-context";
 import { SetupGuide } from "@/components/workspace/setup-guide";
 import { useSectionSetup } from "@/components/workspace/use-section-setup";
@@ -215,7 +216,7 @@ export default function BusinessPolicyPage() {
           return;
         }
 
-        const currentBusinessId = businesses[0].id;
+        const currentBusinessId = pickActiveBusiness(businesses).id;
         setBusinessId(currentBusinessId);
 
         const policy =

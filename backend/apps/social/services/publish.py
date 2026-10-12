@@ -45,6 +45,33 @@ class PublishError(Exception):
     pass
 
 
+def _account_for_content(content: Content) -> SocialAccount | None:
+    """Use the channel the draft was written for; never a random sibling Page."""
+    account_platform = PLATFORM_ACCOUNT.get(content.platform)
+    if account_platform is None:
+        return None
+
+    linked = getattr(content, "social_account", None)
+    if linked is not None and linked.pk:
+        if (
+            linked.business_id == content.business_id
+            and linked.platform == account_platform
+            and linked.connection_status
+            == SocialAccount.ConnectionStatus.CONNECTED
+        ):
+            return linked
+
+    return (
+        SocialAccount.objects.filter(
+            business=content.business,
+            platform=account_platform,
+            connection_status=SocialAccount.ConnectionStatus.CONNECTED,
+        )
+        .order_by("-connected_at")
+        .first()
+    )
+
+
 def enqueue(content: Content, scheduled_at: datetime | None = None) -> SocialPost | None:
     """
     Put a post on the queue.
@@ -58,20 +85,11 @@ def enqueue(content: Content, scheduled_at: datetime | None = None) -> SocialPos
     if scheduled_at and timezone.is_naive(scheduled_at):
         scheduled_at = timezone.make_aware(scheduled_at)
 
-    account_platform = PLATFORM_ACCOUNT.get(content.platform)
-    if account_platform is None:
+    if PLATFORM_ACCOUNT.get(content.platform) is None:
         _ready_message(content)
         return None
 
-    account = (
-        SocialAccount.objects.filter(
-            business=content.business,
-            platform=account_platform,
-            connection_status=SocialAccount.ConnectionStatus.CONNECTED,
-        )
-        .order_by("-connected_at")
-        .first()
-    )
+    account = _account_for_content(content)
     if account is None:
         label = "Instagram" if content.platform == Content.Platform.INSTAGRAM else "Facebook"
         raise PublishError(f"Connect {label} before publishing this post.")

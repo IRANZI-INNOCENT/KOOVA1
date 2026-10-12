@@ -105,14 +105,18 @@ class LoginSerializer(serializers.Serializer):
         email = attrs["email"].strip().lower()
         password = attrs["password"]
 
-        # authenticate() verifies the credentials using Django's
-        # configured authentication system and password hashing.
         user = authenticate(
             username=email,
             password=password,
         )
 
         if user is None:
+            # Match legacy rows where email casing differs from login.
+            legacy = User.objects.filter(email__iexact=email).first()
+            if legacy is not None and legacy.check_password(password):
+                user = legacy
+
+        if user is None or not user.is_active:
             raise serializers.ValidationError(
                 "Invalid email or password."
             )

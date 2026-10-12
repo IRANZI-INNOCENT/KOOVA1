@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ApiError, authenticatedApiRequest } from "@/lib/api";
+import { pickActiveBusiness } from "@/lib/business";
 import { useAuth } from "@/lib/auth-context";
 import { SetupGuide } from "@/components/workspace/setup-guide";
 import { useSectionSetup } from "@/components/workspace/use-section-setup";
@@ -190,7 +191,7 @@ export default function BusinessBrandPage() {
           return;
         }
 
-        const currentBusiness = businesses[0];
+        const currentBusiness = pickActiveBusiness(businesses);
         setBusiness(currentBusiness);
 
         const brand =

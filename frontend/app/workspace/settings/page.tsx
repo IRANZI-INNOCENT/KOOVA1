@@ -6,6 +6,7 @@ import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { KovaStepsGuide } from "@/components/workspace/kova-steps-guide";
 import { authenticatedApiRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { useWorkspace } from "@/lib/workspace-context";
 
 interface BrainProgress {
   next_href: string | null;
@@ -69,21 +70,23 @@ const businessBrainSections = [
 
 export default function SettingsPage() {
   const { accessToken, isAuthenticated } = useAuth();
+  const {
+    business,
+    businesses,
+    businessId,
+    setActiveBusinessId,
+    workspaceLoading,
+  } = useWorkspace();
   const [progress, setProgress] = useState<BrainProgress | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated || !accessToken) return;
+    if (!isAuthenticated || !accessToken || !businessId) return;
     const token = accessToken;
 
     async function loadProgress() {
       try {
-        const businesses = await authenticatedApiRequest<{ id: number }[]>(
-          "/businesses/",
-          token,
-        );
-        if (!businesses.length) return;
         const status = await authenticatedApiRequest<BrainProgress>(
-          `/business-brain/${businesses[0].id}/progress/`,
+          `/business-brain/${businessId}/progress/`,
           token,
         );
         setProgress(status);
@@ -93,7 +96,7 @@ export default function SettingsPage() {
     }
 
     loadProgress();
-  }, [accessToken, isAuthenticated]);
+  }, [accessToken, isAuthenticated, businessId]);
 
   const completeCount =
     progress?.sections.filter((section) => section.complete).length ?? 0;
@@ -108,7 +111,11 @@ export default function SettingsPage() {
           <PageHeader
             eyebrow="Settings"
             title="Teach Kova about your business"
-            description="Short forms — do them once, update anytime."
+            description={
+              business
+                ? `Brain for ${business.name}. Switch brains in the top bar when you manage more than one company.`
+                : "Short forms — do them once, update anytime."
+            }
             actions={
               progress ? (
                 <div className="w-full sm:w-44">
@@ -146,6 +153,62 @@ export default function SettingsPage() {
           )}
 
           <div className="h-px bg-kova-border" />
+
+          {!workspaceLoading && businesses.length > 1 && (
+            <section className="space-y-3 rounded-lg border border-kova-border bg-white p-5">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-kova-orange">
+                  Your companies
+                </p>
+                <h2 className="mt-1 text-lg font-bold text-kova-dark">
+                  Separate brains for separate businesses
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  Each brain has its own profile, products, channels, and
+                  autopilot. Pick one to edit settings below.
+                </p>
+              </div>
+              <ul className="space-y-2">
+                {businesses.map((item) => {
+                  const active = item.id === businessId;
+                  return (
+                    <li
+                      key={item.id}
+                      className={`flex flex-wrap items-center justify-between gap-3 rounded-md border px-4 py-3 ${
+                        active
+                          ? "border-kova-green/40 bg-kova-green/5"
+                          : "border-kova-border"
+                      }`}
+                    >
+                      <div>
+                        <p className="font-semibold text-kova-dark">
+                          {item.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {item.has_facebook_page
+                            ? "Facebook Page connected"
+                            : "No Facebook Page yet"}
+                        </p>
+                      </div>
+                      {active ? (
+                        <span className="text-xs font-bold text-kova-green">
+                          Editing now
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => void setActiveBusinessId(item.id)}
+                          className="rounded-md bg-kova-orange/15 px-3 py-1.5 text-xs font-bold text-kova-dark"
+                        >
+                          Switch to this brain
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
 
           <section className="space-y-4">
             <Link

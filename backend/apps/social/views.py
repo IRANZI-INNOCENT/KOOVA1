@@ -201,6 +201,61 @@ class MetaOAuthReturnView(APIView):
         )
 
 
+class PendingMetaPageListView(APIView):
+    """Facebook Pages waiting for a Business Brain assignment."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from apps.social.models import PendingMetaPageGrant
+        from apps.social.services.page_brains import pending_page_payload
+
+        pending = PendingMetaPageGrant.objects.filter(owner=request.user)
+        return Response([pending_page_payload(item) for item in pending])
+
+
+class PendingMetaPageAssignView(APIView):
+    """Assign a pending Page to a new or existing business brain."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        from apps.social.services.page_brains import (
+            PageBrainError,
+            assign_pending_page_to_business,
+        )
+
+        business_id = request.data.get("business_id")
+        new_business_name = (request.data.get("new_business_name") or "").strip()
+        connect_instagram = request.data.get("connect_instagram", True)
+
+        parsed_business_id = None
+        if business_id is not None and business_id != "":
+            try:
+                parsed_business_id = int(business_id)
+            except (TypeError, ValueError):
+                return Response(
+                    {"detail": "Invalid business_id."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        try:
+            result = assign_pending_page_to_business(
+                request.user,
+                pk,
+                business_id=parsed_business_id,
+                new_business_name=new_business_name,
+                connect_instagram=bool(connect_instagram),
+            )
+        except PageBrainError as exc:
+            return Response(
+                {"detail": str(exc), "error_code": exc.code},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(result, status=status.HTTP_201_CREATED)
+
+
 # ------------------------------------------------------------------ #
 # Verify connection
 # ------------------------------------------------------------------ #

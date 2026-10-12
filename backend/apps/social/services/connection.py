@@ -160,6 +160,13 @@ def connect_meta(
 
     Returns a dict with the connected account(s) for the API response.
     """
+    from apps.social.services.page_brains import (
+        business_for_page,
+        pending_page_payload,
+        resolve_target_business_for_new_page,
+        upsert_pending_page,
+    )
+
     adapter = MetaAdapter()
     exchange = adapter.exchange_code(code, redirect_uri)
     pages = _pages_from_exchange(exchange)
@@ -168,9 +175,11 @@ def connect_meta(
     expires = now + timedelta(seconds=exchange.expires_in or 5_184_000)
     scopes = list(exchange.scopes or [])
     connected: list[dict] = []
+    pending_pages: list[dict] = []
     seen_ids: set[int] = set()
     want_facebook = platform in {"both", "facebook"}
     want_instagram = platform in {"both", "instagram"}
+    owner = business.owner
 
     def append_account(account: SocialAccount) -> None:
         if account.id in seen_ids:
@@ -201,31 +210,50 @@ def connect_meta(
 
     if want_facebook:
         for grant in pages:
-            fb_account = _connect_facebook_page(
+            target = resolve_target_business_for_new_page(
+                owner,
+                grant.page_id,
                 business,
+            )
+            if target is None:
+                pending = upsert_pending_page(
+                    owner,
+                    grant,
+                    scopes=scopes,
+                    expires=expires,
+                )
+                pending_pages.append(pending_page_payload(pending))
+                continue
+            fb_account = _connect_facebook_page(
+                target,
                 adapter,
                 grant,
                 scopes=scopes,
                 expires=expires,
                 now=now,
             )
-            append_account(fb_account)
+            if target.id == business.id:
+                append_account(fb_account)
 
     if want_instagram:
         for grant in pages:
             if not grant.instagram_account_id:
                 continue
+            ig_business = business_for_page(owner, grant.page_id)
+            if not ig_business:
+                continue
             ig_account = _connect_instagram_account(
-                business,
+                ig_business,
                 adapter,
                 grant,
                 scopes=scopes,
                 expires=expires,
                 now=now,
             )
-            append_account(ig_account)
+            if ig_business.id == business.id:
+                append_account(ig_account)
 
-    return {"accounts": connected}
+    return {"accounts": connected, "pending_pages": pending_pages}
 
 
 def instagram_link_status(business: Business) -> dict:

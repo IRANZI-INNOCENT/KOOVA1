@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError, authenticatedApiRequest } from "@/lib/api";
+import { pickActiveBusiness } from "@/lib/business";
 import { useAuth } from "@/lib/auth-context";
 import { SetupGuide } from "@/components/workspace/setup-guide";
 import { useSectionSetup } from "@/components/workspace/use-section-setup";
@@ -328,7 +329,7 @@ export default function BusinessProfilePage() {
           return;
         }
 
-        const currentBusiness = businesses[0];
+        const currentBusiness = pickActiveBusiness(businesses);
         setBusiness(currentBusiness);
 
         const profile =

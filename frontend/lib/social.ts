@@ -177,19 +177,69 @@ export function metaOAuthRedirectUri() {
   return `${getPublicApiBaseUrl()}/social/meta/callback/`;
 }
 
+export interface PendingMetaPage {
+  id: number;
+  page_id: string;
+  page_name: string;
+  instagram_username: string;
+  has_instagram: boolean;
+}
+
+export interface MetaConnectResult {
+  accounts: Array<{
+    id: number;
+    platform: string;
+    account_name: string;
+    connection_status: string;
+  }>;
+  pending_pages: PendingMetaPage[];
+}
+
 export async function submitMetaOAuthCode(
   businessId: number,
   code: string,
   redirectUri: string,
   token: string,
   platform: "facebook" | "instagram" | "both" = "both",
-): Promise<{ accounts: Array<{ id: number; platform: string; account_name: string; connection_status: string }> }> {
+): Promise<MetaConnectResult> {
   return authenticatedApiRequest(
     `/social/${businessId}/meta/callback/`,
     token,
     {
       method: "POST",
       body: JSON.stringify({ code, redirect_uri: redirectUri, platform }),
+    },
+  );
+}
+
+export async function getPendingMetaPages(
+  token: string,
+): Promise<PendingMetaPage[]> {
+  return authenticatedApiRequest<PendingMetaPage[]>(
+    "/social/pending-pages/",
+    token,
+  );
+}
+
+export async function assignPendingMetaPage(
+  pendingId: number,
+  token: string,
+  payload: {
+    business_id?: number;
+    new_business_name?: string;
+    connect_instagram?: boolean;
+  },
+): Promise<{
+  business_id: number;
+  business_name: string;
+  accounts: MetaConnectResult["accounts"];
+}> {
+  return authenticatedApiRequest(
+    `/social/pending-pages/${pendingId}/assign/`,
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
     },
   );
 }

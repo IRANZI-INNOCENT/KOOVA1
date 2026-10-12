@@ -14,9 +14,16 @@ import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/lib/auth-context";
 import {
+  getBusinesses,
+  pickActiveBusiness,
+  setStoredActiveBusinessId,
+  type Business as BrainBusiness,
+} from "@/lib/business";
+import {
   getBusiness,
   getCommercePage,
   getProducts,
+  invalidateCommerceCaches,
   type Business,
 } from "@/lib/commerce";
 
@@ -36,12 +43,14 @@ const WORKSPACE_PREFETCH_ROUTES = [
 interface WorkspaceContextValue {
   business: Business | null;
   businessId: number | null;
+  businesses: BrainBusiness[];
   accessToken: string | null;
   authLoading: boolean;
   isAuthenticated: boolean;
   workspaceLoading: boolean;
   workspaceError: string | null;
   refreshBusiness: () => Promise<void>;
+  setActiveBusinessId: (businessId: number) => Promise<void>;
 }
 
 const WorkspaceContext =
@@ -74,6 +83,9 @@ export function WorkspaceProvider({
 
   const [business, setBusiness] =
     useState<Business | null>(null);
+  const [businesses, setBusinesses] = useState<BrainBusiness[]>(
+    [],
+  );
   const [workspaceLoading, setWorkspaceLoading] =
     useState(true);
   const [workspaceError, setWorkspaceError] =
@@ -88,13 +100,14 @@ export function WorkspaceProvider({
     setWorkspaceError(null);
 
     try {
-      const current = await getBusiness(
-        accessToken,
-        {
-          userId: user.id,
-          revalidate: true,
-        },
-      );
+      const list = await getBusinesses(accessToken);
+      setBusinesses(list);
+      const picked = pickActiveBusiness(list);
+      const current = await getBusiness(accessToken, {
+        userId: user.id,
+        businessId: picked.id,
+        revalidate: true,
+      });
       setBusiness(current);
       prefetchWorkspaceData(
         current.id,
@@ -111,6 +124,34 @@ export function WorkspaceProvider({
       setWorkspaceLoading(false);
     }
   }, [accessToken, user]);
+
+  const setActiveBusinessId = useCallback(
+    async (nextId: number): Promise<void> => {
+      if (!accessToken || !user) {
+        return;
+      }
+      setStoredActiveBusinessId(nextId);
+      invalidateCommerceCaches(nextId, user.id);
+      const match = businesses.find((item) => item.id === nextId);
+      if (match) {
+        setBusiness({
+          id: match.id,
+          name: match.name,
+          description: match.description,
+          industry: match.industry,
+          location: match.location,
+          email: match.email,
+          phone: match.phone,
+          created_at: match.created_at,
+          updated_at: match.updated_at,
+        });
+        prefetchWorkspaceData(nextId, accessToken);
+        return;
+      }
+      await refreshBusiness();
+    },
+    [accessToken, user, businesses, refreshBusiness],
+  );
 
   const accessTokenRef = useRef(accessToken);
   accessTokenRef.current = accessToken;
@@ -140,10 +181,16 @@ export function WorkspaceProvider({
           return;
         }
 
-        const current = await getBusiness(
-          token,
-          { userId },
-        );
+        const list = await getBusinesses(token);
+        if (cancelled) {
+          return;
+        }
+        setBusinesses(list);
+        const picked = pickActiveBusiness(list);
+        const current = await getBusiness(token, {
+          userId,
+          businessId: picked.id,
+        });
 
         if (cancelled) {
           return;
@@ -207,15 +254,19 @@ export function WorkspaceProvider({
       workspaceLoading,
       workspaceError,
       refreshBusiness,
+      businesses,
+      setActiveBusinessId,
     }),
     [
       business,
+      businesses,
       accessToken,
       authLoading,
       isAuthenticated,
       workspaceLoading,
       workspaceError,
       refreshBusiness,
+      setActiveBusinessId,
     ],
   );
 

@@ -15,7 +15,10 @@ export function invalidateCommerceCaches(
   invalidateResourceCache(`commerce-page:${businessId}`);
   if (userId !== undefined) {
     invalidateResourceCache(
-      `business:uid:${userId}`,
+      `business:uid:${userId}:active`,
+    );
+    invalidateResourceCache(
+      `business:uid:${userId}:${businessId}`,
     );
   }
 }
@@ -98,25 +101,24 @@ export interface Business {
   location: string;
   email: string;
   phone: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 /**
- * Get the first business owned by the authenticated user.
- *
- * Kova currently operates on the first business associated with
- * the account. Multi-business switching can be added later without
- * changing the rest of the commerce API.
+ * Resolve the business brain the workspace is operating on.
  */
 export async function getBusiness(
   token: string,
   options?: {
     userId?: number;
     revalidate?: boolean;
+    businessId?: number | null;
   },
 ): Promise<Business> {
   const cacheKey = options?.userId
-    ? `business:uid:${options.userId}`
-    : `business:token:${token.slice(-12)}`;
+    ? `business:uid:${options.userId}:${options.businessId ?? "active"}`
+    : `business:token:${token.slice(-12)}:${options.businessId ?? "active"}`;
 
   return cachedResource(
     cacheKey,
@@ -128,11 +130,12 @@ export async function getBusiness(
           token,
         );
 
-      if (!businesses.length) {
-        throw new Error("No business is configured.");
-      }
+      const { pickActiveBusiness } = await import("@/lib/business");
 
-      return businesses[0];
+      return pickActiveBusiness(
+        businesses,
+        options?.businessId,
+      );
     },
     { revalidate: options?.revalidate },
   );

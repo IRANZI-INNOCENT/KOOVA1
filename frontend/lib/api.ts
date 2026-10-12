@@ -64,9 +64,19 @@ function extractApiErrorMessage(
     typeof data === "object" &&
     data !== null
   ) {
-    const values = Object.values(
-      data as Record<string, unknown>,
-    );
+    const record = data as Record<string, unknown>;
+    const nonField = record.non_field_errors;
+    if (
+      Array.isArray(nonField) &&
+      typeof nonField[0] === "string"
+    ) {
+      return nonField[0];
+    }
+    if (typeof record.detail === "string") {
+      return record.detail;
+    }
+
+    const values = Object.values(record);
 
     for (const value of values) {
       if (typeof value === "string") {

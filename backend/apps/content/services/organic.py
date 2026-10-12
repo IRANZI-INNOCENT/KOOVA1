@@ -88,6 +88,9 @@ def _organic_format_specs(business: Business, platform: str) -> list[dict]:
                 "account_name": account.account_name or account.account_username,
                 "platform": content_platform,
                 "content_type": content_type,
+                "ai_key": (
+                    f"account_{account.id}_{content_platform}_{content_type}"
+                ),
             })
     return format_specs
 
@@ -100,17 +103,21 @@ def _call_organic_ai(
 ) -> dict:
     formats_desc = []
     for spec in format_specs:
-        key = f"{spec['platform']}_{spec['content_type']}"
+        ai_key = spec.get("ai_key") or (
+            f"{spec['platform']}_{spec['content_type']}"
+        )
         formats_desc.append({
-            "key": key,
+            "key": ai_key,
             "platform": spec["platform"],
             "type": spec["content_type"],
+            "account_name": spec.get("account_name") or "",
         })
 
     theme_label = _theme_label(theme_key)
     system = (
         "You are Kova, a social media manager for a small business. "
         "Create ORGANIC content — not a product ad. "
+        "When multiple accounts are listed, tailor copy to each account_name. "
         "Goals: educate, inform, build trust, and stay top of mind. "
         "Do not invent products, prices, discounts, or URLs. "
         "Do not push a hard sell; one soft CTA is enough (visit, DM, follow). "
@@ -121,7 +128,7 @@ def _call_organic_ai(
         f"Organic theme: {theme_label} ({theme_key}).\n"
         "Generate adapted content for these formats:\n"
         f"{json.dumps(formats_desc, ensure_ascii=True)}\n\n"
-        "Return JSON keyed by format (e.g. instagram_post) with caption, "
+        "Return JSON keyed by each format \"key\" (e.g. account_12_instagram_post) with caption, "
         "call_to_action, hashtags; carousels include slides; reels as short scripts.\n\n"
         f"Business facts:\n{json.dumps(facts, ensure_ascii=True)}"
     )
@@ -189,8 +196,13 @@ def draft_organic_campaign(
 
     channels_response: list[dict] = []
     for spec in format_specs:
-        key = f"{spec['platform']}_{spec['content_type']}"
-        piece_data = ai_result.get(key, {})
+        ai_key = spec.get("ai_key") or (
+            f"{spec['platform']}_{spec['content_type']}"
+        )
+        piece_data = ai_result.get(ai_key, {})
+        if not piece_data.get("caption"):
+            fallback = f"{spec['platform']}_{spec['content_type']}"
+            piece_data = ai_result.get(fallback, piece_data)
         if not piece_data.get("caption"):
             continue
 

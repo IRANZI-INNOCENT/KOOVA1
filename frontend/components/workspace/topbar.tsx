@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 
+import { BusinessSwitcher } from "@/components/workspace/business-switcher";
 import { MobileNavMenu } from "@/components/workspace/mobile-nav-menu";
 import { useAuth } from "@/lib/auth-context";
 
@@ -97,6 +98,7 @@ export function Topbar() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <BusinessSwitcher />
           <div className="hidden text-right sm:block">
             <p className="text-sm font-semibold text-white">
               {user?.first_name} {user?.last_name}

@@ -125,6 +125,38 @@ class SocialAccount(models.Model):
         return self.connection_status == self.ConnectionStatus.CONNECTED
 
 
+class PendingMetaPageGrant(models.Model):
+    """
+    Facebook Page from Meta Login that is not yet tied to a Business Brain.
+
+    Each operational brain owns at most one Facebook Page (and its linked
+    Instagram). Extra Pages stay here until the owner assigns them to a new
+    or existing business.
+    """
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="pending_meta_pages",
+    )
+    page_id = models.CharField(max_length=200)
+    page_name = models.CharField(max_length=200, blank=True)
+    page_access_token = models.TextField()
+    token_expires_at = models.DateTimeField(null=True, blank=True)
+    scopes = models.JSONField(default=list, blank=True)
+    instagram_account_id = models.CharField(max_length=200, blank=True)
+    instagram_username = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        unique_together = [("owner", "page_id")]
+
+    def __str__(self):
+        return f"Pending Page — {self.page_name or self.page_id}"
+
+
 # ---------------------------------------------------------------------------
 # Social post — publishing lifecycle for a content asset
 # ---------------------------------------------------------------------------

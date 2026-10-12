@@ -343,13 +343,21 @@ class SocialAPITests(TestCase):
             format="json",
         )
         self.assertEqual(resp.status_code, 201)
-        self.assertEqual(len(resp.data["accounts"]), 2)
+        self.assertEqual(len(resp.data["accounts"]), 1)
+        self.assertEqual(len(resp.data["pending_pages"]), 1)
+        self.assertEqual(resp.data["pending_pages"][0]["page_name"], "Page Two")
         self.assertEqual(
             SocialAccount.objects.filter(
                 business=self.business,
                 platform=SocialAccount.Platform.FACEBOOK_PAGE,
             ).count(),
-            2,
+            1,
+        )
+        from apps.social.models import PendingMetaPageGrant
+
+        self.assertEqual(
+            PendingMetaPageGrant.objects.filter(owner=self.user).count(),
+            1,
         )
 
     @patch("apps.social.services.connection.MetaAdapter")

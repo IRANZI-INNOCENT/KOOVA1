@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { getBusiness } from "@/lib/commerce";
+import { PendingMetaPagesPanel } from "@/components/social/pending-meta-pages-panel";
 import {
   InstagramProfessionalGuide,
   instagramNotLinkedPageName,
@@ -18,13 +18,16 @@ import {
   disconnectSocialAccount,
   getInstagramReadiness,
   getMetaOAuthURL,
+  getPendingMetaPages,
   getSocialAccounts,
   metaOAuthRedirectUri,
   submitMetaOAuthCode,
   verifySocialAccount,
   type InstagramReadiness,
+  type PendingMetaPage,
   type SocialAccount,
 } from "@/lib/social";
+import { useWorkspace } from "@/lib/workspace-context";
 
 const PLATFORM_LABELS: Record<string, string> = {
   facebook_page: "Facebook Page",
@@ -78,8 +81,15 @@ const STATUS_CONFIG: Record<
 export default function ChannelsPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading, accessToken } = useAuth();
-  const [businessId, setBusinessId] = useState<number | null>(null);
+  const {
+    businessId,
+    businesses,
+    workspaceLoading,
+    setActiveBusinessId,
+    refreshBusiness,
+  } = useWorkspace();
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
+  const [pendingPages, setPendingPages] = useState<PendingMetaPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState<number | null>(null);
@@ -103,13 +113,14 @@ export default function ChannelsPage() {
     const token = accessToken;
 
     async function load() {
+      if (!businessId) return;
       try {
-        const business = await getBusiness(token);
-        setBusinessId(business.id);
-        const list = await getSocialAccounts(business.id, token);
+        const list = await getSocialAccounts(businessId, token);
         setAccounts(list);
+        const pending = await getPendingMetaPages(token).catch(() => []);
+        setPendingPages(pending);
         const readiness = await getInstagramReadiness(
-          business.id,
+          businessId,
           token,
         ).catch(() => null);
         setInstagramReadiness(readiness);
@@ -133,8 +144,10 @@ export default function ChannelsPage() {
       }
     }
 
-    load();
-  }, [authLoading, isAuthenticated, accessToken, router]);
+    if (!workspaceLoading) {
+      load();
+    }
+  }, [authLoading, isAuthenticated, accessToken, router, businessId, workspaceLoading]);
 
   useEffect(() => {
     if (authLoading || !isAuthenticated || !accessToken || !businessId || finishingMeta.current) {
@@ -169,9 +182,18 @@ export default function ChannelsPage() {
     const id = businessId;
 
     submitMetaOAuthCode(id, code, metaOAuthRedirectUri(), token, platform)
-      .then(() => getSocialAccounts(id, token))
-      .then((list) => {
+      .then(async (result) => {
+        const list = await getSocialAccounts(id, token);
         setAccounts(list);
+        const pending = await getPendingMetaPages(token);
+        setPendingPages(pending);
+        if (result.pending_pages?.length) {
+          setVerifyNote(
+            `${result.pending_pages.length} extra Page(s) need their own business brain before Kova can publish for them.`,
+          );
+        } else {
+          setVerifyNote("");
+        }
         setError("");
       })
       .catch((err) => {
@@ -285,7 +307,14 @@ export default function ChannelsPage() {
     }
   }
 
-  if (authLoading || loading) {
+  async function refreshPending() {
+    if (!accessToken) return;
+    const pending = await getPendingMetaPages(accessToken);
+    setPendingPages(pending);
+    await refreshBusiness();
+  }
+
+  if (authLoading || loading || workspaceLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-kova-green border-t-transparent" />
@@ -299,7 +328,7 @@ export default function ChannelsPage() {
         <PageHeader
           eyebrow="Connect"
           title="Facebook & Instagram"
-          description="Connect Facebook to add every Page you manage in one step. Kova can post, read comments, and reply on each connected Page."
+          description="One business brain owns one Facebook Page. Meta Login can return several Pages; the first attaches to this brain, and any others wait until you assign them their own brain."
           actions={
             <div className="flex flex-wrap gap-2">
               <button
@@ -338,6 +367,14 @@ export default function ChannelsPage() {
             {error}
           </div>
         )}
+
+        <PendingMetaPagesPanel
+          pending={pendingPages}
+          businesses={businesses}
+          accessToken={accessToken ?? ""}
+          onAssigned={(id) => void setActiveBusinessId(id)}
+          onRefreshPending={refreshPending}
+        />
 
         {showInstagramGuide && (
           <InstagramProfessionalGuide

@@ -213,6 +213,22 @@ class LoginAPITests(APITestCase):
             response.data["user"]["last_name"], self.user.last_name
         )
 
+    def test_login_accepts_email_case_insensitive(self):
+        User.objects.filter(pk=self.user.pk).update(
+            email="Login@Example.com",
+        )
+
+        response = self.client.post(
+            self.login_url,
+            {
+                "email": "login@example.com",
+                "password": "StrongPassword123!",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
     def test_wrong_password_is_rejected(self):
         """A valid email with an incorrect password must be rejected."""
 

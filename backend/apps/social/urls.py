@@ -6,6 +6,8 @@ from .views import (
     MetaOAuthReturnView,
     MetaOAuthURLView,
     MetaWebhookView,
+    PendingMetaPageAssignView,
+    PendingMetaPageListView,
     SocialAccountDetailView,
     SocialAccountListView,
     AutopilotShiftView,
@@ -104,6 +106,16 @@ urlpatterns = [
         "<int:business_id>/messages/<int:pk>/reply/",
         SocialMessageReplyView.as_view(),
         name="social-message-reply",
+    ),
+    path(
+        "pending-pages/",
+        PendingMetaPageListView.as_view(),
+        name="pending-meta-pages",
+    ),
+    path(
+        "pending-pages/<int:pk>/assign/",
+        PendingMetaPageAssignView.as_view(),
+        name="pending-meta-page-assign",
     ),
     path(
         "meta/callback/",
