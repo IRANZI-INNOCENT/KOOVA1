@@ -13,7 +13,9 @@ import {
   getCommercePage,
   getContents,
   getLeads,
+  getProductContentPlans,
   type Product,
+  type ProductContentPlan,
   type CommercePage,
   type Content,
   type Lead,
@@ -68,6 +70,9 @@ export default function OverviewPage() {
   const [commercePage, setCommercePage] = useState<CommercePage | null>(null);
   const [contents, setContents] = useState<Content[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [contentPlans, setContentPlans] = useState<
+    Record<number, ProductContentPlan>
+  >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -90,7 +95,7 @@ export default function OverviewPage() {
         setLoading(true);
         setError("");
 
-        const [prods, page, contentList, leadList] =
+        const [prods, page, contentList, leadList, plans] =
           await Promise.all([
             getProducts(bizId, token),
             getCommercePage(bizId, token),
@@ -99,6 +104,9 @@ export default function OverviewPage() {
             ),
             getLeads(bizId, token).catch(
               () => [] as Lead[],
+            ),
+            getProductContentPlans(bizId, token).catch(
+              () => [] as ProductContentPlan[],
             ),
           ]);
 
@@ -110,6 +118,9 @@ export default function OverviewPage() {
         setCommercePage(page);
         setContents(contentList);
         setLeads(leadList);
+        setContentPlans(
+          Object.fromEntries(plans.map((plan) => [plan.product_id, plan])),
+        );
         void ensureTodayBrief(
           bizId,
           token,
@@ -127,7 +138,7 @@ export default function OverviewPage() {
           err instanceof Error &&
           err.message === "No business is configured."
         ) {
-          router.replace("/workspace/setup");
+          router.replace("/workspace/onboarding");
           return;
         }
         setError(
@@ -338,6 +349,7 @@ export default function OverviewPage() {
 
               <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {products.slice(0, 4).map((product) => {
+                  const plan = contentPlans[product.id];
                   const image =
                     product.images.find((i) => i.is_primary) ??
                     product.images[0];
@@ -369,6 +381,14 @@ export default function OverviewPage() {
                             ? `${product.currency} ${product.price}`
                             : "Price on request"}
                         </p>
+                        {plan && plan.scheduled > 0 && (
+                          <p className="mt-1.5 text-xs font-semibold text-kova-green">
+                            Scheduled
+                            {plan.next_at
+                              ? ` · ${new Date(plan.next_at).toLocaleString()}`
+                              : ""}
+                          </p>
+                        )}
                       </div>
                     </Link>
                   );

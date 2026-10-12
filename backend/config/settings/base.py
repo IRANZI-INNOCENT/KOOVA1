@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "apps.social",
     "apps.brief",
     "apps.kova_ai",
+    "apps.professional",
 ]
 
 AUTH_USER_MODEL = "accounts.User"

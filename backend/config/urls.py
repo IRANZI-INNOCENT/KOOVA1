@@ -96,6 +96,12 @@ urlpatterns = [
         "api/kova/",
         include("apps.kova_ai.api.urls"),
     ),
+
+    # Professional LinkedIn — personal brand workspace.
+    path(
+        "api/professional/",
+        include("apps.professional.urls"),
+    ),
 ]
 
 # Serve uploaded product photos. Debug uses the development helper.

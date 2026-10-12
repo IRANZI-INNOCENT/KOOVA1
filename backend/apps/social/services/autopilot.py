@@ -560,19 +560,26 @@ def _polish(shift: AutopilotShift, business: Business, names: list) -> None:
 
 
 def _publish(shift: AutopilotShift, business: Business, posts: list) -> None:
+    from apps.content.services.product_pipeline import product_has_open_pipeline
+
     names = []
     for item in posts:
         if isinstance(item, dict) and item.get("product_name"):
             names.append(str(item["product_name"]))
         elif isinstance(item, str):
             names.append(item)
-    chosen = _products_named(business, names)[:1]
-    if not chosen:
-        chosen = _quiet_products(business)[:1]
-    if not chosen:
-        _event(shift, "Content", "There is no quiet product that needs a post today.")
+    pool = _products_named(business, names) or _quiet_products(business)
+    product = next(
+        (candidate for candidate in pool if not product_has_open_pipeline(business, candidate.id)),
+        None,
+    )
+    if product is None:
+        _event(
+            shift,
+            "Content",
+            "Every product either has posts on the calendar already or was featured recently.",
+        )
         return
-    product = chosen[0]
     try:
         result = draft_campaign(
             business,
@@ -587,7 +594,7 @@ def _publish(shift: AutopilotShift, business: Business, posts: list) -> None:
         _event(shift, f"No post was saved for {product.name}", "", failed=True)
         return
     try:
-        schedule_posts(business, content_ids)
+        schedule_posts(business, content_ids, autopilot=True)
         _event(
             shift,
             f"Scheduled posts for {product.name}",

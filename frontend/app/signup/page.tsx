@@ -146,7 +146,7 @@ export default function SignupPage() {
       });
 
 
-      router.push("/workspace/setup");
+      router.push("/workspace/onboarding");
 
         } catch (error) {
       console.error(

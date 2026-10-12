@@ -90,6 +90,29 @@ def store_paths(page: CommercePage | None, product: Product | None = None) -> di
     }
 
 
+def absolute_api_base() -> str:
+    """Public base URL for API-hosted assets (e.g. /media/ uploads)."""
+    explicit = os.getenv("API_PUBLIC_URL", "").strip().rstrip("/")
+    if explicit:
+        return explicit if explicit.startswith("http") else f"https://{explicit}"
+    domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()
+    if domain:
+        return f"https://{domain}"
+    return os.getenv("FRONTEND_URL", "http://localhost:8000").rstrip("/")
+
+
+def absolute_media_url(url: str) -> str:
+    """Turn a stored media path into a URL Meta can fetch."""
+    raw = (url or "").strip()
+    if not raw:
+        return ""
+    if raw.startswith("http://") or raw.startswith("https://"):
+        return raw
+    base = absolute_api_base()
+    path = raw if raw.startswith("/") else f"/{raw.lstrip('/')}"
+    return f"{base.rstrip('/')}{path}"
+
+
 def absolute_product_url(product: Product | None) -> str:
     """Full public address for one product page."""
 

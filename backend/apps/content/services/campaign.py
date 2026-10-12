@@ -27,7 +27,11 @@ from apps.business_brain.models import (
 from apps.business_brain.services.draft import _parse_json
 from apps.businesses.models import Business
 from apps.commerce.models import Product
-from apps.commerce.services.storefront import absolute_product_url, append_product_link
+from apps.commerce.services.storefront import (
+    absolute_media_url,
+    absolute_product_url,
+    append_product_link,
+)
 from apps.content.models import Content, ContentBatch
 from apps.kova_ai.services.openrouter import OpenRouterError, OpenRouterService
 from apps.social.models import SocialAccount
@@ -89,7 +93,7 @@ def draft_campaign(
             raise ValueError("That product is not in this business.")
         for img in product.images.all():
             if img.image:
-                product_images.append(img.image.url)
+                product_images.append(absolute_media_url(img.image.url))
 
     # Build the list of formats to generate
     format_specs: list[dict] = []

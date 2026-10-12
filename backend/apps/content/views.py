@@ -210,6 +210,22 @@ class ContentCampaignView(APIView):
                     {"detail": "Choose a product from this business."},
                     status=400,
                 )
+        from apps.business_brain.models import BusinessPolicy
+        from apps.content.services.product_pipeline import product_has_open_pipeline
+
+        if product_id and product_has_open_pipeline(business, product_id):
+            policy = BusinessPolicy.objects.filter(business=business).first()
+            if policy and policy.social_operating_mode == BusinessPolicy.OperatingMode.AUTOPILOT:
+                return Response(
+                    {
+                        "detail": (
+                            "This product already has posts on the calendar or fresh drafts. "
+                            "Kova will feature a different product on the next shift."
+                        ),
+                    },
+                    status=400,
+                )
+
         try:
             result = draft_campaign(
                 business,
@@ -221,6 +237,27 @@ class ContentCampaignView(APIView):
             return Response({"detail": str(exc)}, status=400)
         except OpenRouterError as exc:
             return Response({"detail": str(exc)}, status=502)
+
+        policy = BusinessPolicy.objects.filter(business=business).first()
+        if policy and policy.social_operating_mode == BusinessPolicy.OperatingMode.AUTOPILOT:
+            from apps.social.services.publish import dispatch_due
+
+            from .services.schedule import schedule_posts
+
+            content_ids = [
+                piece["id"] for piece in (result.get("pieces") or []) if piece.get("id")
+            ]
+            if content_ids:
+                try:
+                    result["scheduled"] = schedule_posts(
+                        business,
+                        content_ids,
+                        autopilot=True,
+                    )
+                    dispatch_due(business.id)
+                except (ValueError, OpenRouterError) as exc:
+                    result["schedule_error"] = str(exc)
+
         return Response(result)
 
 
@@ -259,13 +296,24 @@ class ContentBatchListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, business_id):
+        from django.db.models import Prefetch
+
+        from apps.social.models import SocialPost
+
         business = get_object_or_404(
             Business, id=business_id, owner=request.user,
         )
         batches = (
             ContentBatch.objects
             .filter(business=business)
-            .prefetch_related("contents", "contents__product")
+            .prefetch_related(
+                "contents",
+                "contents__product",
+                Prefetch(
+                    "contents__social_posts",
+                    queryset=SocialPost.objects.order_by("-created_at"),
+                ),
+            )
             .order_by("-created_at")[:20]
         )
         return Response(ContentBatchSerializer(batches, many=True).data)

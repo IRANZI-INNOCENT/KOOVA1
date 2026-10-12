@@ -36,6 +36,11 @@ const navigationItems: NavigationItem[] = [
     icon: <Icon d="M17 2H7a2 2 0 00-2 2v16l7-4 7 4V4a2 2 0 00-2-2z" />,
   },
   {
+    label: "LinkedIn",
+    href: "/workspace/linkedin",
+    icon: <Icon d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-4 0v7h-4v-7a6 6 0 016-6z M2 9h4v12H2z M4 6a2 2 0 100-4 2 2 0 000 4z" />,
+  },
+  {
     label: "Commerce",
     href: "/workspace/commerce",
     icon: <Icon d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z M3 6h18 M16 10a4 4 0 01-8 0" />,

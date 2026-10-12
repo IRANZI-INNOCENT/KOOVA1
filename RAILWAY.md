@@ -78,6 +78,8 @@ Then add these yourself. Values marked “from local `.env`” are copied from `
 | `FACEBOOK_APP_SECRET` | From local `.env` |
 | `FACEBOOK_WEBHOOK_VERIFY_TOKEN` | `kova`, unless you already chose another token in the local `.env` |
 | `MEDIA_ROOT` | `/data/media` (optional if the volume is mounted at `/data`; production defaults to `/data/media` on Railway when this is empty) |
+| `LINKEDIN_CLIENT_ID` | Optional — LinkedIn Developer app (Share on LinkedIn). Without these, professional posts still work via **Copy**. |
+| `LINKEDIN_CLIENT_SECRET` | Optional — pair with `LINKEDIN_CLIENT_ID`. OAuth callback: `https://YOUR-API.up.railway.app/api/professional/linkedin/callback/` |
 
 `DJANGO_SETTINGS_MODULE` is already set to `config.settings.production` by the start script and by `preDeployCommand` in `railway.toml`. Local development keeps using `config.settings.development`.
 

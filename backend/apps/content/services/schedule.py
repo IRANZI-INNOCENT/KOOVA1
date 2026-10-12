@@ -5,7 +5,7 @@ Ask Kova when each drafted post should go out.
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from django.utils import timezone
@@ -18,7 +18,12 @@ from apps.social.services.publish import enqueue, parse_when
 NAIROBI = ZoneInfo("Africa/Nairobi")
 
 
-def schedule_posts(business: Business, content_ids: list[int]) -> list[dict]:
+def schedule_posts(
+    business: Business,
+    content_ids: list[int],
+    *,
+    autopilot: bool = False,
+) -> list[dict]:
     """Place each post on the calendar at a time Kova chooses."""
     contents = list(
         Content.objects.filter(business=business, pk__in=content_ids)
@@ -28,7 +33,11 @@ def schedule_posts(business: Business, content_ids: list[int]) -> list[dict]:
     if not contents:
         raise ValueError("There is no content to schedule.")
 
-    plan = _ask_for_times(business, contents)
+    try:
+        plan = _ask_for_times(business, contents, autopilot=autopilot)
+    except OpenRouterError:
+        plan = []
+
     by_id = {content.id: content for content in contents}
     scheduled: list[dict] = []
     now = timezone.now()
@@ -41,26 +50,74 @@ def schedule_posts(business: Business, content_ids: list[int]) -> list[dict]:
         content = by_id.get(content_id)
         if content is None:
             continue
-        when = parse_when(item.get("scheduled_at"))
-        if when is None or when <= now:
+        when = _future_time(parse_when(item.get("scheduled_at")), now)
+        if when is None:
             continue
         enqueue(content, when)
-        scheduled.append({
-            "content_id": content.id,
-            "platform": content.platform,
-            "content_type": content.content_type,
-            "product_name": content.product.name if content.product_id else "",
-            "scheduled_at": when.isoformat(),
-            "reason": str(item.get("reason") or "")[:240],
-        })
+        scheduled.append(_scheduled_row(content, when, item.get("reason")))
 
     missing = set(by_id) - {row["content_id"] for row in scheduled}
     if missing:
-        raise OpenRouterError("Kova did not place every post on the calendar.")
+        for content, when in _fallback_times(
+            [by_id[cid] for cid in sorted(missing)],
+            now,
+            autopilot=autopilot,
+        ):
+            enqueue(content, when)
+            scheduled.append(_scheduled_row(content, when, "Spread on the calendar."))
+
+    still_missing = set(by_id) - {row["content_id"] for row in scheduled}
+    if still_missing:
+        raise OpenRouterError("Kova could not place every post on the calendar.")
     return scheduled
 
 
-def _ask_for_times(business: Business, contents: list[Content]) -> list[dict]:
+def _scheduled_row(content: Content, when: datetime, reason) -> dict:
+    return {
+        "content_id": content.id,
+        "platform": content.platform,
+        "content_type": content.content_type,
+        "product_name": content.product.name if content.product_id else "",
+        "scheduled_at": when.isoformat(),
+        "reason": str(reason or "")[:240],
+    }
+
+
+def _future_time(when: datetime | None, now: datetime) -> datetime | None:
+    if when is None:
+        return None
+    if timezone.is_naive(when):
+        when = timezone.make_aware(when)
+    if when <= now:
+        return now + timedelta(minutes=15)
+    return when
+
+
+def _fallback_times(
+    contents: list[Content],
+    now: datetime,
+    *,
+    autopilot: bool,
+) -> list[tuple[Content, datetime]]:
+    """Deterministic spacing when the model omits or backdates slots."""
+    if not contents:
+        return []
+    start_gap = timedelta(minutes=45 if autopilot else 90)
+    step = timedelta(hours=6)
+    rows: list[tuple[Content, datetime]] = []
+    cursor = now + start_gap
+    for index, content in enumerate(contents):
+        when = cursor + step * index
+        rows.append((content, when))
+    return rows
+
+
+def _ask_for_times(
+    business: Business,
+    contents: list[Content],
+    *,
+    autopilot: bool = False,
+) -> list[dict]:
     now = datetime.now(NAIROBI)
     pieces = [
         {
@@ -83,7 +140,13 @@ def _ask_for_times(business: Business, contents: list[Content]) -> list[dict]:
                     "evening in Nairobi, when shoppers are likely to see them. "
                     "Do not place two posts in the same hour. "
                     "Vary products so the same product is not posted back to back. "
-                    "Return JSON {\"plan\": [{\"content_id\": number, "
+                    + (
+                        "Autopilot is on: place the first post within the next 90 minutes, "
+                        "then space the rest across the week. "
+                        if autopilot
+                        else ""
+                    )
+                    + "Return JSON {\"plan\": [{\"content_id\": number, "
                     "\"scheduled_at\": ISO-8601 with +03:00, \"reason\": short string}]}. "
                     "Include every content_id exactly once. Every time must be in the future."
                 ),

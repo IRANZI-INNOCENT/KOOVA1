@@ -30,6 +30,9 @@ const WORKSPACE_PREFETCH_ROUTES = [
   "/workspace/commerce/snap-to-sell",
   "/workspace/brief",
   "/workspace/analytics",
+  "/workspace/linkedin",
+  "/workspace/linkedin/topic-week",
+  "/workspace/linkedin/calendar",
 ] as const;
 
 interface WorkspaceContextValue {

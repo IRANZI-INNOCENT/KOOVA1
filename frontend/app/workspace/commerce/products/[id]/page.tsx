@@ -11,9 +11,11 @@ import { ApiError } from "@/lib/api";
 import {
   getBusiness,
   getProducts,
+  getProductContentPlans,
   polishProduct,
   updateProduct,
   type Product,
+  type ProductContentPlan,
 } from "@/lib/commerce";
 import { useAuth } from "@/lib/auth-context";
 
@@ -42,6 +44,9 @@ export default function ProductDetailPage() {
   const [statusAction, setStatusAction] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [contentPlan, setContentPlan] = useState<ProductContentPlan | null>(
+    null,
+  );
 
   useEffect(() => {
     if (authLoading || !accessToken || !isAuthenticated) return;
@@ -50,7 +55,12 @@ export default function ProductDetailPage() {
     async function load() {
       try {
         const business = await getBusiness(token);
-        const products = await getProducts(business.id, token);
+        const [products, plans] = await Promise.all([
+          getProducts(business.id, token),
+          getProductContentPlans(business.id, token).catch(
+            () => [] as ProductContentPlan[],
+          ),
+        ]);
         const found = products.find((item) => item.id === Number(params.id));
         if (!found) {
           router.replace("/workspace/commerce/products");
@@ -58,6 +68,9 @@ export default function ProductDetailPage() {
         }
         setBusinessId(business.id);
         setProduct(found);
+        setContentPlan(
+          plans.find((plan) => plan.product_id === found.id) ?? null,
+        );
       } catch (err) {
         setError(
           err instanceof ApiError
@@ -191,6 +204,14 @@ export default function ProductDetailPage() {
                 >
                   {STATUS_LABELS[product.status]}
                 </span>
+                {contentPlan && contentPlan.scheduled > 0 && (
+                  <span className="rounded-full bg-kova-green/10 px-2.5 py-0.5 text-xs font-semibold text-kova-green">
+                    Scheduled
+                    {contentPlan.next_at
+                      ? ` · ${new Date(contentPlan.next_at).toLocaleString()}`
+                      : ""}
+                  </span>
+                )}
               </div>
               <p className="mt-1 text-sm text-gray-500">
                 {product.ai_generated ? "Created by Kova AI · " : ""}

@@ -537,7 +537,23 @@ function PieceCard({
   busy: boolean;
   busyLabel: string;
 }) {
-  const badge = STATUS_BADGE[piece.status] ?? STATUS_BADGE.draft;
+  const queued = piece.queue_status === "scheduled" || piece.queue_status === "pending";
+  const badge =
+    piece.status === "published"
+      ? STATUS_BADGE.published
+      : queued
+        ? {
+            bg: "bg-kova-green/10",
+            text: "text-kova-green",
+            dot: "bg-kova-green",
+          }
+        : STATUS_BADGE[piece.status] ?? STATUS_BADGE.draft;
+  const statusLabel =
+    piece.status === "published"
+      ? "published"
+      : queued
+        ? "scheduled"
+        : piece.status;
 
   return (
     <div className="flex flex-col bg-white">
@@ -559,9 +575,16 @@ function PieceCard({
           <span
             className={`inline-block h-1.5 w-1.5 rounded-full ${badge.dot}`}
           />
-          {piece.status}
+          {statusLabel}
         </span>
       </div>
+      {queued && piece.scheduled_at && (
+        <div className="border-b border-kova-border bg-kova-green/5 px-4 py-1.5">
+          <p className="text-xs font-medium text-kova-green">
+            On calendar · {new Date(piece.scheduled_at).toLocaleString()}
+          </p>
+        </div>
+      )}
 
       {piece.account_name && (
         <div className="border-b border-kova-border bg-kova-orange/5 px-4 py-1.5">
@@ -656,7 +679,9 @@ function PieceCard({
       </div>
 
       {/* Actions */}
-      {piece.status !== "published" && piece.status !== "rejected" && (
+      {piece.status !== "published" &&
+        piece.status !== "rejected" &&
+        !queued && (
         <div className="flex flex-wrap gap-2 border-t border-kova-border px-4 py-3">
           {piece.status === "draft" && mode !== "autopilot" && (
             <button
@@ -668,14 +693,16 @@ function PieceCard({
               {busy && busyLabel === "approve" ? "Approving…" : "Approve"}
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => onAction("publish")}
-            disabled={busy}
-            className="inline-flex h-8 items-center rounded-md bg-kova-green px-3 text-xs font-bold text-white disabled:opacity-60"
-          >
-            {busy && busyLabel === "publish" ? "Publishing…" : "Publish"}
-          </button>
+          {(piece.status === "approved" || mode !== "autopilot") && (
+            <button
+              type="button"
+              onClick={() => onAction("publish")}
+              disabled={busy}
+              className="inline-flex h-8 items-center rounded-md bg-kova-green px-3 text-xs font-bold text-white disabled:opacity-60"
+            >
+              {busy && busyLabel === "publish" ? "Publishing…" : "Publish"}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => onAction("reject")}

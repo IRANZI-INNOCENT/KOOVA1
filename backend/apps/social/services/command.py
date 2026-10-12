@@ -163,6 +163,8 @@ def _waiting_messages(inbound):
 
 
 def _quiet_products(business):
+    from apps.content.services.product_pipeline import product_ids_with_open_pipeline
+
     cutoff = timezone.now() - timedelta(days=21)
     featured = set(
         Content.objects.filter(
@@ -172,11 +174,13 @@ def _quiet_products(business):
             published_at__gte=cutoff,
         ).values_list("product_id", flat=True)
     )
+    busy = product_ids_with_open_pipeline(business)
+    skip = featured | busy
     return list(
         Product.objects.filter(
             business=business,
             status=Product.Status.ACTIVE,
-        ).exclude(id__in=featured).order_by("-updated_at")[:6]
+        ).exclude(id__in=skip).order_by("-updated_at")[:6]
     )
 
 

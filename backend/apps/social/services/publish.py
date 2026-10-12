@@ -16,7 +16,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from apps.commerce.services.storefront import append_product_link
+from apps.commerce.services.storefront import absolute_media_url, append_product_link
 from apps.content.models import Content
 from apps.social.adapters.meta import MetaAdapter
 from apps.social.models import SocialAccount, SocialAction, SocialLesson, SocialMessage, SocialPost
@@ -147,7 +147,7 @@ def dispatch_post(post: SocialPost) -> SocialPost:
         raise PublishError(price_error)
     image_url = ""
     if isinstance(content.media_urls, list) and content.media_urls:
-        image_url = str(content.media_urls[0] or "")
+        image_url = absolute_media_url(str(content.media_urls[0] or ""))
 
     try:
         result = MetaAdapter().publish_post(
@@ -245,6 +245,10 @@ def _automation_paused(business_id: int) -> bool:
 def _maybe_pause(business_id: int) -> None:
     from apps.business_brain.models import BusinessPolicy
 
+    policy = BusinessPolicy.objects.filter(business_id=business_id).first()
+    if policy and policy.social_operating_mode == policy.OperatingMode.AUTOPILOT:
+        return
+
     since = timezone.now() - timedelta(hours=24)
     failures = SocialPost.objects.filter(
         social_account__business_id=business_id,
@@ -253,7 +257,6 @@ def _maybe_pause(business_id: int) -> None:
     ).count()
     if failures < 3:
         return
-    policy = BusinessPolicy.objects.filter(business_id=business_id).first()
     if policy is None or policy.automation_paused:
         return
     policy.automation_paused = True
@@ -277,10 +280,21 @@ def price_conflict(content, caption: str) -> str:
     )
     if not amounts:
         return ""
-    expected = f"{product.price:.0f}" if product.price == int(product.price) else f"{product.price:.2f}"
-    normalized = {amount.replace(",", "") for amount in amounts}
-    if expected in normalized:
+    from decimal import Decimal, InvalidOperation
+
+    try:
+        expected_value = Decimal(str(product.price))
+    except InvalidOperation:
         return ""
+    normalized = set()
+    for amount in amounts:
+        try:
+            normalized.add(Decimal(amount.replace(",", "")))
+        except InvalidOperation:
+            continue
+    for found in normalized:
+        if abs(found - expected_value) <= Decimal("1"):
+            return ""
     return (
         f"The caption price does not match {product.name} at "
         f"{product.currency} {product.price}. Kova will not publish a different price."

@@ -287,6 +287,14 @@ export interface Content {
   media_urls: string[];
   slides: ContentSlide[];
   status: "draft" | "approved" | "published" | "rejected";
+  queue_status?:
+    | "pending"
+    | "scheduled"
+    | "publishing"
+    | "published"
+    | "failed"
+    | null;
+  scheduled_at?: string | null;
   created_by_ai: boolean;
   published_at: string | null;
   created_at: string;
