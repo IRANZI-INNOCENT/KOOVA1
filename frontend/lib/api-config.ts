@@ -4,10 +4,24 @@
  * In production, prefer `/api` on the site host so HttpOnly refresh cookies
  * are first-party (Railway site proxies to the API via next.config rewrites).
  */
+function defaultApiBaseForRuntime(): string {
+  if (typeof window !== "undefined") {
+    const { hostname, origin } = window.location;
+    if (
+      hostname !== "localhost" &&
+      hostname !== "127.0.0.1"
+    ) {
+      return `${origin}/api`;
+    }
+  }
+
+  return "http://localhost:8000/api";
+}
+
 export function getBrowserApiBaseUrl(): string {
   const configured =
     process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:8000/api";
+    defaultApiBaseForRuntime();
 
   const normalized = configured.replace(/\/$/, "");
 
