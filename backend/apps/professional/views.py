@@ -175,19 +175,21 @@ class ProfileSetupCompleteView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        profile = get_profile(request.user)
+        profile = (
+            ProfessionalProfile.objects.prefetch_related("pillars")
+            .filter(user=request.user)
+            .first()
+        )
+        if profile is None:
+            profile = get_profile(request.user)
         if not is_profile_ready(profile):
             return Response(
-                {
-                    "detail": (
-                        "Add a headline, role title, and at least one "
-                        "content pillar before continuing."
-                    ),
-                },
+                ProfessionalProfileSerializer(profile).data,
                 status=status.HTTP_400_BAD_REQUEST,
             )
         profile.profile_setup_complete = True
         profile.save(update_fields=["profile_setup_complete", "updated_at"])
+        profile.refresh_from_db()
         return Response(ProfessionalProfileSerializer(profile).data)
 
 

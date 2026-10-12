@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { PageSkeleton } from "@/components/workspace/page-skeleton";
@@ -15,8 +15,6 @@ export function LinkedInProfileGate({ children }: { children: ReactNode }) {
   const { accessToken, isLoading: authLoading } = useAuth();
   const [checking, setChecking] = useState(true);
   const [ready, setReady] = useState(false);
-  const redirectStarted = useRef(false);
-
   const onSetupRoute = pathname.startsWith(SETUP_PREFIX);
 
   useEffect(() => {
@@ -30,6 +28,7 @@ export function LinkedInProfileGate({ children }: { children: ReactNode }) {
     }
 
     let cancelled = false;
+    setChecking(true);
 
     getProfessionalProfile(accessToken)
       .then((profile) => {
@@ -39,17 +38,14 @@ export function LinkedInProfileGate({ children }: { children: ReactNode }) {
         const isReady = profile.profile_ready === true;
         setReady(isReady);
 
-        if (!isReady && !onSetupRoute && !redirectStarted.current) {
-          redirectStarted.current = true;
+        if (!isReady && !onSetupRoute) {
           router.replace(SETUP_PREFIX);
-        }
-        if (isReady && onSetupRoute) {
+        } else if (isReady && onSetupRoute) {
           router.replace("/workspace/linkedin");
         }
       })
       .catch(() => {
         if (!cancelled && !onSetupRoute) {
-          redirectStarted.current = true;
           router.replace(SETUP_PREFIX);
         }
       })

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
+import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import {
   completeLinkedInProfileSetup,
@@ -36,15 +37,29 @@ export default function LinkedInSetupPage() {
     setSaving(true);
 
     try {
-      await updateProfessionalProfile(accessToken, {
-        headline: profile.headline.trim(),
-        role_title: profile.role_title.trim(),
+      const headline = profile.headline.trim();
+      const roleTitle = profile.role_title.trim();
+      if (!headline || !roleTitle) {
+        setError("Headline and role title are required.");
+        return;
+      }
+
+      let current = await updateProfessionalProfile(accessToken, {
+        headline,
+        role_title: roleTitle,
         industry: profile.industry.trim(),
         tone_notes: profile.tone_notes.trim(),
       });
 
-      if (profile.pillars.length === 0 && pillarName.trim()) {
-        await createPillar(accessToken, { name: pillarName.trim() });
+      if (current.pillars.length === 0) {
+        const name = pillarName.trim();
+        if (!name) {
+          setError("Add at least one content pillar.");
+          return;
+        }
+        await createPillar(accessToken, { name });
+        current = await getProfessionalProfile(accessToken);
+        setProfile(current);
       }
 
       const finished = await completeLinkedInProfileSetup(accessToken);
@@ -56,9 +71,15 @@ export default function LinkedInSetupPage() {
         return;
       }
 
+      setProfile(finished);
       router.replace("/workspace/linkedin");
-    } catch {
-      setError("Could not save your profile. Please try again.");
+      router.refresh();
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not save your profile. Please try again.",
+      );
     } finally {
       setSaving(false);
     }
