@@ -70,7 +70,7 @@ class SocialAccount(models.Model):
     )
 
     profile_picture_url = models.URLField(
-        max_length=600,
+        max_length=2048,
         blank=True,
     )
 

@@ -390,6 +390,19 @@ class SocialAPITests(TestCase):
         self.assertIn("source", post.call_args.kwargs["files"])
 
 
+class FitProfilePictureUrlTests(TestCase):
+    def test_long_meta_cdn_url_fits_column(self):
+        from apps.social.services.connection import fit_profile_picture_url
+
+        long_url = (
+            "https://scontent.example.fbcdn.net/v/t39.30808-1/658157781.jpg?"
+            + "a=" + ("x" * 900)
+        )
+        fitted = fit_profile_picture_url(long_url)
+        self.assertLessEqual(len(fitted), 2048)
+        self.assertTrue(fitted.startswith("https://"))
+
+
 class MetaOAuthScopeTests(TestCase):
     def test_instagram_connect_uses_page_scopes_in_login_dialog(self):
         from apps.social.services.capabilities import (

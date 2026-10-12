@@ -31,6 +31,19 @@ def _store_baseline(adapter: MetaAdapter, account: SocialAccount) -> None:
     account.save(update_fields=["metadata", "updated_at"])
 
 
+def fit_profile_picture_url(url: str) -> str:
+    """Meta CDN URLs with query strings can exceed legacy column limits."""
+    cleaned = (url or "").strip()
+    if not cleaned:
+        return ""
+    if len(cleaned) <= 2048:
+        return cleaned
+    without_query = cleaned.split("?", 1)[0]
+    if len(without_query) <= 2048:
+        return without_query
+    return without_query[:2048]
+
+
 def get_adapter(platform: str) -> ChannelAdapter:
     """Return the adapter for a platform string."""
     if platform in (
@@ -229,7 +242,9 @@ def sync_account_profile(account: SocialAccount) -> bool:
 
     update_fields: list[str] = []
     if info.profile_picture_url:
-        account.profile_picture_url = info.profile_picture_url
+        account.profile_picture_url = fit_profile_picture_url(
+            info.profile_picture_url,
+        )
         update_fields.append("profile_picture_url")
     if info.name:
         account.account_name = info.name
@@ -247,7 +262,16 @@ def sync_account_profile(account: SocialAccount) -> bool:
         return False
 
     update_fields.append("updated_at")
-    account.save(update_fields=update_fields)
+    try:
+        account.save(update_fields=update_fields)
+    except Exception:
+        if "profile_picture_url" not in update_fields:
+            raise
+        account.profile_picture_url = ""
+        trimmed = [f for f in update_fields if f != "profile_picture_url"]
+        if len(trimmed) > 1:
+            account.save(update_fields=trimmed)
+        return False
     return True
 
 
