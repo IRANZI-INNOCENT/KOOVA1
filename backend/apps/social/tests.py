@@ -22,7 +22,7 @@ from rest_framework.test import APIClient
 from apps.businesses.models import Business
 from apps.content.models import Content
 
-from .adapters.base import TokenExchange
+from .adapters.base import MetaPageGrant, TokenExchange
 from .models import SocialAccount, SocialAction, SocialPost
 
 
@@ -309,6 +309,48 @@ class SocialAPITests(TestCase):
             format="json",
         )
         self.assertEqual(resp.status_code, 400)
+
+    @patch("apps.social.services.connection.MetaAdapter")
+    def test_meta_callback_connects_all_facebook_pages(self, MockAdapter):
+        instance = MockAdapter.return_value
+        instance.exchange_code.return_value = TokenExchange(
+            access_token="long-lived-tok",
+            expires_in=5184000,
+            scopes=["pages_show_list", "pages_manage_posts"],
+            page_id="pg-1",
+            page_name="Page One",
+            page_access_token="tok-1",
+            pages=[
+                MetaPageGrant(
+                    page_id="pg-1",
+                    page_name="Page One",
+                    page_access_token="tok-1",
+                ),
+                MetaPageGrant(
+                    page_id="pg-2",
+                    page_name="Page Two",
+                    page_access_token="tok-2",
+                ),
+            ],
+        )
+        resp = self.client.post(
+            f"/api/social/{self.business.id}/meta/callback/",
+            {
+                "code": "mock-auth-code",
+                "redirect_uri": "http://localhost/callback",
+                "platform": "facebook",
+            },
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(len(resp.data["accounts"]), 2)
+        self.assertEqual(
+            SocialAccount.objects.filter(
+                business=self.business,
+                platform=SocialAccount.Platform.FACEBOOK_PAGE,
+            ).count(),
+            2,
+        )
 
     @patch("apps.social.services.connection.MetaAdapter")
     def test_meta_callback_instagram_requires_linked_professional(

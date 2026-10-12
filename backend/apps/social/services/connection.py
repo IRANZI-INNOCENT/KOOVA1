@@ -13,7 +13,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from apps.businesses.models import Business
-from apps.social.adapters.base import ChannelAdapter
+from apps.social.adapters.base import ChannelAdapter, MetaPageGrant, TokenExchange
 from apps.social.adapters.meta import MetaAdapter, MetaAdapterError
 from apps.social.models import SocialAccount, SocialAction
 
@@ -54,6 +54,97 @@ def get_adapter(platform: str) -> ChannelAdapter:
     raise ValueError(f"No adapter for platform: {platform}")
 
 
+def _pages_from_exchange(exchange: TokenExchange) -> list[MetaPageGrant]:
+    if exchange.pages:
+        return list(exchange.pages)
+    return [
+        MetaPageGrant(
+            page_id=exchange.page_id,
+            page_name=exchange.page_name,
+            page_access_token=exchange.page_access_token,
+            instagram_account_id=exchange.instagram_account_id,
+            instagram_username=exchange.instagram_username,
+        ),
+    ]
+
+
+def _connect_facebook_page(
+    business: Business,
+    adapter: MetaAdapter,
+    grant: MetaPageGrant,
+    *,
+    scopes: list[str],
+    expires,
+    now,
+) -> SocialAccount:
+    fb_account, _ = SocialAccount.objects.update_or_create(
+        business=business,
+        platform=SocialAccount.Platform.FACEBOOK_PAGE,
+        platform_account_id=grant.page_id,
+        defaults={
+            "account_name": grant.page_name,
+            "access_token": grant.page_access_token,
+            "token_expires_at": expires,
+            "scopes": scopes,
+            "connection_status": SocialAccount.ConnectionStatus.CONNECTED,
+            "connection_error": "",
+            "last_verified_at": now,
+        },
+    )
+    sync_account_profile(fb_account)
+    fb_account.refresh_from_db()
+    _store_baseline(adapter, fb_account)
+    SocialAction.objects.create(
+        business=business,
+        social_account=fb_account,
+        action_type=SocialAction.ActionType.VERIFY_CONNECTION,
+        action_status=SocialAction.ActionStatus.COMPLETED,
+        intent="Connect Facebook Page via OAuth.",
+        result=f"Connected {grant.page_name}.",
+        requires_approval=False,
+    )
+    return fb_account
+
+
+def _connect_instagram_account(
+    business: Business,
+    adapter: MetaAdapter,
+    grant: MetaPageGrant,
+    *,
+    scopes: list[str],
+    expires,
+    now,
+) -> SocialAccount:
+    ig_account, _ = SocialAccount.objects.update_or_create(
+        business=business,
+        platform=SocialAccount.Platform.INSTAGRAM,
+        platform_account_id=grant.instagram_account_id,
+        defaults={
+            "account_name": grant.instagram_username,
+            "account_username": grant.instagram_username,
+            "access_token": grant.page_access_token,
+            "token_expires_at": expires,
+            "scopes": scopes,
+            "connection_status": SocialAccount.ConnectionStatus.CONNECTED,
+            "connection_error": "",
+            "last_verified_at": now,
+        },
+    )
+    sync_account_profile(ig_account)
+    ig_account.refresh_from_db()
+    _store_baseline(adapter, ig_account)
+    SocialAction.objects.create(
+        business=business,
+        social_account=ig_account,
+        action_type=SocialAction.ActionType.VERIFY_CONNECTION,
+        action_status=SocialAction.ActionStatus.COMPLETED,
+        intent="Connect Instagram Professional via Facebook Page.",
+        result=f"Connected @{grant.instagram_username} (via {grant.page_name}).",
+        requires_approval=False,
+    )
+    return ig_account
+
+
 def connect_meta(
     business: Business,
     code: str,
@@ -63,99 +154,76 @@ def connect_meta(
     """
     Exchange a Facebook OAuth code and create SocialAccount records.
 
+    Connects every Facebook Page the user granted in Meta Login (not only
+    the first). Each Page gets its own token; linked Instagram accounts
+    are connected when requested.
+
     Returns a dict with the connected account(s) for the API response.
     """
     adapter = MetaAdapter()
     exchange = adapter.exchange_code(code, redirect_uri)
+    pages = _pages_from_exchange(exchange)
 
     now = timezone.now()
     expires = now + timedelta(seconds=exchange.expires_in or 5_184_000)
+    scopes = list(exchange.scopes or [])
     connected: list[dict] = []
+    seen_ids: set[int] = set()
     want_facebook = platform in {"both", "facebook"}
     want_instagram = platform in {"both", "instagram"}
 
-    if want_instagram and not exchange.instagram_account_id:
-        raise MetaAdapterError(
-            "No Instagram Professional account is linked to this Facebook Page. "
-            "Switch the Instagram account to Professional (Business or Creator), "
-            "link it to this Page in Meta Business Suite, then try Connect "
-            "Instagram again.",
-            code="INSTAGRAM_NOT_LINKED_TO_PAGE",
-            details={
-                "page_name": exchange.page_name,
-                "page_id": exchange.page_id,
+    def append_account(account: SocialAccount) -> None:
+        if account.id in seen_ids:
+            return
+        seen_ids.add(account.id)
+        connected.append(
+            {
+                "id": account.id,
+                "platform": account.platform,
+                "account_name": account.account_name or account.account_username,
+                "connection_status": account.connection_status,
             },
         )
+
+    if want_instagram and platform == "instagram":
+        if not any(p.instagram_account_id for p in pages):
+            primary = pages[0]
+            raise MetaAdapterError(
+                "No Instagram Professional account is linked to any of your "
+                "Facebook Pages. Link Instagram to a Page in Meta Business Suite, "
+                "then try Connect Instagram again.",
+                code="INSTAGRAM_NOT_LINKED_TO_PAGE",
+                details={
+                    "page_name": primary.page_name,
+                    "page_id": primary.page_id,
+                },
+            )
 
     if want_facebook:
-        fb_account, _ = SocialAccount.objects.update_or_create(
-            business=business,
-            platform=SocialAccount.Platform.FACEBOOK_PAGE,
-            platform_account_id=exchange.page_id,
-            defaults={
-                "account_name": exchange.page_name,
-                "access_token": exchange.page_access_token,
-                "token_expires_at": expires,
-                "scopes": exchange.scopes or [],
-                "connection_status": SocialAccount.ConnectionStatus.CONNECTED,
-                "connection_error": "",
-                "last_verified_at": now,
-            },
-        )
-        connected.append({
-            "id": fb_account.id,
-            "platform": fb_account.platform,
-            "account_name": fb_account.account_name,
-            "connection_status": fb_account.connection_status,
-        })
-        sync_account_profile(fb_account)
-        fb_account.refresh_from_db()
-        _store_baseline(adapter, fb_account)
-        SocialAction.objects.create(
-            business=business,
-            social_account=fb_account,
-            action_type=SocialAction.ActionType.VERIFY_CONNECTION,
-            action_status=SocialAction.ActionStatus.COMPLETED,
-            intent="Connect Facebook Page via OAuth.",
-            result=f"Connected {exchange.page_name}.",
-            requires_approval=False,
-        )
+        for grant in pages:
+            fb_account = _connect_facebook_page(
+                business,
+                adapter,
+                grant,
+                scopes=scopes,
+                expires=expires,
+                now=now,
+            )
+            append_account(fb_account)
 
-    if want_instagram and exchange.instagram_account_id:
-        ig_account, _ = SocialAccount.objects.update_or_create(
-            business=business,
-            platform=SocialAccount.Platform.INSTAGRAM,
-            platform_account_id=exchange.instagram_account_id,
-            defaults={
-                "account_name": exchange.instagram_username,
-                "account_username": exchange.instagram_username,
-                "access_token": exchange.page_access_token,
-                "token_expires_at": expires,
-                "scopes": exchange.scopes or [],
-                "connection_status": SocialAccount.ConnectionStatus.CONNECTED,
-                "connection_error": "",
-                "last_verified_at": now,
-            },
-        )
-        connected.append({
-            "id": ig_account.id,
-            "platform": ig_account.platform,
-            "account_name": ig_account.account_name or ig_account.account_username,
-            "connection_status": ig_account.connection_status,
-        })
-
-        sync_account_profile(ig_account)
-        ig_account.refresh_from_db()
-        _store_baseline(adapter, ig_account)
-        SocialAction.objects.create(
-            business=business,
-            social_account=ig_account,
-            action_type=SocialAction.ActionType.VERIFY_CONNECTION,
-            action_status=SocialAction.ActionStatus.COMPLETED,
-            intent="Connect Instagram Professional via Facebook Page.",
-            result=f"Connected @{exchange.instagram_username}.",
-            requires_approval=False,
-        )
+    if want_instagram:
+        for grant in pages:
+            if not grant.instagram_account_id:
+                continue
+            ig_account = _connect_instagram_account(
+                business,
+                adapter,
+                grant,
+                scopes=scopes,
+                expires=expires,
+                now=now,
+            )
+            append_account(ig_account)
 
     return {"accounts": connected}
 
@@ -166,15 +234,14 @@ def instagram_link_status(business: Business) -> dict:
     Professional account (via Graph API), and whether Kova already stores IG.
     """
 
-    fb_account = (
+    fb_accounts = list(
         SocialAccount.objects.filter(
             business=business,
             platform=SocialAccount.Platform.FACEBOOK_PAGE,
             connection_status=SocialAccount.ConnectionStatus.CONNECTED,
-        )
-        .order_by("-updated_at")
-        .first()
+        ).order_by("-updated_at"),
     )
+    fb_account = fb_accounts[0] if fb_accounts else None
 
     ig_connected = SocialAccount.objects.filter(
         business=business,
@@ -182,31 +249,51 @@ def instagram_link_status(business: Business) -> dict:
         connection_status=SocialAccount.ConnectionStatus.CONNECTED,
     ).exists()
 
+    facebook_pages = [
+        {
+            "id": account.platform_account_id,
+            "name": account.account_name,
+        }
+        for account in fb_accounts
+    ]
+
     if not fb_account or not fb_account.access_token:
         return {
             "facebook_connected": False,
+            "facebook_page_count": 0,
+            "facebook_pages": [],
             "instagram_linked_to_page": False,
             "instagram_connected_in_kova": ig_connected,
             "facebook_page_name": "",
+            "facebook_page_id": "",
             "instagram_username": "",
         }
 
     adapter = MetaAdapter()
     ig_id = ""
     ig_username = ""
-    try:
-        ig_id, ig_username = adapter._get_instagram_account(
-            fb_account.platform_account_id,
-            fb_account.access_token,
-        )
-    except Exception:
-        pass
+    any_page_has_ig = False
+    for account in fb_accounts:
+        try:
+            page_ig_id, page_ig_user = adapter._get_instagram_account(
+                account.platform_account_id,
+                account.access_token,
+            )
+        except Exception:
+            continue
+        if page_ig_id:
+            any_page_has_ig = True
+            if not ig_id:
+                ig_id = page_ig_id
+                ig_username = page_ig_user
 
     return {
         "facebook_connected": True,
+        "facebook_page_count": len(fb_accounts),
+        "facebook_pages": facebook_pages,
         "facebook_page_name": fb_account.account_name,
         "facebook_page_id": fb_account.platform_account_id,
-        "instagram_linked_to_page": bool(ig_id),
+        "instagram_linked_to_page": any_page_has_ig or bool(ig_id),
         "instagram_username": ig_username,
         "instagram_connected_in_kova": ig_connected,
     }

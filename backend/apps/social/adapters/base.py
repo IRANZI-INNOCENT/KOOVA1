@@ -39,6 +39,17 @@ class AccountInfo:
 
 
 @dataclass
+class MetaPageGrant:
+    """One Facebook Page (and optional linked Instagram) from Meta OAuth."""
+
+    page_id: str
+    page_name: str
+    page_access_token: str
+    instagram_account_id: str = ""
+    instagram_username: str = ""
+
+
+@dataclass
 class TokenExchange:
     """Result of exchanging an auth code for tokens."""
 
@@ -50,6 +61,7 @@ class TokenExchange:
     page_access_token: str = ""
     instagram_account_id: str = ""
     instagram_username: str = ""
+    pages: list[MetaPageGrant] | None = None
 
 
 class ChannelAdapter(ABC):

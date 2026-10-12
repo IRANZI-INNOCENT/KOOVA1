@@ -36,6 +36,7 @@ from apps.social.models import SocialAccount
 from .base import (
     AccountInfo,
     ChannelAdapter,
+    MetaPageGrant,
     PublishResult,
     TokenExchange,
 )
@@ -109,29 +110,54 @@ class MetaAdapter(ChannelAdapter):
                 "at least one Page."
             )
 
-        page = pages[0]
-        page_token = page.get("access_token", "")
-        page_id = page.get("id", "")
-        page_name = page.get("name", "")
+        grants: list[MetaPageGrant] = []
+        for raw in pages:
+            page_id = str(raw.get("id", "") or "")
+            page_token = str(raw.get("access_token", "") or "")
+            page_name = str(raw.get("name", "") or "")
+            if not page_id or not page_token:
+                continue
+            ig_id = ""
+            ig_username = ""
+            try:
+                ig_id, ig_username = self._get_instagram_account(
+                    page_id,
+                    page_token,
+                )
+            except Exception:
+                pass
+            grants.append(
+                MetaPageGrant(
+                    page_id=page_id,
+                    page_name=page_name,
+                    page_access_token=page_token,
+                    instagram_account_id=ig_id,
+                    instagram_username=ig_username,
+                ),
+            )
 
-        ig_id = ""
-        ig_username = ""
-        try:
-            ig_id, ig_username = self._get_instagram_account(page_id, page_token)
-        except Exception:
-            pass
+        if not grants:
+            raise MetaAdapterError(
+                "No Facebook Pages found.  The user must be an admin of "
+                "at least one Page.",
+            )
 
-        scopes = self._granted_scopes(long_token, page_token)
+        primary = grants[0]
+        scopes = self._granted_scopes(
+            long_token,
+            primary.page_access_token,
+        )
 
         return TokenExchange(
             access_token=long_token,
             expires_in=60 * 60 * 24 * 60,
             scopes=scopes,
-            page_id=page_id,
-            page_name=page_name,
-            page_access_token=page_token,
-            instagram_account_id=ig_id,
-            instagram_username=ig_username,
+            page_id=primary.page_id,
+            page_name=primary.page_name,
+            page_access_token=primary.page_access_token,
+            instagram_account_id=primary.instagram_account_id,
+            instagram_username=primary.instagram_username,
+            pages=grants,
         )
 
     # ------------------------------------------------------------------ #

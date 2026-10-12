@@ -299,7 +299,7 @@ export default function ChannelsPage() {
         <PageHeader
           eyebrow="Connect"
           title="Facebook & Instagram"
-          description="Link accounts so Kova can post, read comments, and reply."
+          description="Connect Facebook to add every Page you manage in one step. Kova can post, read comments, and reply on each connected Page."
           actions={
             <div className="flex flex-wrap gap-2">
               <button

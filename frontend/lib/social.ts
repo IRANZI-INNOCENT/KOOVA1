@@ -138,6 +138,8 @@ export async function verifySocialAccount(
 
 export interface InstagramReadiness {
   facebook_connected: boolean;
+  facebook_page_count?: number;
+  facebook_pages?: { id: string; name: string }[];
   facebook_page_name: string;
   facebook_page_id?: string;
   instagram_linked_to_page: boolean;
