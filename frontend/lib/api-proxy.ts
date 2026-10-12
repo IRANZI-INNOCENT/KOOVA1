@@ -27,6 +27,12 @@ const HOP_BY_HOP = new Set([
   "host",
 ]);
 
+/** Node fetch decompresses gzip; forwarding these breaks the browser. */
+const STRIP_FROM_RESPONSE = new Set([
+  "content-encoding",
+  "content-length",
+]);
+
 /**
  * Proxy /api/* to Django at runtime (Railway env applies without rebuild).
  * Always uses trailing slashes so APPEND_SLASH does not 301-loop via the site.
@@ -51,11 +57,12 @@ export async function proxyApiRequest(
   const headers = new Headers();
   request.headers.forEach((value, key) => {
     const lower = key.toLowerCase();
-    if (HOP_BY_HOP.has(lower)) {
+    if (HOP_BY_HOP.has(lower) || lower === "accept-encoding") {
       return;
     }
     headers.set(key, value);
   });
+  headers.set("Accept-Encoding", "identity");
 
   const init: RequestInit = {
     method: request.method,
@@ -82,7 +89,8 @@ export async function proxyApiRequest(
 
   const responseHeaders = new Headers();
   upstream.headers.forEach((value, key) => {
-    if (HOP_BY_HOP.has(key.toLowerCase())) {
+    const lower = key.toLowerCase();
+    if (HOP_BY_HOP.has(lower) || STRIP_FROM_RESPONSE.has(lower)) {
       return;
     }
     responseHeaders.append(key, value);
