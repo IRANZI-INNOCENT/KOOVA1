@@ -86,6 +86,9 @@ class ProfessionalProfileSerializer(serializers.ModelSerializer):
 
 
 class ProfessionalProgramSerializer(serializers.ModelSerializer):
+    event_image_url = serializers.SerializerMethodField()
+    event_images = serializers.SerializerMethodField()
+
     class Meta:
         model = ProfessionalProgram
         fields = [
@@ -96,6 +99,8 @@ class ProfessionalProgramSerializer(serializers.ModelSerializer):
             "input_data",
             "plan",
             "event_image",
+            "event_image_url",
+            "event_images",
             "created_at",
             "updated_at",
         ]
@@ -106,6 +111,40 @@ class ProfessionalProgramSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def _absolute(self, path: str) -> str:
+        request = self.context.get("request")
+        if request is not None:
+            return request.build_absolute_uri(path)
+        from apps.commerce.services.storefront import absolute_media_url
+
+        return absolute_media_url(path)
+
+    def get_event_image_url(self, obj: ProfessionalProgram) -> str | None:
+        if obj.event_image:
+            return self._absolute(obj.event_image.url)
+        return None
+
+    def get_event_images(self, obj: ProfessionalProgram) -> list[dict]:
+        rows = []
+        for row in obj.event_images.all():
+            if row.image:
+                rows.append(
+                    {
+                        "id": row.id,
+                        "url": self._absolute(row.image.url),
+                        "sort_order": row.sort_order,
+                    },
+                )
+        if not rows and obj.event_image:
+            rows.append(
+                {
+                    "id": 0,
+                    "url": self._absolute(obj.event_image.url),
+                    "sort_order": 0,
+                },
+            )
+        return rows
 
 
 class ProfessionalPostSerializer(serializers.ModelSerializer):
@@ -122,6 +161,7 @@ class ProfessionalPostSerializer(serializers.ModelSerializer):
             "title",
             "body",
             "carousel_slides",
+            "media_urls",
             "status",
             "scheduled_at",
             "published_at",

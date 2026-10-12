@@ -73,8 +73,57 @@ def fetch_member_profile(access_token: str) -> dict:
     return response.json()
 
 
+def _api_headers(access_token: str) -> dict[str, str]:
+    return {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+        "LinkedIn-Version": "202405",
+        "X-Restli-Protocol-Version": "2.0.0",
+    }
+
+
+def _download_bytes(url: str) -> bytes:
+    response = requests.get(url, timeout=45)
+    if not response.ok:
+        raise LinkedInError("Could not fetch an image for LinkedIn upload.")
+    return response.content
+
+
+def _upload_image(access_token: str, owner_urn: str, image_url: str) -> str:
+    init = requests.post(
+        "https://api.linkedin.com/rest/images?action=initializeUpload",
+        headers=_api_headers(access_token),
+        json={"initializeUploadRequest": {"owner": owner_urn}},
+        timeout=30,
+    )
+    try:
+        payload = init.json()
+    except ValueError as exc:
+        raise LinkedInError("LinkedIn image upload failed.") from exc
+    if not init.ok:
+        raise LinkedInError(
+            str(payload.get("message") or init.text[:400] or "LinkedIn image upload failed."),
+        )
+    value = payload.get("value") or {}
+    upload_url = value.get("uploadUrl") or ""
+    image_urn = value.get("image") or ""
+    if not upload_url or not image_urn:
+        raise LinkedInError("LinkedIn did not return an upload URL.")
+
+    binary = _download_bytes(image_url)
+    put = requests.put(
+        upload_url,
+        data=binary,
+        headers={"Content-Type": "application/octet-stream"},
+        timeout=60,
+    )
+    if not put.ok:
+        raise LinkedInError("LinkedIn rejected the uploaded image.")
+    return str(image_urn)
+
+
 def publish_text_post(connection: LinkedInConnection, post: ProfessionalPost) -> str:
-    """Publish a text post to the member feed. Returns post id/urn if available."""
+    """Publish a text (and optional multi-image) post. Returns post id/urn if available."""
     if connection.connection_status != LinkedInConnection.Status.CONNECTED:
         raise LinkedInError("LinkedIn is not connected.")
 
@@ -87,7 +136,7 @@ def publish_text_post(connection: LinkedInConnection, post: ProfessionalPost) ->
         raise LinkedInError("LinkedIn member id missing.")
 
     author = f"urn:li:person:{member_id}"
-    payload = {
+    payload: dict = {
         "author": author,
         "commentary": post.body[:3000],
         "visibility": "PUBLIC",
@@ -99,16 +148,24 @@ def publish_text_post(connection: LinkedInConnection, post: ProfessionalPost) ->
         },
     }
 
+    image_urls: list[str] = []
+    if isinstance(post.media_urls, list):
+        image_urls = [str(item).strip() for item in post.media_urls if item][:5]
+
+    if image_urls:
+        urns = [_upload_image(access_token, author, url) for url in image_urls]
+        if len(urns) == 1:
+            payload["content"] = {"media": {"id": urns[0]}}
+        else:
+            payload["content"] = {
+                "multiImage": {"images": [{"id": urn} for urn in urns]},
+            }
+
     response = requests.post(
         "https://api.linkedin.com/rest/posts",
-        headers={
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json",
-            "LinkedIn-Version": "202405",
-            "X-Restli-Protocol-Version": "2.0.0",
-        },
+        headers=_api_headers(access_token),
         json=payload,
-        timeout=45,
+        timeout=90,
     )
     if not response.ok:
         raise LinkedInError(response.text[:400] or "LinkedIn publish failed.")

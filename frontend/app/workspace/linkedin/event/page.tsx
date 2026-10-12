@@ -4,6 +4,10 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  EventPhotoPicker,
+  type EventPhotoItem,
+} from "@/components/linkedin/event-photo-picker";
 import { PostCard } from "@/components/linkedin/post-card";
 import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
 import { useAuth } from "@/lib/auth-context";
@@ -25,7 +29,7 @@ export default function EventMomentPage() {
   const [eventTitle, setEventTitle] = useState("");
   const [eventType, setEventType] = useState("conference");
   const [imageHint, setImageHint] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [photos, setPhotos] = useState<EventPhotoItem[]>([]);
   const [programId, setProgramId] = useState<number | null>(null);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
@@ -43,8 +47,8 @@ export default function EventMomentPage() {
     form.append("event_type", eventType);
     form.append("event_title", eventTitle);
     form.append("image_hint", imageHint);
-    if (imageFile) {
-      form.append("image", imageFile);
+    for (const photo of photos) {
+      form.append("images", photo.file);
     }
     try {
       const result = await startEventMoment(accessToken, form);
@@ -117,10 +121,10 @@ export default function EventMomentPage() {
               value={imageHint}
               onChange={(e) => setImageHint(e.target.value)}
             />
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+            <EventPhotoPicker
+              photos={photos}
+              onChange={setPhotos}
+              disabled={loading === "start"}
             />
             <Button
               type="button"

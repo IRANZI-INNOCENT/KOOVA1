@@ -13,11 +13,13 @@ from apps.businesses.models import Business
 from .models import (
     ContentPillar,
     LinkedInConnection,
+    ProfessionalEventImage,
     ProfessionalPost,
     ProfessionalProfile,
     ProfessionalProgram,
     ProfessionalWeeklyBrief,
 )
+from .services.event_media import assign_event_media_to_posts
 from .serializers import (
     ContentPillarSerializer,
     ProfessionalPostSerializer,
@@ -282,7 +284,11 @@ class EventMomentStartView(APIView):
         event_type = (request.data.get("event_type") or "conference").strip()
         event_title = (request.data.get("event_title") or "").strip()
         image_hint = (request.data.get("image_hint") or "").strip()
-        image = request.FILES.get("image")
+        uploads = list(request.FILES.getlist("images") or [])
+        legacy = request.FILES.get("image")
+        if legacy is not None:
+            uploads.insert(0, legacy)
+        uploads = uploads[:5]
 
         question_data = suggest_event_question(
             profile,
@@ -308,11 +314,20 @@ class EventMomentStartView(APIView):
                 topic=event_label or "professional event",
             ),
         )
-        if image:
-            program.event_image = image
+        if uploads:
+            program.event_image = uploads[0]
             program.save(update_fields=["event_image", "updated_at"])
+            for index, upload in enumerate(uploads):
+                ProfessionalEventImage.objects.create(
+                    program=program,
+                    image=upload,
+                    sort_order=index,
+                )
 
-        payload = ProfessionalProgramSerializer(program).data
+        payload = ProfessionalProgramSerializer(
+            program,
+            context={"request": request},
+        ).data
         payload["question"] = question_data["question"]
         return Response(payload, status=status.HTTP_201_CREATED)
 
@@ -358,7 +373,8 @@ class EventMomentAnswerView(APIView):
         program.save()
 
         try:
-            generate_drafts_for_program(program)
+            posts = generate_drafts_for_program(program)
+            assign_event_media_to_posts(program, posts, request=request)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
 
@@ -366,7 +382,10 @@ class EventMomentAnswerView(APIView):
         posts = program.posts.all()
         return Response(
             {
-                "program": ProfessionalProgramSerializer(program).data,
+                "program": ProfessionalProgramSerializer(
+                    program,
+                    context={"request": request},
+                ).data,
                 "posts": ProfessionalPostSerializer(posts, many=True).data,
             },
         )

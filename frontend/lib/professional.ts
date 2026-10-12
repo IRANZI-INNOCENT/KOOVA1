@@ -37,6 +37,12 @@ export interface ProfessionalProfile {
   linkedin: LinkedInConnectionInfo;
 }
 
+export interface EventImageRef {
+  id: number;
+  url: string;
+  sort_order: number;
+}
+
 export interface ProfessionalProgram {
   id: number;
   program_type: "topic_week" | "event_moment";
@@ -45,6 +51,8 @@ export interface ProfessionalProgram {
   input_data: Record<string, unknown>;
   plan: Record<string, unknown>;
   event_image: string | null;
+  event_image_url?: string | null;
+  event_images?: EventImageRef[];
 }
 
 export interface ProfessionalPost {
@@ -56,6 +64,7 @@ export interface ProfessionalPost {
   title: string;
   body: string;
   carousel_slides: string[];
+  media_urls: string[];
   status: string;
   scheduled_at: string | null;
   published_at: string | null;

@@ -10,6 +10,7 @@ from apps.business_brain.services.draft import _parse_json
 from apps.kova_ai.services.openrouter import OpenRouterError, OpenRouterService
 
 from ..models import ProfessionalPost, ProfessionalProgram, ProfessionalProfile
+from .linkedin_content import LINKEDIN_ALGORITHM_RULES
 from .professional_brain import (
     attach_brain_to_program_input,
     brain_system_rules,
@@ -226,31 +227,36 @@ def run_topic_week_pipeline(
     return schedule_topic_week_posts(profile, program, posts)
 
 
-DRAFTS_PROMPT = """Draft LinkedIn posts that match the LinkedIn Brain voice and pillars.
-For carousel_outline format, return slides as a list of strings in carousel_slides.
-Keep each text post under 2800 characters. Strong hook in line 1.
-Each post should connect to the primary pillar when one is listed.
-
-Return JSON only:
-{
-  "posts": [
-    {
-      "arc_index": 1,
-      "post_role": "...",
-      "format": "text|carousel_outline",
-      "title": "...",
-      "body": "full post text for text format",
-      "carousel_slides": ["slide 1", "..."]
-    }
-  ]
-}
-"""
+DRAFTS_PROMPT = (
+    "Draft LinkedIn posts that match the LinkedIn Brain voice and pillars.\n"
+    f"{LINKEDIN_ALGORITHM_RULES}\n"
+    "For carousel_outline format, return slides as a list of strings in carousel_slides.\n"
+    "Keep each text post under 2800 characters. Strong hook in line 1.\n"
+    "Each post should connect to the primary pillar when one is listed.\n"
+    "When program input mentions event photos or image hints, weave them into the event post naturally.\n\n"
+    "Return JSON only:\n"
+    '{"posts": [{"arc_index": 1, "post_role": "...", "format": "text|carousel_outline", '
+    '"title": "...", "body": "full post text for text format", '
+    '"carousel_slides": ["slide 1", "..."]}]}\n'
+)
 
 
 def generate_drafts_for_program(program: ProfessionalProgram) -> list[ProfessionalPost]:
     profile = program.profile
     plan = program.plan or {}
     topic = str((program.input_data or {}).get("topic", ""))
+    image_note = ""
+    if program.program_type == ProfessionalProgram.ProgramType.EVENT_MOMENT:
+        hints = (program.input_data or {}).get("image_hint") or ""
+        count = program.event_images.count()
+        if program.event_image:
+            count = max(count, 1)
+        if count:
+            image_note = (
+                f"\nThe member uploaded {count} event photo(s). "
+                f"Photo context: {hints or 'see program input'}.\n"
+            )
+
     user_msg = _brain_user_block(
         profile,
         topic=topic,
@@ -259,6 +265,7 @@ def generate_drafts_for_program(program: ProfessionalProgram) -> list[Profession
             f"Program title: {program.title or plan.get('title', '')}\n"
             f"Plan:\n{json.dumps(plan, indent=2)}\n"
             f"Program input:\n{json.dumps(program.input_data, indent=2)}"
+            f"{image_note}"
         ),
     )
     try:
@@ -341,22 +348,15 @@ def suggest_event_question(
     }
 
 
-EVENT_PLAN_PROMPT = """Plan 1 to 3 LinkedIn posts as an arc after someone attended an event.
-Return JSON:
-{
-  "title": "...",
-  "posts": [
-    {
-      "arc_index": 1,
-      "post_role": "event|story|authority|conversation",
-      "format": "text|carousel_outline",
-      "title": "...",
-      "summary": "...",
-      "suggested_timing": "same day|+2 days|+5 days"
-    }
-  ]
-}
-"""
+EVENT_PLAN_PROMPT = (
+    "Plan 1 to 3 LinkedIn posts as an arc after someone attended an event.\n"
+    f"{LINKEDIN_ALGORITHM_RULES}\n"
+    'Post 1 should be the visual "event" post (photos will attach); later posts deepen story or authority.\n'
+    "Return JSON:\n"
+    '{"title": "...", "posts": [{"arc_index": 1, "post_role": "event|story|authority|conversation", '
+    '"format": "text|carousel_outline", "title": "...", "summary": "...", '
+    '"suggested_timing": "same day|+2 days|+5 days"}]}\n'
+)
 
 
 def plan_event_arc(

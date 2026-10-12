@@ -160,6 +160,24 @@ class ProfessionalProgram(models.Model):
         return self.title or f"{self.program_type} #{self.pk}"
 
 
+class ProfessionalEventImage(models.Model):
+    """Up to five photos for an event-moment program."""
+
+    program = models.ForeignKey(
+        ProfessionalProgram,
+        on_delete=models.CASCADE,
+        related_name="event_images",
+    )
+    image = models.ImageField(upload_to="professional/events/")
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "id"]
+
+    def __str__(self) -> str:
+        return f"Event image {self.pk} program {self.program_id}"
+
+
 class ProfessionalPost(models.Model):
     class PostRole(models.TextChoices):
         AUTHORITY = "authority", "Authority"
@@ -205,6 +223,11 @@ class ProfessionalPost(models.Model):
     title = models.CharField(max_length=200, blank=True)
     body = models.TextField(blank=True)
     carousel_slides = models.JSONField(default=list, blank=True)
+    media_urls = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Public URLs of images to publish with this post (event moments).",
+    )
     status = models.CharField(
         max_length=20,
         choices=Status.choices,

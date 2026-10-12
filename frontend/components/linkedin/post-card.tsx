@@ -67,6 +67,18 @@ export function PostCard({
       {post.title && (
         <h3 className="mt-2 font-semibold text-kova-ink">{post.title}</h3>
       )}
+      {post.media_urls?.length > 0 && (
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+          {post.media_urls.map((url) => (
+            <img
+              key={url}
+              src={url}
+              alt=""
+              className="h-20 w-20 shrink-0 rounded-md border border-kova-border object-cover"
+            />
+          ))}
+        </div>
+      )}
       <textarea
         className="mt-3 min-h-[140px] w-full rounded-lg border border-kova-border p-3 text-sm"
         value={body}
