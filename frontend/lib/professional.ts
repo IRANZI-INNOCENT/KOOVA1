@@ -11,11 +11,26 @@ export interface ContentPillar {
   sort_order: number;
 }
 
+export interface LinkedInProfileKnowledge {
+  available: boolean;
+  synced_at?: string;
+  name?: string;
+  headline?: string;
+  summary?: string;
+  location?: string;
+  profile_url?: string;
+  photo_url?: string;
+  positions?: string[];
+  sources?: string[];
+}
+
 export interface LinkedInConnectionInfo {
   connection_status: string;
   display_name: string;
   linkedin_member_id: string;
   token_expires_at: string | null;
+  profile_synced_at: string | null;
+  profile_knowledge: LinkedInProfileKnowledge;
   configured: boolean;
 }
 
@@ -125,6 +140,7 @@ export interface LinkedInBrainSnapshot {
   operating_mode: string;
   topic_autopilot_enabled: boolean;
   standing_topic: string;
+  linkedin_account?: LinkedInProfileKnowledge;
 }
 
 export async function getLinkedInBrain(
@@ -391,12 +407,40 @@ export async function generateWeeklyBrief(
   );
 }
 
+export interface LinkedInConnectConfig {
+  configured: boolean;
+  redirect_uri: string;
+  redirect_source: string;
+  frontend_url: string;
+  callback_path: string;
+  api_public_url: string;
+}
+
+export async function getLinkedInConnectConfig(
+  token: string,
+): Promise<LinkedInConnectConfig> {
+  return authenticatedApiRequest<LinkedInConnectConfig>(
+    "/professional/linkedin/config/",
+    token,
+  );
+}
+
 export async function getLinkedInOAuthUrl(
   token: string,
 ): Promise<{ url: string; redirect_uri?: string }> {
   return authenticatedApiRequest<{ url: string; redirect_uri?: string }>(
     "/professional/linkedin/oauth-url/",
     token,
+  );
+}
+
+export async function refreshLinkedInProfile(token: string): Promise<{
+  linkedin_account: LinkedInProfileKnowledge;
+}> {
+  return authenticatedApiRequest(
+    "/professional/linkedin/refresh-profile/",
+    token,
+    { method: "POST" },
   );
 }
 

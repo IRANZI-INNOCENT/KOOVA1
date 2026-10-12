@@ -10,7 +10,8 @@ from typing import Any
 
 from django.utils import timezone
 
-from ..models import ProfessionalPost, ProfessionalProfile, ProfessionalProgram
+from ..models import LinkedInConnection, ProfessionalPost, ProfessionalProfile, ProfessionalProgram
+from .linkedin_profile_sync import profile_knowledge_for_brain
 
 
 def gather_brain_snapshot(
@@ -47,6 +48,8 @@ def gather_brain_snapshot(
 
     matched_pillar = match_topic_to_pillar(profile, topic) if topic else None
     voice = _voice_profile(profile)
+    connection = LinkedInConnection.objects.filter(profile=profile).first()
+    linkedin_account = profile_knowledge_for_brain(connection)
 
     return {
         "identity": {
@@ -73,6 +76,7 @@ def gather_brain_snapshot(
             for row in recent_topics
         ],
         "recent_posts": recent_posts,
+        "linkedin_account": linkedin_account,
     }
 
 
@@ -84,6 +88,8 @@ def brain_system_rules() -> str:
         "- Write in their voice: headline, role, tone notes, and pillars define what fits.\n"
         "- Tie the week's topic to a content pillar when possible.\n"
         "- Do not invent employers, clients, metrics, awards, or events not in the input.\n"
+        "- When a LinkedIn account block is present, treat it as verified public profile context.\n"
+        "- Prefer LinkedIn headline and roles over guesses; still respect tone_notes boundaries.\n"
         "- If credentials are unclear, use general practitioner language.\n"
         "- Respect tone boundaries (off-limits topics, style) in tone_notes.\n"
         "- Prefer specific, useful LinkedIn posts over generic motivation.\n"
@@ -130,6 +136,23 @@ def format_brain_for_prompt(snapshot: dict[str, Any]) -> str:
                 if item.get("topic") or item.get("title")
             ),
         )
+
+    account = snapshot.get("linkedin_account") or {}
+    if account.get("available"):
+        parts.append("=== LINKEDIN ACCOUNT (from connected profile) ===")
+        if account.get("name"):
+            parts.append(f"Name on LinkedIn: {account['name']}")
+        if account.get("headline"):
+            parts.append(f"LinkedIn headline: {account['headline']}")
+        if account.get("location"):
+            parts.append(f"Location: {account['location']}")
+        if account.get("summary"):
+            parts.append(f"About / summary: {account['summary']}")
+        positions = account.get("positions") or []
+        if positions:
+            parts.append("Experience (from LinkedIn): " + "; ".join(positions[:5]))
+        if account.get("profile_url"):
+            parts.append(f"Profile URL: {account['profile_url']}")
 
     return "\n".join(parts)
 

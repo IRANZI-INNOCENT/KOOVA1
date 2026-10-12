@@ -52,7 +52,17 @@ urlpatterns = [
         views.WeeklyBriefGenerateView.as_view(),
         name="weekly-brief-generate",
     ),
+    path(
+        "linkedin/config/",
+        views.LinkedInConnectConfigView.as_view(),
+        name="linkedin-config",
+    ),
     path("linkedin/oauth-url/", views.LinkedInOAuthURLView.as_view(), name="linkedin-oauth-url"),
     path("linkedin/callback/", views.LinkedInOAuthCallbackView.as_view(), name="linkedin-callback"),
     path("linkedin/disconnect/", views.LinkedInDisconnectView.as_view(), name="linkedin-disconnect"),
+    path(
+        "linkedin/refresh-profile/",
+        views.LinkedInRefreshProfileView.as_view(),
+        name="linkedin-refresh-profile",
+    ),
 ]

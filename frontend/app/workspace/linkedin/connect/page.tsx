@@ -8,7 +8,9 @@ import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame"
 import { useAuth } from "@/lib/auth-context";
 import {
   disconnectLinkedIn,
+  getLinkedInConnectConfig,
   getLinkedInOAuthUrl,
+  refreshLinkedInProfile,
   getProfessionalProfile,
   type ProfessionalProfile,
 } from "@/lib/professional";
@@ -19,14 +21,23 @@ function ConnectContent() {
   const [profile, setProfile] = useState<ProfessionalProfile | null>(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [redirectUri, setRedirectUri] = useState("");
+  const [connectConfig, setConnectConfig] = useState<{
+    redirect_uri: string;
+    redirect_source: string;
+  } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (!accessToken) return;
     getProfessionalProfile(accessToken).then(setProfile);
-    getLinkedInOAuthUrl(accessToken)
-      .then((data) => setRedirectUri(data.redirect_uri ?? ""))
-      .catch(() => setRedirectUri(""));
+    getLinkedInConnectConfig(accessToken)
+      .then((data) =>
+        setConnectConfig({
+          redirect_uri: data.redirect_uri,
+          redirect_source: data.redirect_source,
+        }),
+      )
+      .catch(() => setConnectConfig(null));
   }, [accessToken]);
 
   useEffect(() => {
@@ -35,7 +46,20 @@ function ConnectContent() {
     }
     const err = searchParams.get("error");
     if (err) {
-      setMessage(`Connection issue: ${err}`);
+      const messages: Record<string, string> = {
+        callback: "LinkedIn returned but Kova could not finish connecting. Try again.",
+        token:
+          "LinkedIn rejected the token exchange. Confirm Client ID/Secret on the API service and that the redirect URL matches exactly.",
+        state: "This sign-in link expired or was invalid. Click Connect LinkedIn again.",
+        state_expired: "This sign-in session expired. Click Connect LinkedIn again.",
+        profile: "Kova could not find your professional profile. Complete LinkedIn setup first.",
+        member: "LinkedIn connected but Kova could not read your profile. Try Sync profile after connecting.",
+        proxy:
+          "The site is not proxying to the API. Set API_PROXY_TARGET on the site service and redeploy.",
+        api_unreachable:
+          "Kova could not reach the API service. Check that the API is running and API_PROXY_TARGET is correct.",
+      };
+      setMessage(messages[err] ?? `Connection issue: ${err}`);
     }
   }, [searchParams]);
 
@@ -50,6 +74,21 @@ function ConnectContent() {
         "LinkedIn OAuth is not configured on the server. Use Copy to publish posts manually.",
       );
       setLoading(false);
+    }
+  }
+
+  async function refreshProfile() {
+    if (!accessToken) return;
+    setRefreshing(true);
+    setMessage("");
+    try {
+      await refreshLinkedInProfile(accessToken);
+      setProfile(await getProfessionalProfile(accessToken));
+      setMessage("LinkedIn profile refreshed for Kova's brain.");
+    } catch {
+      setMessage("Could not refresh LinkedIn profile. Try reconnecting.");
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -90,20 +129,54 @@ function ConnectContent() {
             yet.
           </p>
         )}
-        {redirectUri && (
+        {connectConfig?.redirect_uri && (
           <div className="mt-4 rounded-lg bg-kova-cream/80 px-3 py-2 text-xs text-kova-ink">
             <p className="font-semibold">LinkedIn redirect URL (must match exactly)</p>
-            <p className="mt-1 break-all font-mono">{redirectUri}</p>
+            <p className="mt-1 break-all font-mono">{connectConfig.redirect_uri}</p>
             <p className="mt-2 text-kova-muted">
-              Paste this under your LinkedIn app → Auth → Authorized redirect
-              URLs for OAuth 2.0.
+              Add this in LinkedIn Developer → Auth → Authorized redirect URLs.
+              Kova builds it from{" "}
+              <span className="font-medium">{connectConfig.redirect_source}</span>{" "}
+              on the API service.
             </p>
           </div>
         )}
-        <div className="mt-4 flex gap-2">
+        {linkedin?.profile_knowledge?.available && (
+          <div className="mt-4 space-y-1 text-sm text-kova-muted">
+            {linkedin.profile_knowledge.headline && (
+              <p>
+                <span className="font-medium text-kova-ink">Headline: </span>
+                {linkedin.profile_knowledge.headline}
+              </p>
+            )}
+            {(linkedin.profile_knowledge.positions?.length ?? 0) > 0 && (
+              <p>
+                <span className="font-medium text-kova-ink">Roles: </span>
+                {linkedin.profile_knowledge.positions?.slice(0, 4).join(" · ")}
+              </p>
+            )}
+            {linkedin.profile_synced_at && (
+              <p className="text-xs">
+                Last synced{" "}
+                {new Date(linkedin.profile_synced_at).toLocaleString()}
+              </p>
+            )}
+          </div>
+        )}
+        <div className="mt-4 flex flex-wrap gap-2">
           <Button type="button" disabled={loading} onClick={connect}>
             Connect LinkedIn
           </Button>
+          {linkedin?.connection_status === "connected" && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={refreshing}
+              onClick={refreshProfile}
+            >
+              {refreshing ? "Syncing…" : "Sync profile to brain"}
+            </Button>
+          )}
           <Button type="button" variant="outline" onClick={disconnect}>
             Disconnect
           </Button>

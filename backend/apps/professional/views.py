@@ -28,6 +28,7 @@ from .serializers import (
     ProfessionalWeeklyBriefSerializer,
 )
 from .services import linkedin as linkedin_service
+from .services.linkedin_profile_sync import sync_connection_profile
 from .services.programs import (
     create_topic_week_program,
     current_topic_week_program,
@@ -598,6 +599,15 @@ class WeeklyBriefGenerateView(APIView):
         return Response(ProfessionalWeeklyBriefSerializer(brief).data)
 
 
+class LinkedInConnectConfigView(APIView):
+    """OAuth redirect URI Kova uses — paste the same value into LinkedIn Developer."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(linkedin_service.linkedin_connect_config(request))
+
+
 class LinkedInOAuthURLView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -610,6 +620,16 @@ class LinkedInOAuthURLView(APIView):
         profile = get_profile(request.user)
         state = signing.dumps({"profile_id": profile.id})
         redirect_uri = linkedin_service.linkedin_oauth_redirect_uri(request)
+        if not redirect_uri:
+            return Response(
+                {
+                    "detail": (
+                        "Set FRONTEND_URL on the API service (or LINKEDIN_REDIRECT_URI) "
+                        "before connecting LinkedIn."
+                    ),
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         url = linkedin_service.oauth_authorize_url(state=state, redirect_uri=redirect_uri)
         return Response({"url": url, "redirect_uri": redirect_uri})
 
@@ -631,21 +651,66 @@ class LinkedInOAuthCallbackView(APIView):
         redirect_uri = linkedin_service.linkedin_oauth_redirect_uri(request)
         try:
             payload = signing.loads(state, max_age=900)
+        except signing.BadSignature:
+            return redirect(f"{front}/workspace/linkedin/connect?error=state_expired")
+        except (TypeError, ValueError, KeyError):
+            return redirect(f"{front}/workspace/linkedin/connect?error=state")
+
+        try:
             profile_id = int(payload["profile_id"])
             profile = ProfessionalProfile.objects.get(pk=profile_id)
+        except (ProfessionalProfile.DoesNotExist, TypeError, ValueError):
+            return redirect(f"{front}/workspace/linkedin/connect?error=profile")
+
+        try:
             bundle = linkedin_service.exchange_code(code=code, redirect_uri=redirect_uri)
+        except linkedin_service.LinkedInError:
+            return redirect(f"{front}/workspace/linkedin/connect?error=token")
+
+        try:
             member = linkedin_service.fetch_member_profile(bundle["access_token"])
-            connection = LinkedInConnection.objects.get(profile=profile)
-            linkedin_service.apply_token_bundle(connection, bundle)
-            connection.linkedin_member_id = member.get("sub", "")
-            connection.display_name = member.get("name", "")
-            connection.save()
-            profile.linkedin_setup_complete = True
-            profile.save(update_fields=["linkedin_setup_complete", "updated_at"])
+        except linkedin_service.LinkedInError:
+            return redirect(f"{front}/workspace/linkedin/connect?error=member")
+
+        connection, _ = LinkedInConnection.objects.get_or_create(profile=profile)
+        linkedin_service.apply_token_bundle(connection, bundle)
+        connection.linkedin_member_id = member.get("sub", "")
+        connection.display_name = member.get("name", "")
+        connection.save()
+        try:
+            sync_connection_profile(connection)
         except Exception:
-            return redirect(f"{front}/workspace/linkedin/connect?error=callback")
+            pass
+        profile.linkedin_setup_complete = True
+        profile.save(update_fields=["linkedin_setup_complete", "updated_at"])
 
         return redirect(f"{front}/workspace/linkedin/connect?connected=1")
+
+
+class LinkedInRefreshProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        profile = get_profile(request.user)
+        connection = LinkedInConnection.objects.get(profile=profile)
+        if not linkedin_service.linkedin_configured():
+            return Response(
+                {"detail": "LinkedIn connection is not configured on the server."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        try:
+            snapshot = sync_connection_profile(connection)
+        except linkedin_service.LinkedInError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        from .services.linkedin_profile_sync import profile_knowledge_for_brain
+
+        connection.refresh_from_db()
+        return Response(
+            {
+                "profile_snapshot": snapshot,
+                "linkedin_account": profile_knowledge_for_brain(connection),
+            },
+        )
 
 
 class LinkedInDisconnectView(APIView):
@@ -658,6 +723,8 @@ class LinkedInDisconnectView(APIView):
         connection.refresh_token = ""
         connection.linkedin_member_id = ""
         connection.display_name = ""
+        connection.profile_snapshot = {}
+        connection.profile_synced_at = None
         connection.connection_status = LinkedInConnection.Status.DISCONNECTED
         connection.save()
         profile.linkedin_setup_complete = False

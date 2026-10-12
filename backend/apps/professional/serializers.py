@@ -24,6 +24,7 @@ class ContentPillarSerializer(serializers.ModelSerializer):
 
 class LinkedInConnectionSerializer(serializers.ModelSerializer):
     configured = serializers.SerializerMethodField()
+    profile_knowledge = serializers.SerializerMethodField()
 
     class Meta:
         model = LinkedInConnection
@@ -32,6 +33,8 @@ class LinkedInConnectionSerializer(serializers.ModelSerializer):
             "display_name",
             "linkedin_member_id",
             "token_expires_at",
+            "profile_synced_at",
+            "profile_knowledge",
             "configured",
         ]
 
@@ -39,6 +42,11 @@ class LinkedInConnectionSerializer(serializers.ModelSerializer):
         from .services.linkedin import linkedin_configured
 
         return linkedin_configured()
+
+    def get_profile_knowledge(self, obj: LinkedInConnection) -> dict:
+        from .services.linkedin_profile_sync import profile_knowledge_for_brain
+
+        return profile_knowledge_for_brain(obj)
 
 
 class ProfessionalProfileSerializer(serializers.ModelSerializer):

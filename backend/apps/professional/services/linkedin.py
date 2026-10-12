@@ -22,12 +22,17 @@ def linkedin_configured() -> bool:
     )
 
 
-def linkedin_oauth_redirect_uri(request) -> str:
+LINKEDIN_CALLBACK_PATH = "/api/professional/linkedin/callback/"
+
+
+def linkedin_oauth_redirect_uri(request=None) -> str:
     """
     Redirect URI sent to LinkedIn — must match the Developer app exactly.
 
-    With Next.js proxying /api to the API service, use the public site origin
-    (FRONTEND_URL), not the API Railway hostname. Override with LINKEDIN_REDIRECT_URI.
+    Priority:
+    1. LINKEDIN_REDIRECT_URI (API env)
+    2. FRONTEND_URL + LINKEDIN_CALLBACK_PATH (site proxy — recommended on Railway)
+    3. Request host (local dev fallback when request is provided)
     """
     explicit = os.getenv("LINKEDIN_REDIRECT_URI", "").strip()
     if explicit:
@@ -35,9 +40,33 @@ def linkedin_oauth_redirect_uri(request) -> str:
 
     front = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
     if front:
-        return f"{front}/api/professional/linkedin/callback/"
+        return f"{front}{LINKEDIN_CALLBACK_PATH}"
 
-    return request.build_absolute_uri("/api/professional/linkedin/callback/")
+    if request is not None:
+        return request.build_absolute_uri(LINKEDIN_CALLBACK_PATH)
+
+    return ""
+
+
+def linkedin_connect_config(request=None) -> dict:
+    """Non-secret OAuth setup Kova uses (for Connect UI and ops)."""
+    redirect_uri = linkedin_oauth_redirect_uri(request)
+    front = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
+    explicit = bool(os.getenv("LINKEDIN_REDIRECT_URI", "").strip())
+    return {
+        "configured": linkedin_configured(),
+        "redirect_uri": redirect_uri,
+        "redirect_source": (
+            "LINKEDIN_REDIRECT_URI"
+            if explicit
+            else "FRONTEND_URL"
+            if front
+            else "request"
+        ),
+        "frontend_url": front,
+        "callback_path": LINKEDIN_CALLBACK_PATH,
+        "api_public_url": os.getenv("API_PUBLIC_URL", "").strip().rstrip("/"),
+    }
 
 
 def oauth_authorize_url(*, state: str, redirect_uri: str) -> str:
@@ -76,7 +105,16 @@ def exchange_code(*, code: str, redirect_uri: str) -> dict:
         timeout=30,
     )
     if not response.ok:
-        raise LinkedInError("LinkedIn token exchange failed.")
+        detail = ""
+        try:
+            body = response.json()
+            if isinstance(body, dict):
+                detail = str(body.get("error_description") or body.get("error") or "")
+        except ValueError:
+            detail = response.text[:200]
+        raise LinkedInError(
+            detail or "LinkedIn token exchange failed. Check redirect URL and app secret.",
+        )
     return response.json()
 
 

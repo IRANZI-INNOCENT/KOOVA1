@@ -109,6 +109,12 @@ class LinkedInConnection(models.Model):
         choices=Status.choices,
         default=Status.DISCONNECTED,
     )
+    profile_snapshot = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Cached LinkedIn profile fields Kova fetched for the brain.",
+    )
+    profile_synced_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self) -> str:
