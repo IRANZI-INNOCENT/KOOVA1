@@ -288,3 +288,10 @@ export function useWorkspace(): WorkspaceContextValue {
 
   return context;
 }
+
+/** Safe for shell chrome that may render before nested providers mount. */
+export function useWorkspaceOptional():
+  | WorkspaceContextValue
+  | undefined {
+  return useContext(WorkspaceContext);
+}

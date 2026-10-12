@@ -11,8 +11,8 @@ export default function WorkspaceLayout({
   children: ReactNode;
 }) {
   return (
-    <WorkspaceAuthGate>
-      <WorkspaceProvider>{children}</WorkspaceProvider>
-    </WorkspaceAuthGate>
+    <WorkspaceProvider>
+      <WorkspaceAuthGate>{children}</WorkspaceAuthGate>
+    </WorkspaceProvider>
   );
 }

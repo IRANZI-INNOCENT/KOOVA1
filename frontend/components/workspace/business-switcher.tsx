@@ -2,15 +2,19 @@
 
 import { useState } from "react";
 
-import { useWorkspace } from "@/lib/workspace-context";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 
 export function BusinessSwitcher() {
+  const workspace = useWorkspaceOptional();
+  if (!workspace) {
+    return null;
+  }
   const {
     business,
     businesses,
     workspaceLoading,
     setActiveBusinessId,
-  } = useWorkspace();
+  } = workspace;
   const [busy, setBusy] = useState(false);
 
   if (workspaceLoading || !business || businesses.length <= 1) {
