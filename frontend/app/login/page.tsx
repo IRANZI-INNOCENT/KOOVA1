@@ -99,13 +99,6 @@ export default function LoginPage() {
 
       if (error instanceof ApiError) {
         setError(error.message);
-      } else if (
-        error instanceof TypeError &&
-        /fetch|network/i.test(error.message)
-      ) {
-        setError(
-          "Kova could not reach the server. If this keeps happening, redeploy the site service after the latest update (API proxy fix).",
-        );
       } else {
         setError(
           "We couldn't sign you in. Please try again.",

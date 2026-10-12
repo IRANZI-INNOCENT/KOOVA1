@@ -47,19 +47,19 @@ function ConnectContent() {
     const err = searchParams.get("error");
     if (err) {
       const messages: Record<string, string> = {
-        callback: "LinkedIn returned but Kova could not finish connecting. Try again.",
-        token:
-          "LinkedIn rejected the token exchange. Confirm Client ID/Secret on the API service and that the redirect URL matches exactly.",
-        state: "This sign-in link expired or was invalid. Click Connect LinkedIn again.",
-        state_expired: "This sign-in session expired. Click Connect LinkedIn again.",
-        profile: "Kova could not find your professional profile. Complete LinkedIn setup first.",
-        member: "LinkedIn connected but Kova could not read your profile. Try Sync profile after connecting.",
-        proxy:
-          "The site is not proxying to the API. Set API_PROXY_TARGET on the site service and redeploy.",
-        api_unreachable:
-          "Kova could not reach the API service. Check that the API is running and API_PROXY_TARGET is correct.",
+        callback: "We couldn't finish connecting LinkedIn. Please try again.",
+        token: "We couldn't finish connecting LinkedIn. Please try again.",
+        state: "This link expired. Click Connect LinkedIn again.",
+        state_expired: "This session expired. Click Connect LinkedIn again.",
+        profile: "Complete your LinkedIn workspace setup, then try connecting again.",
+        member: "LinkedIn connected, but we couldn't load your profile. Try Sync profile.",
+        proxy: "We couldn't finish connecting LinkedIn. Please try again.",
+        api_unreachable: "We couldn't finish connecting LinkedIn. Please try again.",
       };
-      setMessage(messages[err] ?? `Connection issue: ${err}`);
+      setMessage(
+        messages[err] ??
+          "We couldn't finish connecting LinkedIn. Please try again.",
+      );
     }
   }, [searchParams]);
 
@@ -71,7 +71,7 @@ function ConnectContent() {
       window.location.href = url;
     } catch {
       setMessage(
-        "LinkedIn OAuth is not configured on the server. Use Copy to publish posts manually.",
+        "We couldn't start LinkedIn sign-in. Please try again later.",
       );
       setLoading(false);
     }
