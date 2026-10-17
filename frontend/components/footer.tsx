@@ -23,8 +23,8 @@ export default function Footer() {
               <Logo href="/" tone="light" />
             </div>
             <p className="mt-5 max-w-sm text-sm leading-6 text-white/52">
-              Social media, customer replies, and a WhatsApp-ready store for small businesses. Kova
-              keeps the daily work in one place.
+              Social media, customer replies, and a WhatsApp-ready store for
+              small businesses. KCOVA keeps the daily work in one place.
             </p>
           </div>
 
@@ -32,12 +32,12 @@ export default function Footer() {
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-kova-orange">
               Product
             </p>
-            <nav className="mt-5 space-y-3">
+            <nav className="mt-5 space-y-3" aria-label="Product">
               {productLinks.map((link) => (
                 <a
                   key={link.label}
                   href={link.href}
-                  className="block text-sm text-white/55 transition-colors hover:text-white"
+                  className="block text-sm text-white/55 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-orange focus-visible:ring-offset-2 focus-visible:ring-offset-kova-dark"
                 >
                   {link.label}
                 </a>
@@ -49,12 +49,12 @@ export default function Footer() {
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-kova-orange">
               Company
             </p>
-            <nav className="mt-5 space-y-3">
+            <nav className="mt-5 space-y-3" aria-label="Company">
               {companyLinks.map((link) => (
                 <a
                   key={link.label}
                   href={link.href}
-                  className="block text-sm text-white/55 transition-colors hover:text-white"
+                  className="block text-sm text-white/55 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kova-orange focus-visible:ring-offset-2 focus-visible:ring-offset-kova-dark"
                 >
                   {link.label}
                 </a>
@@ -64,8 +64,10 @@ export default function Footer() {
         </div>
 
         <div className="mt-14 flex flex-col gap-3 border-t border-white/10 pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-white/35">© {new Date().getFullYear()} Kova</p>
-          <p className="text-xs text-white/35">Built for businesses that sell on social and WhatsApp</p>
+          <p className="text-xs text-white/35">© 2026 KCOVA</p>
+          <p className="text-xs text-white/35">
+            Built for businesses that sell on social and WhatsApp.
+          </p>
         </div>
       </div>
     </footer>

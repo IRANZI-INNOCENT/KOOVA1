@@ -18,12 +18,12 @@ export default function Navbar() {
       <div className="mx-auto flex h-[4.25rem] max-w-6xl items-center justify-between gap-3 px-4 lg:px-8">
         <Logo href="/" tone="light" />
 
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav className="hidden items-center gap-8 md:flex" aria-label="Primary">
           {links.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="text-[13px] font-medium text-white/88 transition-colors hover:text-kova-orange"
+              className="text-[13px] font-medium text-white/88 transition-colors hover:text-kova-orange focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-kova-green"
             >
               {link.label}
             </a>
@@ -33,20 +33,21 @@ export default function Navbar() {
         <div className="flex items-center gap-2 sm:gap-3">
           <a
             href="/login"
-            className="hidden text-[13px] font-medium text-white/88 transition-colors hover:text-kova-orange sm:block"
+            className="hidden text-[13px] font-medium text-white/88 transition-colors hover:text-kova-orange focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-kova-green sm:block"
           >
             Log in
           </a>
           <a
             href="/signup"
-            className="inline-flex h-9 shrink-0 items-center rounded-md bg-kova-orange px-3.5 text-[13px] font-semibold text-kova-dark transition-colors hover:bg-[#f0a46e] sm:px-4"
+            className="inline-flex h-9 shrink-0 items-center rounded-md bg-kova-orange px-3.5 text-[13px] font-semibold text-kova-dark transition-colors hover:bg-[#f0a46e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-kova-green sm:px-4"
           >
             Start free trial
           </a>
           <button
             type="button"
-            className="flex h-9 w-9 items-center justify-center text-white md:hidden"
+            className="flex h-9 w-9 items-center justify-center text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-kova-green md:hidden"
             aria-label={open ? "Close menu" : "Open menu"}
+            aria-expanded={open}
             onClick={() => setOpen((current) => !current)}
           >
             <svg
@@ -76,18 +77,24 @@ export default function Navbar() {
       </div>
 
       {open && (
-        <nav className="border-t border-white/10 bg-kova-green px-5 py-3 md:hidden">
+        <nav
+          className="border-t border-white/10 bg-kova-green px-5 py-3 md:hidden"
+          aria-label="Mobile"
+        >
           {links.map((link) => (
             <a
               key={link.href}
               href={link.href}
               onClick={() => setOpen(false)}
-              className="block py-2.5 text-sm font-medium text-white"
+              className="block py-2.5 text-sm font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               {link.label}
             </a>
           ))}
-          <a href="/login" className="block py-2.5 text-sm font-medium text-white/80">
+          <a
+            href="/login"
+            className="block py-2.5 text-sm font-medium text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
             Log in
           </a>
         </nav>

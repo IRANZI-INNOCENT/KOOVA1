@@ -2,10 +2,10 @@ import Link from "next/link";
 
 
 /**
- * Kova logo component.
+ * KCOVA logo component.
  *
  * The logo is intentionally text-first at this stage. The visual
- * identity can later be extended with the finalized Kova symbol
+ * identity can later be extended with the finalized brand symbol
  * without changing every page that uses the logo.
  */
 interface LogoProps {
@@ -24,7 +24,7 @@ export function Logo({
     <div className="inline-flex flex-col">
 
       <span className={`text-xl font-bold tracking-[-0.03em] ${tone === "light" ? "text-white" : "text-kova-dark"}`}>
-        Kova<span className={tone === "light" ? "text-kova-orange" : "text-kova-green"}>.</span>
+        KCOVA<span className={tone === "light" ? "text-kova-orange" : "text-kova-green"}>.</span>
       </span>
 
       {showTagline && (
@@ -40,7 +40,7 @@ export function Logo({
   return (
     <Link
       href={href}
-      aria-label="Kova home"
+      aria-label="KCOVA home"
       className="inline-flex"
     >
       {content}

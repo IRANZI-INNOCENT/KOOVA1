@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Kova",
-    short_name: "Kova",
+    name: "KCOVA",
+    short_name: "KCOVA",
     description:
-      "Social media, customer replies, and commerce for your business.",
+      "Social media, customer replies, and a WhatsApp-ready store for small businesses.",
     start_url: "/workspace",
     scope: "/",
     display: "standalone",

@@ -32,14 +32,17 @@ export const viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Kova — Social media and sales for your business",
+  title: {
+    default: "KCOVA — Social Media, Products and WhatsApp Sales in One Place",
+    template: "%s · KCOVA",
+  },
   description:
-    "Kova posts for you, replies to customers, and turns products into a live store with WhatsApp orders. Built for small businesses in Kenya. Start a 7-day free trial.",
-  applicationName: "Kova",
+    "Manage social content, prepare product listings, bring your products together on one commerce page, and guide customers to WhatsApp with KCOVA.",
+  applicationName: "KCOVA",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Kova",
+    title: "KCOVA",
   },
   formatDetection: {
     telephone: false,
