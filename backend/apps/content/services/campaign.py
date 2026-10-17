@@ -33,11 +33,18 @@ from apps.commerce.services.storefront import (
     append_product_link,
 )
 from apps.content.models import Content, ContentBatch
+from apps.content.services.content_quality import (
+    assign_slide_media,
+    can_publish_native_carousel,
+    formats_for_channel,
+    image_count,
+    sanitize_copy,
+)
 from apps.kova_ai.services.openrouter import OpenRouterError, OpenRouterService
 from apps.social.models import SocialAccount
 
 
-# Which Content formats to generate per SocialAccount platform
+# Legacy static map (tests / callers). Prefer formats_for_channel().
 CHANNEL_FORMATS: dict[str, list[tuple[str, str]]] = {
     SocialAccount.Platform.FACEBOOK_PAGE: [
         ("facebook", "post"),
@@ -46,8 +53,6 @@ CHANNEL_FORMATS: dict[str, list[tuple[str, str]]] = {
     SocialAccount.Platform.INSTAGRAM: [
         ("instagram", "post"),
         ("instagram", "carousel"),
-        ("instagram", "reel"),
-        ("instagram", "story"),
     ],
 }
 
@@ -68,11 +73,13 @@ def draft_campaign(
     note: str = "",
     product_id: int | None = None,
     platform: str = "all",
+    primary_only: bool = False,
 ) -> dict:
     """
     Generate adapted content for every connected channel.
 
     Returns {batch_id, product, channels: [{account, pieces: [...]}]}.
+    When primary_only=True (autopilot), one honest format per account.
     """
     accounts = get_connected_channels(business)
     if not accounts:
@@ -95,6 +102,9 @@ def draft_campaign(
             if img.image:
                 product_images.append(absolute_media_url(img.image.url))
 
+    n_images = image_count(product_images)
+    native_carousel = can_publish_native_carousel(product_images)
+
     # Build the list of formats to generate
     format_specs: list[dict] = []
     chosen = (platform or "all").strip().lower()
@@ -108,7 +118,12 @@ def draft_campaign(
         )
         if chosen not in {"", "all"} and account_platform != chosen:
             continue
-        formats = CHANNEL_FORMATS.get(account.platform, [])
+        formats = formats_for_channel(
+            account,
+            image_count_n=n_images,
+            organic=False,
+            primary_only=primary_only,
+        )
         for content_platform, content_type in formats:
             format_specs.append({
                 "account_id": account.id,
@@ -126,7 +141,9 @@ def draft_campaign(
         raise ValueError("Connected accounts do not support content creation yet.")
 
     facts = _build_facts(business, note, product)
-    ai_result = _call_ai(facts, format_specs)
+    facts["native_carousel_available"] = native_carousel
+    facts["product_image_count"] = n_images
+    ai_result = _call_ai(facts, format_specs, native_carousel=native_carousel)
 
     # Create the batch and Content records
     batch = ContentBatch.objects.create(
@@ -150,6 +167,26 @@ def draft_campaign(
         if not piece_data.get("caption"):
             continue
 
+        is_carousel = spec["content_type"] == "carousel"
+        allow_swipe = is_carousel and native_carousel
+        caption, cta = sanitize_copy(
+            str(piece_data.get("caption", "")),
+            str(piece_data.get("call_to_action", "")),
+            allow_swipe=allow_swipe,
+        )
+        slides = _clean_slides(
+            piece_data.get("slides") if is_carousel else None,
+            product_images if is_carousel else None,
+        )
+        if is_carousel:
+            slides = [
+                {
+                    **s,
+                    "caption": sanitize_copy(s["caption"], allow_swipe=allow_swipe)[0],
+                }
+                for s in slides
+            ]
+
         content = Content.objects.create(
             business=business,
             batch=batch,
@@ -157,14 +194,11 @@ def draft_campaign(
             social_account=account_map.get(spec["account_id"]),
             platform=spec["platform"],
             content_type=spec["content_type"],
-            caption=append_product_link(
-                str(piece_data.get("caption", ""))[:3800],
-                product,
-            )[:4000],
-            call_to_action=str(piece_data.get("call_to_action", ""))[:500],
+            caption=append_product_link(caption[:3800], product)[:4000],
+            call_to_action=cta[:500],
             hashtags=_clean_hashtags(piece_data.get("hashtags")),
             media_urls=product_images,
-            slides=_clean_slides(piece_data.get("slides")),
+            slides=slides,
             created_by_ai=True,
         )
 
@@ -266,7 +300,12 @@ def _build_facts(business: Business, note: str, product: Product | None) -> dict
 # AI call
 # ------------------------------------------------------------------
 
-def _call_ai(facts: dict, format_specs: list[dict]) -> dict:
+def _call_ai(
+    facts: dict,
+    format_specs: list[dict],
+    *,
+    native_carousel: bool = False,
+) -> dict:
     formats_desc = []
     for spec in format_specs:
         ai_key = spec.get("ai_key") or (
@@ -279,6 +318,17 @@ def _call_ai(facts: dict, format_specs: list[dict]) -> dict:
             "account_name": spec.get("account_name") or "",
         })
 
+    carousel_rules = (
+        "Carousels are real multi-image posts: write 3–6 short slide captions "
+        "(hook → details → CTA). You may say people can swipe only for carousel types. "
+        "Mention the price at most once in the whole piece. "
+        if native_carousel
+        else
+        "Do not write carousel pieces unless listed. Never say swipe, swipe through, "
+        "or scroll through. Never invent a numbered slide deck in a regular post. "
+        "Mention the price at most once."
+    )
+
     system = (
         "You are Kova, a social media manager for a small business. "
         "You create adapted content for multiple platforms simultaneously "
@@ -286,15 +336,20 @@ def _call_ai(facts: dict, format_specs: list[dict]) -> dict:
         "write separate copy per account_name (each Page is its own brand voice). "
         "Each piece must be native to its platform: "
         "Instagram posts use hashtags and a visual voice, "
-        "Facebook posts can be slightly longer with a conversational tone, "
-        "reels need a punchy script (hook → value → CTA), "
-        "stories need 1–2 ultra-short lines, "
-        "carousels need 3–6 slides (hook → features → CTA). "
+        "Facebook posts can be slightly longer with a conversational tone. "
+        f"{carousel_rules} "
         "Use the business facts, brand voice, and product details provided. "
         "Do not invent prices, stock, awards, or offers not in the facts. "
         "When product.public_url is present, end the caption with that exact address "
         "and do not write any other web address. "
         "Reply with one JSON object and no markdown."
+    )
+
+    carousel_json = (
+        "For carousel types, also include:\n"
+        '- "slides": array of 3–6 objects with "caption" (one slide\'s short text).\n'
+        if native_carousel
+        else ""
     )
 
     user_prompt = (
@@ -305,11 +360,7 @@ def _call_ai(facts: dict, format_specs: list[dict]) -> dict:
         '- "caption": the post text adapted to that platform and format.\n'
         '- "call_to_action": one short action line.\n'
         '- "hashtags": array of 5–10 hashtag strings without #.\n'
-        "For carousel types, also include:\n"
-        '- "slides": array of 3–6 objects with "caption" (one slide\'s text).\n'
-        "For reel types, write caption as a short script "
-        "(hook first line, value middle, CTA last).\n"
-        "For story types, caption should be 1–2 punchy lines maximum.\n\n"
+        f"{carousel_json}\n"
         f"Business facts:\n{json.dumps(facts, ensure_ascii=True)}"
     )
 
@@ -352,7 +403,7 @@ def _clean_hashtags(raw) -> list[str]:
     return tags[:15]
 
 
-def _clean_slides(raw) -> list[dict]:
+def _clean_slides(raw, media_urls: list[str] | None = None) -> list[dict]:
     if not isinstance(raw, list):
         return []
     slides: list[dict] = []
@@ -360,7 +411,7 @@ def _clean_slides(raw) -> list[dict]:
         if isinstance(s, dict) and str(s.get("caption") or "").strip():
             slides.append({
                 "caption": str(s["caption"]).strip()[:1000],
-                "media_url": "",
-                "product_id": None,
+                "media_url": str(s.get("media_url") or "").strip(),
+                "product_id": s.get("product_id"),
             })
-    return slides
+    return assign_slide_media(slides, media_urls or [])

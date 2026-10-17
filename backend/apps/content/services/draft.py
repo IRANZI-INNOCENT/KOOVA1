@@ -28,6 +28,11 @@ from apps.businesses.models import Business
 from apps.commerce.models import Product
 from apps.commerce.services.storefront import absolute_product_url, append_product_link
 from apps.content.models import Content
+from apps.content.services.content_quality import (
+    assign_slide_media,
+    can_publish_native_carousel,
+    sanitize_copy,
+)
 from apps.kova_ai.services.openrouter import OpenRouterError, OpenRouterService
 
 
@@ -77,6 +82,28 @@ def draft_post(
         response_format={"type": "json_object"},
     )
     result = _parse_response(response, content_type)
+    allow_swipe = (
+        content_type == "carousel" and can_publish_native_carousel(product_images)
+    )
+    caption, cta = sanitize_copy(
+        result.get("caption", ""),
+        result.get("call_to_action", ""),
+        allow_swipe=allow_swipe,
+    )
+    result["caption"] = caption
+    result["call_to_action"] = cta
+    if content_type == "carousel":
+        result["slides"] = assign_slide_media(
+            result.get("slides") or [],
+            product_images,
+        )
+        result["slides"] = [
+            {
+                **s,
+                "caption": sanitize_copy(s["caption"], allow_swipe=allow_swipe)[0],
+            }
+            for s in result["slides"]
+        ]
     if product is not None:
         result["caption"] = append_product_link(result["caption"], product)
         result["product_url"] = absolute_product_url(product)
@@ -185,10 +212,12 @@ def _system_prompt(content_type: str) -> str:
     if content_type == "carousel":
         return (
             f"{base} "
-            "For carousel content, write multiple slides. Each slide should "
-            "tell part of the story — introduce the product, highlight a "
-            "feature or benefit, show social proof or use case, and end "
-            "with a call to action."
+            "For carousel content, write multiple slides that map to separate "
+            "images. Each slide caption is short overlay text — introduce the "
+            "product, highlight a feature or benefit, show a use case, then CTA. "
+            "Only say swipe if the brief confirms multiple images will publish. "
+            "Mention price at most once. Never invent a fake slide deck in the "
+            "main caption."
         )
     if content_type == "reel":
         return (
@@ -246,7 +275,7 @@ def _build_prompt(content_type: str, facts: dict) -> str:
             "Write a story.\n"
             "Return JSON with these keys:\n"
             '- "caption": very short — 1 or 2 punchy lines maximum.\n'
-            '- "call_to_action": a quick swipe-up or tap prompt.\n'
+            '- "call_to_action": a quick tap or DM prompt (never say swipe-up).\n'
             '- "hashtags": array of 3–5 relevant hashtag strings without #.\n'
             f"Facts:\n{facts_json}"
         )

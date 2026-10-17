@@ -18,6 +18,13 @@ from django.utils.dateparse import parse_datetime
 
 from apps.commerce.services.storefront import absolute_media_url, append_product_link
 from apps.content.models import Content
+from apps.content.services.content_quality import (
+    can_publish_native_carousel,
+    carousel_image_urls_from_content,
+    merge_slide_captions_into_body,
+    sanitize_copy,
+    strip_swipe_language,
+)
 from apps.social.adapters.meta import MetaAdapter
 from apps.social.models import SocialAccount, SocialAction, SocialLesson, SocialMessage, SocialPost
 
@@ -206,7 +213,12 @@ def dispatch_post(post: SocialPost) -> SocialPost:
 
     content = post.content
     account = post.social_account
-    caption = outgoing_text(content)
+    carousel_urls = carousel_image_urls_from_content(content)
+    native_carousel = (
+        content.content_type == Content.ContentType.CAROUSEL
+        and can_publish_native_carousel(carousel_urls)
+    )
+    caption = outgoing_text(content, native_carousel=native_carousel)
     price_error = price_conflict(content, caption)
     if price_error:
         post.publishing_status = SocialPost.PublishingStatus.FAILED
@@ -216,19 +228,24 @@ def dispatch_post(post: SocialPost) -> SocialPost:
         _maybe_pause(account.business_id)
         raise PublishError(price_error)
     image_url = ""
+    image_urls: list[str] = []
     video_url = ""
-    if isinstance(content.media_urls, list) and content.media_urls:
+    if native_carousel:
+        image_urls = carousel_urls[:10]
+    elif isinstance(content.media_urls, list) and content.media_urls:
         first = absolute_media_url(str(content.media_urls[0] or ""))
         if _is_video_media(first, content):
             video_url = first
         else:
             image_url = first
+            image_urls = [first] if first else []
 
     try:
         result = MetaAdapter().publish_post(
             account,
             caption,
             image_url=image_url,
+            image_urls=image_urls or None,
             video_url=video_url,
         )
     except Exception as exc:
@@ -414,25 +431,40 @@ def refresh_due_metrics(business_id: int, *, limit: int = 6, max_age_minutes: in
     return refreshed
 
 
-def outgoing_text(content) -> str:
-    """Caption that goes to the platform, with carousel slides written as text."""
-    parts: list[str] = []
-    caption = (content.caption or "").strip()
-    if caption:
-        parts.append(caption)
-    lines: list[str] = []
+def outgoing_text(content, *, native_carousel: bool | None = None) -> str:
+    """
+    Caption that goes to the platform.
+
+    Native carousels keep a clean caption (slides are on the images).
+    Fake/single-image "carousels" fold slide ideas into prose — never as a
+    numbered swipe deck.
+    """
     slides = content.slides if isinstance(content.slides, list) else []
-    for index, slide in enumerate(slides, start=1):
-        text = ""
-        if isinstance(slide, dict):
-            text = str(slide.get("caption") or "").strip()
-        elif isinstance(slide, str):
-            text = slide.strip()
-        if text:
-            lines.append(f"{index}. {text}")
-    if lines:
-        parts.append("\n".join(lines))
+    media = carousel_image_urls_from_content(content)
+    if native_carousel is None:
+        native_carousel = (
+            getattr(content, "content_type", "") == Content.ContentType.CAROUSEL
+            and can_publish_native_carousel(media)
+        )
+
+    caption = (content.caption or "").strip()
     action = (content.call_to_action or "").strip()
+    caption, action = sanitize_copy(
+        caption,
+        action,
+        allow_swipe=bool(native_carousel),
+    )
+
+    if native_carousel:
+        body = caption
+    elif slides:
+        body = merge_slide_captions_into_body(caption, slides)
+    else:
+        body = strip_swipe_language(caption)
+
+    parts: list[str] = []
+    if body:
+        parts.append(body)
     if action:
         parts.append(action)
     if content.hashtags:

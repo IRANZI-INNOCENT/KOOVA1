@@ -248,22 +248,47 @@ class LoopTests(TestCase):
         self.assertEqual(listed.status_code, 200)
         self.assertEqual(len(listed.data), 1)
 
-    def test_carousel_slides_go_out_as_text(self):
+    def test_fake_carousel_does_not_number_slides_or_say_swipe(self):
         content = Content.objects.create(
             business=self.business,
             platform="facebook",
             content_type="carousel",
-            caption="Meet Kova.",
+            caption="Swipe through to meet Kova.",
             call_to_action="Send a message.",
             slides=[{"caption": "First slide"}, {"caption": "Second slide"}],
             hashtags=["Nairobi"],
+            media_urls=["https://example.com/one.jpg"],
         )
         text = outgoing_text(content)
         self.assertIn("Meet Kova.", text)
-        self.assertIn("1. First slide", text)
-        self.assertIn("2. Second slide", text)
+        self.assertNotIn("Swipe", text)
+        self.assertNotIn("1. First slide", text)
+        self.assertIn("First slide", text)
         self.assertIn("Send a message.", text)
         self.assertIn("#Nairobi", text)
+
+    def test_native_carousel_keeps_clean_caption(self):
+        content = Content.objects.create(
+            business=self.business,
+            platform="facebook",
+            content_type="carousel",
+            caption="Meet the dress.",
+            call_to_action="Order today.",
+            slides=[
+                {"caption": "Hook", "media_url": "https://example.com/a.jpg"},
+                {"caption": "Detail", "media_url": "https://example.com/b.jpg"},
+            ],
+            media_urls=[
+                "https://example.com/a.jpg",
+                "https://example.com/b.jpg",
+            ],
+            hashtags=["Nairobi"],
+        )
+        text = outgoing_text(content, native_carousel=True)
+        self.assertIn("Meet the dress.", text)
+        self.assertNotIn("1. Hook", text)
+        self.assertNotIn("Detail", text)
+        self.assertIn("Order today.", text)
 
     def test_published_caption_includes_the_product_page(self):
         from apps.commerce.models import CommercePage, Product

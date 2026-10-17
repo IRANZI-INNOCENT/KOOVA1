@@ -307,9 +307,9 @@ export default function ContentStudioPage() {
               Content adapts to the channel
             </p>
             <p className="mt-2 text-sm leading-6 text-gray-500">
-              Kova writes specifically for your connected accounts — Instagram
-              carousels, Facebook posts, reel scripts, and stories — all from
-              one brief.
+              Kova writes for your connected accounts — Facebook and Instagram
+              posts, plus real multi-image carousels when a product has 2+
+              photos.
             </p>
             <Link
               href="/workspace/social/channels"

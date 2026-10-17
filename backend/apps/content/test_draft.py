@@ -2,11 +2,12 @@ import json
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from rest_framework.test import APIClient
 
 from apps.businesses.models import Business
-from apps.commerce.models import Product
+from apps.commerce.models import Product, ProductImage
 from apps.content.models import Content, ContentBatch
 from apps.social.models import SocialAccount
 
@@ -24,8 +25,8 @@ class FakeWriter:
         messages = kwargs.get("messages", [])
         user_msg = messages[-1]["content"] if messages else ""
 
-        # Campaign draft — multi-format
-        if "instagram_post" in user_msg or "facebook_post" in user_msg:
+        # Campaign draft — multi-format (keys match platform_type fallbacks)
+        if "instagram_post" in user_msg or "facebook_post" in user_msg or "instagram_carousel" in user_msg:
             body = {
                 "instagram_post": {
                     "caption": "Your new grey sofa is here. Comfort meets style.",
@@ -42,16 +43,6 @@ class FakeWriter:
                         {"caption": "Free delivery in Nairobi."},
                         {"caption": "Order today on WhatsApp."},
                     ],
-                },
-                "instagram_reel": {
-                    "caption": "Hook: This sofa changes everything.\nComfort you feel.\nOrder on WhatsApp.",
-                    "call_to_action": "Link in bio.",
-                    "hashtags": ["reels", "furniture", "nairobi"],
-                },
-                "instagram_story": {
-                    "caption": "New drop. Grey sofa. Free delivery.",
-                    "call_to_action": "Tap to order.",
-                    "hashtags": ["sofa", "nairobi"],
                 },
                 "facebook_post": {
                     "caption": "We just added the grey sofa with teal cushions to our collection. Comfortable, modern, and delivered free in Nairobi.",
@@ -143,8 +134,7 @@ class ContentDraftTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("Connect", response.data["detail"])
 
-    @patch("apps.content.services.campaign.OpenRouterService", FakeWriter)
-    def test_campaign_generates_for_all_channels(self):
+    def _connect_meta(self):
         SocialAccount.objects.create(
             business=self.business,
             platform=SocialAccount.Platform.FACEBOOK_PAGE,
@@ -159,6 +149,29 @@ class ContentDraftTests(TestCase):
             account_name="unimart",
             connection_status=SocialAccount.ConnectionStatus.CONNECTED,
         )
+
+    def _add_product_photos(self, count: int = 2):
+        tiny = (
+            b"\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00"
+            b"\xff\xff\xff\x00\x00\x00\x21\xf9\x04\x01\x00\x00\x00"
+            b"\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02"
+            b"\x44\x01\x00\x3b"
+        )
+        for i in range(count):
+            ProductImage.objects.create(
+                product=self.product,
+                image=SimpleUploadedFile(
+                    f"sofa-{i}.gif",
+                    tiny,
+                    content_type="image/gif",
+                ),
+                display_order=i,
+            )
+
+    @patch("apps.content.services.campaign.OpenRouterService", FakeWriter)
+    def test_campaign_generates_for_all_channels(self):
+        self._connect_meta()
+        self._add_product_photos(2)
         response = self.client.post(
             f"/api/content/{self.business.id}/campaign/",
             {"note": "Promote the grey sofa", "product_id": self.product.id},
@@ -173,12 +186,27 @@ class ContentDraftTests(TestCase):
         types = {p["content_type"] for p in pieces}
         self.assertIn("post", types)
         self.assertIn("carousel", types)
-        self.assertIn("reel", types)
-        self.assertIn("story", types)
-        # Verify Content records were created
+        self.assertNotIn("reel", types)
+        self.assertNotIn("story", types)
+        carousel = next(p for p in pieces if p["content_type"] == "carousel")
+        self.assertTrue(carousel["slides"])
+        self.assertTrue(carousel["slides"][0].get("media_url"))
+        # Swipe language kept only on native carousel captions from the model;
+        # sanitize allows it when 2+ images exist.
         self.assertGreaterEqual(Content.objects.filter(business=self.business).count(), 4)
-        # Verify batch was created
         self.assertEqual(ContentBatch.objects.filter(business=self.business).count(), 1)
+
+    @patch("apps.content.services.campaign.OpenRouterService", FakeWriter)
+    def test_campaign_without_photos_skips_carousel(self):
+        self._connect_meta()
+        response = self.client.post(
+            f"/api/content/{self.business.id}/campaign/",
+            {"note": "Promote the grey sofa", "product_id": self.product.id},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        types = {p["content_type"] for p in response.data["pieces"]}
+        self.assertEqual(types, {"post"})
 
     def test_organic_seeds_endpoint(self):
         response = self.client.get(

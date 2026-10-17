@@ -23,6 +23,7 @@ Meta API constraints this adapter respects:
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from typing import Any
@@ -204,6 +205,7 @@ class MetaAdapter(ChannelAdapter):
         caption: str,
         *,
         image_url: str = "",
+        image_urls: list[str] | None = None,
         video_url: str = "",
         link: str = "",
     ) -> PublishResult:
@@ -211,9 +213,20 @@ class MetaAdapter(ChannelAdapter):
             if account.platform == SocialAccount.Platform.INSTAGRAM:
                 return self._ig_video_reel(account, caption, video_url=video_url)
             return self._fb_video(account, caption, video_url=video_url)
+
+        images = [u for u in (image_urls or []) if u]
+        if not images and image_url:
+            images = [image_url]
+
+        if len(images) >= 2:
+            if account.platform == SocialAccount.Platform.INSTAGRAM:
+                return self._ig_carousel(account, caption, images)
+            return self._fb_carousel(account, caption, images)
+
+        single = images[0] if images else ""
         if account.platform == SocialAccount.Platform.INSTAGRAM:
-            return self._ig_publish(account, caption, image_url=image_url)
-        return self._fb_publish(account, caption, link=link, image_url=image_url)
+            return self._ig_publish(account, caption, image_url=single)
+        return self._fb_publish(account, caption, link=link, image_url=single)
 
     # ------------------------------------------------------------------ #
     # Token refresh
@@ -520,11 +533,42 @@ class MetaAdapter(ChannelAdapter):
     @staticmethod
     def _fb_photo(account: SocialAccount, caption: str, image_url: str) -> PublishResult:
         """Publish a Page photo, uploading the product file when it lives on this server."""
+        body = MetaAdapter._fb_upload_photo(
+            account,
+            image_url,
+            caption=caption,
+            published=True,
+        )
+        if body.get("_error"):
+            return PublishResult(
+                success=False,
+                error=str(body["_error"]),
+                raw_response=body.get("raw") if isinstance(body.get("raw"), dict) else body,
+            )
+        external_id = str(body.get("post_id") or body.get("id") or "")
+        if external_id:
+            return PublishResult(success=True, external_post_id=external_id, raw_response=body)
+        error = body.get("error", {}).get("message") if isinstance(body.get("error"), dict) else ""
+        return PublishResult(
+            success=False,
+            error=error or "Facebook did not accept the photo.",
+            raw_response=body,
+        )
+
+    @staticmethod
+    def _fb_upload_photo(
+        account: SocialAccount,
+        image_url: str,
+        *,
+        caption: str = "",
+        published: bool = True,
+    ) -> dict[str, Any]:
         data: dict[str, str] = {
-            "message": caption,
             "access_token": account.access_token,
-            "published": "true",
+            "published": "true" if published else "false",
         }
+        if caption and published:
+            data["message"] = caption
         local_path = _local_media_path(image_url)
         photo_file = None
         files = None
@@ -534,10 +578,7 @@ class MetaAdapter(ChannelAdapter):
         elif image_url.startswith("http://") or image_url.startswith("https://"):
             data["url"] = image_url
         else:
-            return PublishResult(
-                success=False,
-                error="Kova could not find the product image to send with this post.",
-            )
+            return {"_error": "Kova could not find the product image to send with this post."}
         try:
             resp = requests.post(
                 f"{GRAPH_URL}/{account.platform_account_id}/photos",
@@ -549,14 +590,71 @@ class MetaAdapter(ChannelAdapter):
         finally:
             if photo_file is not None:
                 photo_file.close()
-        external_id = str(body.get("post_id") or body.get("id") or "")
-        if external_id:
-            return PublishResult(success=True, external_post_id=external_id, raw_response=body)
-        error = body.get("error", {}).get("message") if isinstance(body.get("error"), dict) else ""
+        if not isinstance(body, dict):
+            return {"_error": "Facebook returned an unreadable photo response."}
+        return body
+
+    @staticmethod
+    def _fb_carousel(
+        account: SocialAccount,
+        caption: str,
+        image_urls: list[str],
+    ) -> PublishResult:
+        """Publish a multi-photo Page post via unpublished photos + attached_media."""
+        media_ids: list[str] = []
+        raw_steps: list[dict] = []
+        for url in image_urls[:10]:
+            body = MetaAdapter._fb_upload_photo(
+                account,
+                url,
+                published=False,
+            )
+            raw_steps.append(body)
+            if body.get("_error"):
+                return PublishResult(
+                    success=False,
+                    error=str(body["_error"]),
+                    raw_response={"steps": raw_steps},
+                )
+            photo_id = str(body.get("id") or "")
+            if not photo_id:
+                error = (
+                    body.get("error", {}).get("message")
+                    if isinstance(body.get("error"), dict)
+                    else ""
+                )
+                return PublishResult(
+                    success=False,
+                    error=error or "Facebook did not accept a carousel photo.",
+                    raw_response={"steps": raw_steps},
+                )
+            media_ids.append(photo_id)
+
+        attached = json.dumps([{"media_fbid": mid} for mid in media_ids])
+        resp = requests.post(
+            f"{GRAPH_URL}/{account.platform_account_id}/feed",
+            data={
+                "message": caption,
+                "attached_media": attached,
+                "access_token": account.access_token,
+            },
+            timeout=60,
+        )
+        data = resp.json() if resp.content else {}
+        if not isinstance(data, dict):
+            data = {}
+        post_id = str(data.get("id") or "")
+        if post_id:
+            return PublishResult(
+                success=True,
+                external_post_id=post_id,
+                raw_response={"feed": data, "photos": raw_steps},
+            )
+        error = data.get("error", {}).get("message") if isinstance(data.get("error"), dict) else ""
         return PublishResult(
             success=False,
-            error=error or "Facebook did not accept the photo.",
-            raw_response=body,
+            error=error or "Facebook did not accept the multi-photo post.",
+            raw_response={"feed": data, "photos": raw_steps},
         )
 
     @staticmethod
@@ -689,14 +787,93 @@ class MetaAdapter(ChannelAdapter):
                 error=container.get("error", {}).get("message", "Container creation failed."),
                 raw_response=container,
             )
+        return MetaAdapter._ig_media_publish(ig_id, token, creation_id, container)
+
+    @staticmethod
+    def _ig_carousel(
+        account: SocialAccount,
+        caption: str,
+        image_urls: list[str],
+    ) -> PublishResult:
+        """Publish an Instagram carousel (2–10 publicly reachable images)."""
+        token = account.access_token
+        ig_id = account.platform_account_id
+        child_ids: list[str] = []
+        raw_children: list[dict] = []
+        for url in image_urls[:10]:
+            child = requests.post(
+                f"{GRAPH_URL}/{ig_id}/media",
+                data={
+                    "image_url": url,
+                    "is_carousel_item": "true",
+                    "access_token": token,
+                },
+                timeout=60,
+            ).json()
+            raw_children.append(child if isinstance(child, dict) else {})
+            child_id = (child or {}).get("id") if isinstance(child, dict) else None
+            if not child_id:
+                error = ""
+                if isinstance(child, dict) and isinstance(child.get("error"), dict):
+                    error = child["error"].get("message", "")
+                return PublishResult(
+                    success=False,
+                    error=error or "Instagram carousel item failed.",
+                    raw_response={"children": raw_children},
+                )
+            child_ids.append(str(child_id))
+
+        parent = requests.post(
+            f"{GRAPH_URL}/{ig_id}/media",
+            data={
+                "media_type": "CAROUSEL",
+                "children": ",".join(child_ids),
+                "caption": caption,
+                "access_token": token,
+            },
+            timeout=60,
+        ).json()
+        if not isinstance(parent, dict):
+            parent = {}
+        creation_id = parent.get("id")
+        if not creation_id:
+            error = (
+                parent.get("error", {}).get("message")
+                if isinstance(parent.get("error"), dict)
+                else ""
+            )
+            return PublishResult(
+                success=False,
+                error=error or "Instagram carousel container failed.",
+                raw_response={"children": raw_children, "parent": parent},
+            )
+        result = MetaAdapter._ig_media_publish(ig_id, token, creation_id, parent)
+        if result.raw_response is None:
+            result.raw_response = {}
+        result.raw_response = {
+            "children": raw_children,
+            "parent": parent,
+            "publish": result.raw_response,
+        }
+        return result
+
+    @staticmethod
+    def _ig_media_publish(
+        ig_id: str,
+        token: str,
+        creation_id: str,
+        container: dict,
+    ) -> PublishResult:
         publish_resp = requests.post(
             f"{GRAPH_URL}/{ig_id}/media_publish",
             data={
                 "creation_id": creation_id,
                 "access_token": token,
             },
-            timeout=30,
+            timeout=60,
         ).json()
+        if not isinstance(publish_resp, dict):
+            publish_resp = {}
         post_id = publish_resp.get("id", "")
         if post_id:
             return PublishResult(
@@ -704,10 +881,15 @@ class MetaAdapter(ChannelAdapter):
                 external_post_id=post_id,
                 raw_response=publish_resp,
             )
+        error = (
+            publish_resp.get("error", {}).get("message")
+            if isinstance(publish_resp.get("error"), dict)
+            else ""
+        )
         return PublishResult(
             success=False,
-            error=publish_resp.get("error", {}).get("message", "Publish step failed."),
-            raw_response=publish_resp,
+            error=error or "Publish step failed.",
+            raw_response={"container": container, "publish": publish_resp},
         )
 
     @staticmethod

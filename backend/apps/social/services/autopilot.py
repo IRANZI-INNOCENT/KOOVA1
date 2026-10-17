@@ -628,6 +628,7 @@ def _publish(shift: AutopilotShift, business: Business, posts: list) -> None:
             business,
             note=f"Feature {product.name} for today's customers. Use the recorded price.",
             product_id=product.id,
+            primary_only=True,
         )
     except Exception as exc:
         _event(shift, f"Could not write a post for {product.name}", str(exc)[:400], failed=True)
@@ -699,6 +700,7 @@ def _publish_organic(shift: AutopilotShift, business: Business, items: list) -> 
             business,
             note=note,
             organic_theme=theme_key,
+            primary_only=True,
         )
     except Exception as exc:
         _event(shift, "Organic content", str(exc)[:400], failed=True)
