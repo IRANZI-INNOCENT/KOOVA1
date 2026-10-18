@@ -152,7 +152,8 @@ export default async function PublicStorePage({
           .map((b) => ({
             id: b.id,
             url: b.url as string,
-            alt_text: b.alt_text || b.product_name || "",
+            alt_text: b.alt_text || "",
+            product_name: b.product_name || undefined,
             href: b.href || undefined,
           }))
       : page.cover_url

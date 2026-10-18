@@ -16,11 +16,13 @@ export type HeroSlide = {
   url: string;
   alt_text?: string;
   href?: string | null;
+  product_name?: string | null;
 };
 
 /**
- * Storefront promo carousel — full graphic visible (contain), caption overlay,
- * swipe + keyboard friendly. Slides with href are clickable.
+ * Storefront hero — product-first ecommerce layout.
+ * Mobile: full-bleed cover photo with offer strip.
+ * Desktop: image + offer panel (no letterboxed grey bars).
  */
 export function StoreHeroCarousel({
   slides,
@@ -73,6 +75,15 @@ export function StoreHeroCarousel({
 
   const active = slides[index];
   const activeHref = active?.href?.trim() || "";
+  const headline =
+    active?.alt_text?.trim() ||
+    active?.product_name?.trim() ||
+    "Featured pick";
+  const subline = active?.product_name?.trim()
+    ? active.product_name.trim() !== headline
+      ? active.product_name.trim()
+      : null
+    : null;
 
   function onPointerDown(event: ReactPointerEvent) {
     touchX.current = event.clientX;
@@ -95,59 +106,17 @@ export function StoreHeroCarousel({
     go(delta < 0 ? index + 1 : index - 1);
   }
 
-  const stageClass = tall
-    ? "relative w-full overflow-hidden sm:aspect-[21/9] sm:max-h-[440px]"
-    : "relative w-full overflow-hidden sm:aspect-[2.2/1] sm:max-h-[380px]";
+  function preventNavIfDragged(
+    event: React.MouseEvent | React.PointerEvent,
+  ) {
+    if (dragged.current) {
+      event.preventDefault();
+    }
+  }
 
-  const media = (
-    <>
-      <div className="relative mx-auto flex h-[min(58vw,300px)] max-h-[340px] w-full items-center justify-center sm:absolute sm:inset-0 sm:h-full sm:max-h-none">
-        {slides.map((slide, i) => {
-          const src = mediaSrc(slide.url);
-          const visible = i === index;
-          return (
-            <div
-              key={slide.id}
-              className="absolute inset-0 flex items-center justify-center transition-opacity duration-500 ease-out"
-              style={{
-                opacity: visible ? 1 : 0,
-                pointerEvents: visible ? "auto" : "none",
-              }}
-              aria-hidden={!visible}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={src}
-                alt={slide.alt_text || "Promotion"}
-                className="max-h-full max-w-full object-contain"
-                decoding={i === 0 ? "sync" : "async"}
-                loading={i === 0 ? "eager" : "lazy"}
-                fetchPriority={i === 0 ? "high" : "low"}
-                sizes="100vw"
-              />
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/40 to-transparent px-4 pb-11 pt-16 sm:px-8 sm:pb-12">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div className="text-center sm:text-left">
-            {active?.alt_text?.trim() ? (
-              <p className="text-base font-bold tracking-tight text-white drop-shadow sm:text-xl md:text-2xl">
-                {active.alt_text.trim()}
-              </p>
-            ) : null}
-            {activeHref ? (
-              <p className="mt-1 text-xs font-semibold text-white/85 sm:text-sm">
-                Tap to view offer →
-              </p>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    </>
-  );
+  const stageHeight = tall
+    ? "min-h-[320px] sm:min-h-[360px] lg:min-h-[400px]"
+    : "min-h-[300px] sm:min-h-[340px] lg:min-h-[380px]";
 
   return (
     <div
@@ -169,37 +138,104 @@ export function StoreHeroCarousel({
       }}
     >
       <div
-        className={stageClass}
-        style={{
-          background:
-            "linear-gradient(160deg, var(--store-secondary-soft), var(--store-primary-soft))",
-          minHeight: "min(52vw, 280px)",
-        }}
+        className={`relative grid w-full overflow-hidden bg-[var(--store-secondary)] ${stageHeight} sm:grid-cols-12`}
       >
-        {activeHref ? (
-          <Link
-            href={activeHref}
-            className="absolute inset-0 z-[1] block"
-            aria-label={
-              active?.alt_text?.trim()
-                ? `View: ${active.alt_text.trim()}`
-                : "View promoted product"
-            }
-            onClick={(event) => {
-              if (dragged.current) {
-                event.preventDefault();
-              }
-            }}
-          >
-            <span className="sr-only">Open promotion</span>
-          </Link>
-        ) : null}
+        {/* Photo column — full bleed on mobile, ~58% on desktop */}
+        <div className="relative min-h-[260px] sm:col-span-7 sm:min-h-0 lg:col-span-8">
+          {slides.map((slide, i) => {
+            const src = mediaSrc(slide.url);
+            const visible = i === index;
+            return (
+              <div
+                key={slide.id}
+                className="absolute inset-0 transition-opacity duration-500 ease-out"
+                style={{
+                  opacity: visible ? 1 : 0,
+                  pointerEvents: visible ? "auto" : "none",
+                }}
+                aria-hidden={!visible}
+              >
+                {/* Soft fill so cover crops never feel empty */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={src}
+                  alt=""
+                  aria-hidden
+                  className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-2xl"
+                  decoding="async"
+                  loading="lazy"
+                />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={src}
+                  alt={slide.alt_text || slide.product_name || "Promotion"}
+                  className="absolute inset-0 h-full w-full object-cover object-center"
+                  decoding={i === 0 ? "sync" : "async"}
+                  loading={i === 0 ? "eager" : "lazy"}
+                  fetchPriority={i === 0 ? "high" : "low"}
+                  sizes="(max-width: 640px) 100vw, 66vw"
+                />
+              </div>
+            );
+          })}
 
-        <div className="relative z-0 sm:absolute sm:inset-0">{media}</div>
+          {/* Mobile offer strip over the photo */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] bg-gradient-to-t from-black/80 via-black/45 to-transparent px-4 pb-12 pt-20 sm:hidden">
+            <p className="text-xl font-bold tracking-tight text-white">
+              {headline}
+            </p>
+            {subline ? (
+              <p className="mt-1 line-clamp-1 text-sm text-white/85">
+                {subline}
+              </p>
+            ) : null}
+            {activeHref ? (
+              <span
+                className="mt-3 inline-flex h-10 items-center rounded-lg px-4 text-sm font-bold"
+                style={{
+                  backgroundColor: "var(--store-accent)",
+                  color: "var(--store-on-accent)",
+                }}
+              >
+                Shop now
+              </span>
+            ) : null}
+          </div>
 
-        {count > 1 && (
-          <>
-            <div className="absolute inset-x-0 bottom-3 z-10 flex items-center justify-center gap-2">
+          {activeHref ? (
+            <Link
+              href={activeHref}
+              className="absolute inset-0 z-[1]"
+              aria-label={`View: ${headline}`}
+              onClick={preventNavIfDragged}
+            >
+              <span className="sr-only">Open offer</span>
+            </Link>
+          ) : null}
+
+          {count > 1 ? (
+            <>
+              <button
+                type="button"
+                aria-label="Previous slide"
+                onClick={() => go(index - 1)}
+                className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-xl text-white backdrop-blur-sm transition hover:bg-black/55 sm:h-11 sm:w-11"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                aria-label="Next slide"
+                onClick={() => go(index + 1)}
+                className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-xl text-white backdrop-blur-sm transition hover:bg-black/55 sm:h-11 sm:w-11"
+              >
+                ›
+              </button>
+            </>
+          ) : null}
+
+          {count > 1 ? (
+            <div className="absolute inset-x-0 bottom-3 z-10 flex items-center justify-center gap-2 sm:hidden">
               {slides.map((slide, i) => (
                 <button
                   key={slide.id}
@@ -217,24 +253,89 @@ export function StoreHeroCarousel({
                 />
               ))}
             </div>
-            <button
-              type="button"
-              aria-label="Previous slide"
-              onClick={() => go(index - 1)}
-              className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-xl text-white shadow-sm backdrop-blur-sm transition hover:bg-black/60 sm:left-4 sm:h-11 sm:w-11"
+          ) : null}
+        </div>
+
+        {/* Desktop offer panel */}
+        <div
+          className="relative z-[2] hidden flex-col justify-center px-6 py-8 sm:col-span-5 sm:flex lg:col-span-4 lg:px-10"
+          style={{
+            background:
+              "linear-gradient(165deg, var(--store-secondary) 0%, color-mix(in srgb, var(--store-secondary) 82%, var(--store-primary)) 100%)",
+            color: "var(--store-on-secondary)",
+          }}
+        >
+          <p
+            className="text-[11px] font-bold uppercase tracking-[0.14em]"
+            style={{
+              color:
+                "color-mix(in srgb, var(--store-on-secondary) 65%, transparent)",
+            }}
+          >
+            {activeHref ? "Featured offer" : "In store now"}
+          </p>
+          <p className="mt-3 text-2xl font-bold leading-tight tracking-tight lg:text-3xl">
+            {headline}
+          </p>
+          {subline ? (
+            <p
+              className="mt-2 line-clamp-2 text-sm leading-6"
+              style={{
+                color:
+                  "color-mix(in srgb, var(--store-on-secondary) 78%, transparent)",
+              }}
             >
-              ‹
-            </button>
-            <button
-              type="button"
-              aria-label="Next slide"
-              onClick={() => go(index + 1)}
-              className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-xl text-white shadow-sm backdrop-blur-sm transition hover:bg-black/60 sm:right-4 sm:h-11 sm:w-11"
+              {subline}
+            </p>
+          ) : (
+            <p
+              className="mt-2 text-sm leading-6"
+              style={{
+                color:
+                  "color-mix(in srgb, var(--store-on-secondary) 70%, transparent)",
+              }}
             >
-              ›
-            </button>
-          </>
-        )}
+              {activeHref
+                ? "Tap through to see details, price, and order on WhatsApp."
+                : "Swipe to browse what’s featured today."}
+            </p>
+          )}
+
+          {activeHref ? (
+            <Link
+              href={activeHref}
+              onClick={preventNavIfDragged}
+              className="mt-6 inline-flex h-11 w-fit items-center justify-center rounded-lg px-5 text-sm font-bold transition hover:brightness-105"
+              style={{
+                backgroundColor: "var(--store-accent)",
+                color: "var(--store-on-accent)",
+              }}
+            >
+              Shop this offer →
+            </Link>
+          ) : null}
+
+          {count > 1 ? (
+            <div className="mt-8 flex items-center gap-2">
+              {slides.map((slide, i) => (
+                <button
+                  key={slide.id}
+                  type="button"
+                  aria-label={`Show slide ${i + 1}${
+                    slide.alt_text ? `: ${slide.alt_text}` : ""
+                  }`}
+                  aria-current={i === index}
+                  onClick={() => go(i)}
+                  className={`h-2 rounded-full transition-all ${
+                    i === index
+                      ? "w-7 bg-[var(--store-accent)]"
+                      : "w-2 bg-white/35 hover:bg-white/60"
+                  }`}
+                />
+              ))}
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );
