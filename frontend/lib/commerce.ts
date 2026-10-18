@@ -472,6 +472,8 @@ export interface ContentCapabilities {
   product_campaigns: boolean;
   organic_campaigns: boolean;
   organic_themes: OrganicTheme[];
+  kenya_relatable_mode?: boolean;
+  reel_skit_briefs?: boolean;
   owner_video_upload: boolean;
   video_publish: boolean;
   autopilot: {

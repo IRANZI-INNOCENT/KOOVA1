@@ -7,11 +7,12 @@ import uuid
 
 from apps.businesses.models import Business
 from apps.content.services.campaign import _build_facts
-from apps.content.services.organic import ORGANIC_THEMES
+from apps.content.services.kenya_relatable import (
+    is_kenya_relatable_enabled,
+    organic_themes_for_business,
+)
 from apps.business_brain.services.draft import _parse_json
 from apps.kova_ai.services.openrouter import OpenRouterError, OpenRouterService
-
-VALID_THEME_KEYS = {t["key"] for t in ORGANIC_THEMES}
 
 
 def _fallback_seeds(business: Business) -> list[dict]:
@@ -22,6 +23,7 @@ def _fallback_seeds(business: Business) -> list[dict]:
     location = (facts.get("location") or "").strip()
     audience = (facts.get("primary_audience") or "your customers").strip()
     loc_bit = f" in {location}" if location else ""
+    themes = organic_themes_for_business(business)
 
     templates: list[tuple[str, str, str]] = [
         (
@@ -55,6 +57,19 @@ def _fallback_seeds(business: Business) -> list[dict]:
             f"Shout-out to a customer, partner, or neighborhood moment around {name}.",
         ),
     ]
+    if is_kenya_relatable_enabled(business):
+        templates.extend([
+            (
+                "relatable_moment",
+                "A ‘that’s me’ scene",
+                f"Everyday Kenyan moment your {audience} recognise — keep it light and honest.",
+            ),
+            (
+                "hustle_day",
+                "Hustle day beat",
+                f"Packing, delivery, or payday energy around {name}{loc_bit}.",
+            ),
+        ])
 
     seeds: list[dict] = []
     for theme_key, title, brief in templates:
@@ -64,20 +79,22 @@ def _fallback_seeds(business: Business) -> list[dict]:
             "brief": brief,
             "theme_key": theme_key,
             "theme_label": next(
-                (t["label"] for t in ORGANIC_THEMES if t["key"] == theme_key),
+                (t["label"] for t in themes if t["key"] == theme_key),
                 theme_key,
             ),
         })
     return seeds
 
 
-def _normalize_seeds(raw: list) -> list[dict]:
+def _normalize_seeds(raw: list, business: Business | None = None) -> list[dict]:
+    themes = organic_themes_for_business(business)
+    valid = {t["key"] for t in themes}
     out: list[dict] = []
     for item in raw:
         if not isinstance(item, dict):
             continue
         theme_key = str(item.get("theme_key") or "educate").strip().lower()
-        if theme_key not in VALID_THEME_KEYS:
+        if theme_key not in valid:
             theme_key = "educate"
         title = str(item.get("title") or "").strip()
         brief = str(item.get("brief") or item.get("angle") or "").strip()
@@ -89,7 +106,7 @@ def _normalize_seeds(raw: list) -> list[dict]:
             "brief": brief[:500],
             "theme_key": theme_key,
             "theme_label": next(
-                (t["label"] for t in ORGANIC_THEMES if t["key"] == theme_key),
+                (t["label"] for t in themes if t["key"] == theme_key),
                 theme_key.replace("_", " ").title(),
             ),
         })
@@ -121,13 +138,19 @@ def generate_organic_seeds(business: Business) -> list[dict]:
     Falls back to template seeds if AI fails.
     """
     facts = _build_facts(business, "", product=None)
-    theme_keys = [t["key"] for t in ORGANIC_THEMES]
+    themes = organic_themes_for_business(business)
+    theme_keys = [t["key"] for t in themes]
     system = (
         "You are Kova, a social media strategist for small businesses. "
         "Suggest organic (non-promotional) post ideas. "
         "Do not invent products, prices, or URLs. "
         "Reply with JSON only."
     )
+    if is_kenya_relatable_enabled(business):
+        system += (
+            " Prefer Kenya-relatable angles when suggesting ideas "
+            "(everyday scenes, light humour, local recognition)."
+        )
     user_prompt = (
         "Using the business facts below, return a JSON object with key "
         '"seeds": an array of 6 objects. Each object must have:\n'
@@ -155,7 +178,7 @@ def generate_organic_seeds(business: Business) -> list[dict]:
         seeds_raw = parsed.get("seeds") if isinstance(parsed, dict) else None
         if not isinstance(seeds_raw, list):
             raise OpenRouterError("bad shape")
-        normalized = _normalize_seeds(seeds_raw)
+        normalized = _normalize_seeds(seeds_raw, business)
         if len(normalized) >= 4:
             return normalized
     except (OpenRouterError, KeyError, IndexError, TypeError, ValueError):

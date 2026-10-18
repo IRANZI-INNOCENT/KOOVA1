@@ -98,3 +98,25 @@ class EnsureSuperuserTests(TestCase):
             with self.assertRaises(CommandError) as ctx:
                 call_command("ensure_superuser", stdout=StringIO())
         self.assertIn("must both be set", str(ctx.exception))
+
+    def test_production_force_syncs_password_by_default(self):
+        User.objects.create_user(
+            email="force@example.com",
+            password="old-password-here",
+            first_name="Force",
+            last_name="Sync",
+        )
+        env = {
+            "KOVA_SUPERUSER_EMAIL": "force@example.com",
+            "KOVA_SUPERUSER_PASSWORD": "brand-new-deploy-secret",
+            "KOVA_SUPERUSER_OPTIONAL": "1",
+            "KOVA_SUPERUSER_FORCE_PASSWORD": "",
+            "DJANGO_SETTINGS_MODULE": "config.settings.production",
+            "RAILWAY_ENVIRONMENT": "production",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            call_command("ensure_superuser", stdout=StringIO())
+
+        user = User.objects.get(email="force@example.com")
+        self.assertTrue(user.check_password("brand-new-deploy-secret"))
+        self.assertTrue(user.is_superuser)

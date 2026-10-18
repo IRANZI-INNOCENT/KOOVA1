@@ -104,6 +104,9 @@ def draft_campaign(
 
     n_images = image_count(product_images)
     native_carousel = can_publish_native_carousel(product_images)
+    from apps.content.services.kenya_relatable import is_kenya_relatable_enabled
+
+    reel_briefs = is_kenya_relatable_enabled(business) and not primary_only
 
     # Build the list of formats to generate
     format_specs: list[dict] = []
@@ -123,6 +126,7 @@ def draft_campaign(
             image_count_n=n_images,
             organic=False,
             primary_only=primary_only,
+            reel_briefs=reel_briefs,
         )
         for content_platform, content_type in formats:
             format_specs.append({
@@ -168,6 +172,7 @@ def draft_campaign(
             continue
 
         is_carousel = spec["content_type"] == "carousel"
+        is_reel = spec["content_type"] == "reel"
         allow_swipe = is_carousel and native_carousel
         caption, cta = sanitize_copy(
             str(piece_data.get("caption", "")),
@@ -186,6 +191,15 @@ def draft_campaign(
                 }
                 for s in slides
             ]
+        elif is_reel and facts.get("kenya_relatable_mode"):
+            from apps.content.services.kenya_relatable import (
+                format_skit_into_caption,
+                skit_beats_as_slides,
+            )
+
+            skit = piece_data.get("skit_brief")
+            caption = format_skit_into_caption(caption, skit)
+            slides = skit_beats_as_slides(skit)
 
         content = Content.objects.create(
             business=business,
@@ -293,7 +307,9 @@ def _build_facts(business: Business, note: str, product: Product | None) -> dict
             "public_url": absolute_product_url(product),
         }
 
-    return facts
+    from apps.content.services.kenya_relatable import apply_relatable_facts
+
+    return apply_relatable_facts(facts, business)
 
 
 # ------------------------------------------------------------------
@@ -329,6 +345,12 @@ def _call_ai(
         "Mention the price at most once."
     )
 
+    from apps.content.services.kenya_relatable import (
+        locale_system_addon,
+        reel_skit_system_addon,
+        reel_skit_user_json_addon,
+    )
+
     system = (
         "You are Kova, a social media manager for a small business. "
         "You create adapted content for multiple platforms simultaneously "
@@ -343,6 +365,8 @@ def _call_ai(
         "When product.public_url is present, end the caption with that exact address "
         "and do not write any other web address. "
         "Reply with one JSON object and no markdown."
+        f"{locale_system_addon(facts)}"
+        f"{reel_skit_system_addon(facts)}"
     )
 
     carousel_json = (
@@ -351,6 +375,7 @@ def _call_ai(
         if native_carousel
         else ""
     )
+    skit_json = reel_skit_user_json_addon(facts)
 
     user_prompt = (
         "Generate adapted content for these formats:\n"
@@ -360,7 +385,8 @@ def _call_ai(
         '- "caption": the post text adapted to that platform and format.\n'
         '- "call_to_action": one short action line.\n'
         '- "hashtags": array of 5–10 hashtag strings without #.\n'
-        f"{carousel_json}\n"
+        f"{carousel_json}"
+        f"{skit_json}\n"
         f"Business facts:\n{json.dumps(facts, ensure_ascii=True)}"
     )
 

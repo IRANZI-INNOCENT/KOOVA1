@@ -359,6 +359,22 @@ export default function ContentStudioPage() {
           ))}
         </div>
 
+        {capabilities?.kenya_relatable_mode ? (
+          <div className="rounded-lg border border-kova-green/25 bg-kova-green/5 px-4 py-3 text-sm text-kova-dark">
+            <span className="font-semibold text-kova-green">
+              Kenya relatable mode on
+            </span>
+            {" — "}
+            drafts use local voice and include reel skit film briefs.{" "}
+            <Link
+              href="/workspace/settings/business-brand"
+              className="font-semibold text-kova-green underline underline-offset-2"
+            >
+              Change in Brand
+            </Link>
+          </div>
+        ) : null}
+
         <div className="h-px bg-kova-border" />
 
         {error && (
@@ -828,13 +844,16 @@ function PieceCard({
           </p>
         )}
 
-        {/* Carousel slides */}
-        {piece.content_type === "carousel" &&
-          piece.slides &&
-          piece.slides.length > 0 && (
+        {/* Carousel slides or reel skit beats */}
+        {piece.slides &&
+          piece.slides.length > 0 &&
+          (piece.content_type === "carousel" ||
+            piece.content_type === "reel") && (
             <div className="space-y-1.5">
               <p className="text-xs font-bold uppercase tracking-wide text-kova-orange">
-                Slides
+                {piece.content_type === "reel"
+                  ? "Film beats"
+                  : "Slides"}
               </p>
               {piece.slides.map((slide, i) => (
                 <div

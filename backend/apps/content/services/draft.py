@@ -74,11 +74,11 @@ def draft_post(
     service = OpenRouterService(timeout=60)
     response = service.chat(
         messages=[
-            {"role": "system", "content": _system_prompt(content_type)},
+            {"role": "system", "content": _system_prompt(content_type, facts)},
             {"role": "user", "content": prompt},
         ],
         temperature=0.5,
-        max_tokens=1200,
+        max_tokens=1600 if facts.get("kenya_relatable_mode") else 1200,
         response_format={"type": "json_object"},
     )
     result = _parse_response(response, content_type)
@@ -104,6 +104,15 @@ def draft_post(
             }
             for s in result["slides"]
         ]
+    elif content_type == "reel" and facts.get("kenya_relatable_mode"):
+        from apps.content.services.kenya_relatable import (
+            format_skit_into_caption,
+            skit_beats_as_slides,
+        )
+
+        skit = result.get("skit_brief")
+        result["caption"] = format_skit_into_caption(result["caption"], skit)
+        result["slides"] = skit_beats_as_slides(skit)
     if product is not None:
         result["caption"] = append_product_link(result["caption"], product)
         result["product_url"] = absolute_product_url(product)
@@ -192,14 +201,21 @@ def _build_facts(
         p["image_count"] = image_count
         facts["product"] = p
 
-    return facts
+    from apps.content.services.kenya_relatable import apply_relatable_facts
+
+    return apply_relatable_facts(facts, business)
 
 
 # ------------------------------------------------------------------
 # System prompts per content type
 # ------------------------------------------------------------------
 
-def _system_prompt(content_type: str) -> str:
+def _system_prompt(content_type: str, facts: dict | None = None) -> str:
+    from apps.content.services.kenya_relatable import (
+        locale_system_addon,
+        reel_skit_system_addon,
+    )
+
     base = (
         "You write social content for a small business using Kova. "
         "Use the business facts, brand voice, and product information provided. "
@@ -207,6 +223,7 @@ def _system_prompt(content_type: str) -> str:
         "that were not provided. "
         "Write the way the brand voice asks. "
         "Reply with one JSON object and no markdown."
+        f"{locale_system_addon(facts)}"
     )
 
     if content_type == "carousel":
@@ -225,6 +242,7 @@ def _system_prompt(content_type: str) -> str:
             "For reel content, write a short script concept with a hook "
             "in the first line, the value in the middle, and a call to "
             "action at the end. Keep it punchy and natural."
+            f"{reel_skit_system_addon(facts)}"
         )
     if content_type == "story":
         return (
@@ -258,6 +276,8 @@ def _build_prompt(content_type: str, facts: dict) -> str:
         )
 
     if content_type == "reel":
+        from apps.content.services.kenya_relatable import reel_skit_user_json_addon
+
         return (
             "Write a reel script concept.\n"
             "Return JSON with these keys:\n"
@@ -267,6 +287,7 @@ def _build_prompt(content_type: str, facts: dict) -> str:
             '  Last line: the call to action.\n'
             '- "call_to_action": one short overlay text line.\n'
             '- "hashtags": array of 5–10 relevant hashtag strings without #.\n'
+            f"{reel_skit_user_json_addon(facts)}"
             f"Facts:\n{facts_json}"
         )
 
@@ -340,6 +361,8 @@ def _parse_response(response: dict, content_type: str) -> dict:
             ]
         else:
             result["slides"] = []
+    elif content_type == "reel" and isinstance(parsed.get("skit_brief"), dict):
+        result["skit_brief"] = parsed["skit_brief"]
 
     return result
 

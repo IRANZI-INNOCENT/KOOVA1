@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from apps.businesses.models import Business
-from apps.content.services.organic import ORGANIC_THEMES
+from apps.content.services.kenya_relatable import (
+    is_kenya_relatable_enabled,
+    organic_themes_for_business,
+)
 from apps.social.models import SocialAccount
 from apps.social.services.capabilities import account_capabilities
 
@@ -28,11 +31,14 @@ def business_content_capabilities(business: Business) -> dict:
         or "instagram_content_publish" in (a.scopes or [])
         for a in accounts
     )
+    kenya_relatable = is_kenya_relatable_enabled(business)
 
     return {
         "product_campaigns": has_meta,
         "organic_campaigns": has_meta,
-        "organic_themes": ORGANIC_THEMES,
+        "organic_themes": organic_themes_for_business(business),
+        "kenya_relatable_mode": kenya_relatable,
+        "reel_skit_briefs": kenya_relatable,
         "owner_video_upload": has_meta,
         "video_publish": granted_video,
         "autopilot": {

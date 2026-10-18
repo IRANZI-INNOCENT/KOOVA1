@@ -531,6 +531,18 @@ def _plan(business: Business, briefing: str) -> dict:
         if len((product.description or "").strip()) < 40
     ][:3]
     try:
+        from apps.content.services.kenya_relatable import (
+            is_kenya_relatable_enabled,
+            organic_themes_for_business,
+        )
+
+        theme_keys = [t["key"] for t in organic_themes_for_business(business)]
+        theme_hint = ", ".join(theme_keys)
+        relatable_hint = (
+            " Prefer Kenya-relatable organic themes when they fit."
+            if is_kenya_relatable_enabled(business)
+            else ""
+        )
         service = OpenRouterService(timeout=45)
         response = service.chat(
             messages=[
@@ -544,7 +556,8 @@ def _plan(business: Business, briefing: str) -> dict:
                         "polish (list of product names that need a stronger public description), "
                         "posts (list of objects with product_name and note), "
                         "organic_posts (list of objects with theme and note; "
-                        "theme one of: educate, tip, behind_scenes, story, faq, seasonal, community)."
+                        f"theme one of: {theme_hint})."
+                        f"{relatable_hint}"
                     ),
                 },
                 {
@@ -650,13 +663,14 @@ def _publish(shift: AutopilotShift, business: Business, posts: list) -> None:
 
 
 def _publish_organic(shift: AutopilotShift, business: Business, items: list) -> None:
-    from apps.content.services.organic import ORGANIC_THEMES, draft_organic_campaign
+    from apps.content.services.kenya_relatable import organic_themes_for_business
+    from apps.content.services.organic import draft_organic_campaign
     from apps.content.services.organic_seeds import (
         generate_organic_seeds,
         pick_autopilot_organic_seed,
     )
 
-    valid_themes = {t["key"] for t in ORGANIC_THEMES}
+    valid_themes = {t["key"] for t in organic_themes_for_business(business)}
     seeds = generate_organic_seeds(business)
     seed_by_theme = {s["theme_key"]: s for s in seeds}
 

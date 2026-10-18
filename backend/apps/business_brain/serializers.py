@@ -122,6 +122,7 @@ class BusinessBrandSerializer(serializers.ModelSerializer):
             "brand_personality",
             "content_style",
             "communication_preferences",
+            "kenya_relatable_mode",
             "created_at",
             "updated_at",
         ]

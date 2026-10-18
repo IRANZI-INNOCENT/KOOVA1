@@ -63,8 +63,10 @@ ORGANIC_THEMES: list[dict[str, str]] = [
 ]
 
 
-def _theme_label(key: str) -> str:
-    for theme in ORGANIC_THEMES:
+def _theme_label(key: str, business=None) -> str:
+    from apps.content.services.kenya_relatable import organic_themes_for_business
+
+    for theme in organic_themes_for_business(business):
         if theme["key"] == key:
             return theme["label"]
     return key.replace("_", " ").title()
@@ -77,10 +79,13 @@ def _organic_format_specs(
     media_urls: list[str] | None = None,
     primary_only: bool = False,
 ) -> list[dict]:
+    from apps.content.services.kenya_relatable import is_kenya_relatable_enabled
+
     accounts = get_connected_channels(business)
     format_specs: list[dict] = []
     chosen = (platform or "all").strip().lower()
     n_images = image_count(media_urls or [])
+    reel_briefs = is_kenya_relatable_enabled(business) and not primary_only
     for account in accounts:
         account_platform = (
             "facebook"
@@ -96,6 +101,7 @@ def _organic_format_specs(
             image_count_n=n_images,
             organic=True,
             primary_only=primary_only,
+            reel_briefs=reel_briefs,
         )
         for content_platform, content_type in formats:
             format_specs.append({
@@ -130,6 +136,12 @@ def _call_organic_ai(
 
     theme_label = _theme_label(theme_key)
     native = bool(facts.get("native_carousel_available"))
+    from apps.content.services.kenya_relatable import (
+        locale_system_addon,
+        reel_skit_system_addon,
+        reel_skit_user_json_addon,
+    )
+
     carousel_note = (
         "For carousel types include short slide captions; swipe language is OK only there. "
         if native
@@ -148,14 +160,19 @@ def _call_organic_ai(
         f"{carousel_note}"
         "Each format must feel native to its platform. "
         "Reply with one JSON object and no markdown."
+        f"{locale_system_addon(facts)}"
+        f"{reel_skit_system_addon(facts)}"
     )
+    skit_json = reel_skit_user_json_addon(facts)
     user_prompt = (
         f"Organic theme: {theme_label} ({theme_key}).\n"
         "Generate adapted content for these formats:\n"
         f"{json.dumps(formats_desc, ensure_ascii=True)}\n\n"
         "Return JSON keyed by each format \"key\" (e.g. account_12_instagram_post) with caption, "
         "call_to_action, hashtags"
-        + ("; carousels include slides.\n\n" if native else ".\n\n")
+        + ("; carousels include slides" if native else "")
+        + ("; reel types include skit_brief.\n\n" if skit_json else ".\n\n")
+        + skit_json
         + f"Business facts:\n{json.dumps(facts, ensure_ascii=True)}"
     )
 
@@ -192,8 +209,10 @@ def draft_organic_campaign(
     primary_only: bool = False,
 ) -> dict:
     """Generate organic content across connected channels (no product)."""
+    from apps.content.services.kenya_relatable import organic_themes_for_business
+
     theme_key = (organic_theme or "educate").strip().lower()
-    valid_keys = {t["key"] for t in ORGANIC_THEMES}
+    valid_keys = {t["key"] for t in organic_themes_for_business(business)}
     if theme_key not in valid_keys:
         raise ValueError("Choose a supported organic content theme.")
 
@@ -212,7 +231,7 @@ def draft_organic_campaign(
 
     facts = _build_facts(business, note, product=None)
     facts["organic_theme"] = theme_key
-    facts["organic_theme_label"] = _theme_label(theme_key)
+    facts["organic_theme_label"] = _theme_label(theme_key, business)
     facts["native_carousel_available"] = native_carousel
     facts["image_count"] = image_count(extra_media)
 
@@ -242,6 +261,7 @@ def draft_organic_campaign(
             continue
 
         is_carousel = spec["content_type"] == "carousel"
+        is_reel = spec["content_type"] == "reel"
         allow_swipe = is_carousel and native_carousel
         caption, cta = sanitize_copy(
             str(piece_data.get("caption", "")),
@@ -260,6 +280,15 @@ def draft_organic_campaign(
                 }
                 for s in slides
             ]
+        elif is_reel and facts.get("kenya_relatable_mode"):
+            from apps.content.services.kenya_relatable import (
+                format_skit_into_caption,
+                skit_beats_as_slides,
+            )
+
+            skit = piece_data.get("skit_brief")
+            caption = format_skit_into_caption(caption, skit)
+            slides = skit_beats_as_slides(skit)
 
         content = Content.objects.create(
             business=business,

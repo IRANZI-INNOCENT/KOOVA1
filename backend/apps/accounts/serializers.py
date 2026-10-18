@@ -103,18 +103,38 @@ class LoginSerializer(serializers.Serializer):
         from django.contrib.auth import authenticate
 
         email = attrs["email"].strip().lower()
-        password = attrs["password"]
+        # Try raw password and a trimmed paste (trailing space/newline).
+        raw_password = attrs["password"]
+        candidates = [raw_password]
+        trimmed = raw_password.strip()
+        if trimmed and trimmed not in candidates:
+            candidates.append(trimmed)
 
-        user = authenticate(
-            username=email,
-            password=password,
-        )
+        user = None
+        request = self.context.get("request")
+        for password in candidates:
+            user = authenticate(
+                request=request,
+                username=email,
+                password=password,
+            )
+            if user is None:
+                user = authenticate(
+                    request=request,
+                    email=email,
+                    password=password,
+                )
+            if user is not None:
+                break
 
         if user is None:
             # Match legacy rows where email casing differs from login.
             legacy = User.objects.filter(email__iexact=email).first()
-            if legacy is not None and legacy.check_password(password):
-                user = legacy
+            if legacy is not None:
+                for password in candidates:
+                    if legacy.check_password(password):
+                        user = legacy
+                        break
 
         if user is None or not user.is_active:
             raise serializers.ValidationError(

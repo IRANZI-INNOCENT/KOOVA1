@@ -55,15 +55,22 @@ class Command(BaseCommand):
             "KOVA_SUPERUSER_EMAIL",
             "DJANGO_SUPERUSER_EMAIL",
         ).strip().lower()
-        # Do not strip interior spaces from passwords; only trim newlines
-        # that secret managers sometimes append.
+        # Trim whitespace/newlines secret managers often append. Interior
+        # spaces in a password are preserved.
         password = _env(
             "KOVA_SUPERUSER_PASSWORD",
             "DJANGO_SUPERUSER_PASSWORD",
-        ).strip("\r\n")
-        force_password = _truthy(
-            _env("KOVA_SUPERUSER_FORCE_PASSWORD", "DJANGO_SUPERUSER_FORCE_PASSWORD"),
+        ).strip("\r\n").strip()
+        force_raw = _env(
+            "KOVA_SUPERUSER_FORCE_PASSWORD",
+            "DJANGO_SUPERUSER_FORCE_PASSWORD",
         )
+        # In production, default to force-syncing the password from env so
+        # the deploy secret always works (set FORCE=0 to opt out).
+        if force_raw.strip() == "" and _running_in_production():
+            force_password = True
+        else:
+            force_password = _truthy(force_raw)
         optional = _truthy(_env("KOVA_SUPERUSER_OPTIONAL"))
         required = _running_in_production() and not optional
 

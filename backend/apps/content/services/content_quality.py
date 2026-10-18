@@ -127,6 +127,7 @@ def formats_for_channel(
     image_count_n: int,
     organic: bool = False,
     primary_only: bool = False,
+    reel_briefs: bool = False,
 ) -> list[tuple[str, str]]:
     """
     Honest format list for one connected account.
@@ -134,7 +135,8 @@ def formats_for_channel(
     - Carousel only when 2+ images are available.
     - Autopilot (primary_only): one piece per account.
     - Studio: post always; carousel when images allow.
-    - Skip reel/story until video / Stories publish is wired.
+    - Reel/story publish is not fully wired; reel_briefs adds a filmable
+      skit brief when Kenya relatable mode is on (draft for the owner).
     """
     if account.platform == SocialAccount.Platform.FACEBOOK_PAGE:
         platform = "facebook"
@@ -151,6 +153,8 @@ def formats_for_channel(
     formats: list[tuple[str, str]] = [(platform, "post")]
     if image_count_n >= 2:
         formats.append((platform, "carousel"))
+    if reel_briefs:
+        formats.append((platform, "reel"))
     return formats
 
 

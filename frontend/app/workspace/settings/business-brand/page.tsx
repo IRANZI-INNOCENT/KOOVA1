@@ -23,12 +23,13 @@ interface BusinessBrand {
   brand_personality: string;
   content_style: string;
   communication_preferences: string;
+  kenya_relatable_mode: boolean;
 }
 
 type BrandForm = Omit<BusinessBrand, "id" | "business">;
 
 type FieldErrors = Partial<
-  Record<keyof BrandForm, string>
+  Record<Exclude<keyof BrandForm, "kenya_relatable_mode">, string>
 >;
 
 const initialForm: BrandForm = {
@@ -38,6 +39,7 @@ const initialForm: BrandForm = {
   brand_personality: "",
   content_style: "",
   communication_preferences: "",
+  kenya_relatable_mode: false,
 };
 
 interface BrandFieldProps {
@@ -89,8 +91,13 @@ function BrandField({
 }
 
 function isComplete(form: BrandForm) {
-  return Object.values(form).every(
-    (value) => value.trim() !== "",
+  return (
+    form.voice.trim() !== "" &&
+    form.tone.trim() !== "" &&
+    form.positioning.trim() !== "" &&
+    form.brand_personality.trim() !== "" &&
+    form.content_style.trim() !== "" &&
+    form.communication_preferences.trim() !== ""
   );
 }
 
@@ -209,6 +216,9 @@ export default function BusinessBrandPage() {
           content_style: brand.content_style || "",
           communication_preferences:
             brand.communication_preferences || "",
+          kenya_relatable_mode: Boolean(
+            brand.kenya_relatable_mode,
+          ),
         });
       } catch (err) {
         setError(
@@ -255,16 +265,16 @@ export default function BusinessBrandPage() {
         accessToken,
         {
           method: "PATCH",
-          body: JSON.stringify(
-            Object.fromEntries(
-              Object.entries(form).map(
-                ([key, value]) => [
-                  key,
-                  value.trim(),
-                ],
-              ),
-            ),
-          ),
+          body: JSON.stringify({
+            voice: form.voice.trim(),
+            tone: form.tone.trim(),
+            positioning: form.positioning.trim(),
+            brand_personality: form.brand_personality.trim(),
+            content_style: form.content_style.trim(),
+            communication_preferences:
+              form.communication_preferences.trim(),
+            kenya_relatable_mode: form.kenya_relatable_mode,
+          }),
         },
       );
 
@@ -353,6 +363,55 @@ export default function BusinessBrandPage() {
               </p>
 
               <div className="mt-6 space-y-6">
+                <div className="rounded-md border border-kova-border bg-kova-background/50 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-kova-dark">
+                        Kenya relatable content
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-gray-500">
+                        Optional. When on, Kova writes more like everyday Kenya —
+                        light Sheng/Swahili mix, local scenes — and adds phone
+                        skit / reel film briefs. Off keeps default Kova copy.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={form.kenya_relatable_mode}
+                      onClick={() =>
+                        setForm((current) => ({
+                          ...current,
+                          kenya_relatable_mode:
+                            !current.kenya_relatable_mode,
+                        }))
+                      }
+                      className={`relative mt-0.5 h-7 w-12 shrink-0 rounded-full transition ${
+                        form.kenya_relatable_mode
+                          ? "bg-kova-green"
+                          : "bg-gray-300"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 h-6 w-6 rounded-full bg-white transition ${
+                          form.kenya_relatable_mode
+                            ? "left-5"
+                            : "left-0.5"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {form.kenya_relatable_mode ? (
+                    <p className="mt-3 text-xs font-medium text-kova-green">
+                      On — next drafts use relatable voice + reel skit briefs.
+                    </p>
+                  ) : (
+                    <p className="mt-3 text-xs text-gray-500">
+                      Off — standard Kova content (default).
+                    </p>
+                  )}
+                </div>
+
                 <BrandField
                   label="Voice"
                   description="What should the consistent character of the business sound like?"

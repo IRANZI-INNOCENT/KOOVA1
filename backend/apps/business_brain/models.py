@@ -200,6 +200,13 @@ class BusinessBrand(models.Model):
             "follow when creating or sending content."
         ),
     )
+    kenya_relatable_mode = models.BooleanField(
+        default=False,
+        help_text=(
+            "When on, Kova writes Kenya-relatable copy (Sheng/Swahili mix, "
+            "everyday scenes) and reel/skit film briefs. Off keeps default Kova."
+        ),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

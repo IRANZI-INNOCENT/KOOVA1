@@ -210,13 +210,15 @@ Set on the **API** service only:
 |----------|---------|
 | `KOVA_SUPERUSER_EMAIL` | Admin login email (`DJANGO_SUPERUSER_EMAIL` also accepted) |
 | `KOVA_SUPERUSER_PASSWORD` | At least 12 characters (`DJANGO_SUPERUSER_PASSWORD` also accepted). Synced on deploy when it does not already match |
-| `KOVA_SUPERUSER_FORCE_PASSWORD` | Set to `1` to always rewrite the password on deploy |
+| `KOVA_SUPERUSER_FORCE_PASSWORD` | On Railway/production, password is force-synced from env by default. Set to `0` to only update when the stored hash does not match |
 | `KOVA_SUPERUSER_OPTIONAL` | Set to `1` only if you intentionally skip creating an admin (otherwise production **fails** the deploy when email/password are missing) |
 | `KOVA_ADMIN_GATE_SECRET` | Long random secret to open admin (optional if `DJANGO_SECRET_KEY` is set — see below) |
 | `KOVA_ADMIN_URL` | Optional path prefix (default `admin/`) |
 | `KOVA_ADMIN_IP_ALLOWLIST` | Optional comma-separated IPs/CIDRs allowed to reach admin |
 
-`ensure_superuser` runs in the Railway **preDeploy** hook after migrations and **before** `collectstatic`, so a static-files failure cannot skip admin creation. Missing credentials on Railway fail the deploy (clear error in logs) instead of silently skipping.
+`ensure_superuser` runs in the Railway **preDeploy** hook after migrations and **before** `collectstatic`, and again on every API boot (`scripts/web.sh`), so admin login stays aligned with the env password. Missing credentials on Railway fail the deploy (clear error in logs) instead of silently skipping.
+
+Confirm `KOVA_SUPERUSER_EMAIL` / `KOVA_SUPERUSER_PASSWORD` are set on the **API** service (not only the site). After changing them, redeploy the API so boot syncs the account.
 
 **Opening admin in production**
 
