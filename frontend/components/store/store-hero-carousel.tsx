@@ -195,7 +195,7 @@ export function StoreHeroCarousel({
           </Link>
         ) : null}
 
-        <div className="relative z-0">{media}</div>
+        <div className="relative z-0 sm:absolute sm:inset-0">{media}</div>
 
         {count > 1 && (
           <>

@@ -476,10 +476,34 @@ class ProductImageDetailView(BusinessOwnedAPIView):
 def _commerce_page_response(page, request):
     page = (
         CommercePage.objects
-        .prefetch_related("banners__product")
+        .prefetch_related("banners__product__images")
         .get(pk=page.pk)
     )
     return CommercePageSerializer(page, context={"request": request}).data
+
+
+def _sync_page_cover_from_banners(page):
+    """Keep legacy cover in sync when the first slide has a custom image."""
+    first = page.banners.order_by("display_order", "created_at").first()
+    if first and first.image:
+        page.cover = first.image
+        page.save(update_fields=["cover", "updated_at"])
+    elif not first:
+        page.cover = None
+        page.save(update_fields=["cover", "updated_at"])
+
+
+def _resolve_banner_product(business, raw):
+    """Parse product id from request data; None clears / means absent."""
+    if raw in (None, "", "null", "none"):
+        return None
+    try:
+        product_id = int(raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Choose a valid product.") from exc
+    if product_id <= 0:
+        return None
+    return get_object_or_404(Product, id=product_id, business=business)
 
 
 class CommercePageView(BusinessOwnedAPIView):
@@ -620,24 +644,56 @@ class CommercePageBannerListCreateView(BusinessOwnedAPIView):
             or request.FILES.get("banner")
             or request.FILES.get("file")
         )
-        if not image:
+        product = None
+        if "product" in request.data or "product_id" in request.data:
+            raw = request.data.get("product", request.data.get("product_id"))
+            try:
+                product = _resolve_banner_product(page.business, raw)
+            except ValueError as exc:
+                return Response(
+                    {"detail": str(exc)},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        if not image and not product:
             return Response(
-                {"detail": "Choose an image file to upload as a banner."},
+                {
+                    "detail": (
+                        "Upload a banner image or choose a product to feature."
+                    ),
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        if product and not image:
+            has_photo = product.images.exists()
+            if not has_photo:
+                return Response(
+                    {
+                        "detail": (
+                            "That product has no photos yet. "
+                            "Add a product image first."
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         alt_text = str(request.data.get("alt_text") or "")[:200]
-        banner = CommercePageBanner.objects.create(
+        if not alt_text and product:
+            alt_text = str(product.name or "")[:200]
+
+        banner = CommercePageBanner(
             page=page,
-            image=image,
             alt_text=alt_text,
+            product=product,
             display_order=page.banners.count(),
         )
+        if image:
+            banner.image = image
+        banner.save()
 
-        # Keep legacy cover in sync with the first slide for older clients / OG.
         if banner.display_order == 0:
-            page.cover = banner.image
-            page.save(update_fields=["cover", "updated_at"])
+            _sync_page_cover_from_banners(page)
 
         return Response(
             _commerce_page_response(page, request),
@@ -669,21 +725,44 @@ class CommercePageBannerDetailView(BusinessOwnedAPIView):
         if "product" in request.data or "product_id" in request.data:
             raw = request.data.get("product", request.data.get("product_id"))
             if raw in (None, "", "null", "none", 0, "0"):
+                if not banner.image:
+                    return Response(
+                        {
+                            "detail": (
+                                "This slide uses a product photo. "
+                                "Link another product or remove the slide."
+                            ),
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
                 banner.product = None
                 updates.append("product")
             else:
                 try:
-                    product_id = int(raw)
-                except (TypeError, ValueError):
+                    product = _resolve_banner_product(
+                        banner.page.business,
+                        raw,
+                    )
+                except ValueError as exc:
+                    return Response(
+                        {"detail": str(exc)},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                if product is None:
                     return Response(
                         {"detail": "Choose a valid product."},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
-                product = get_object_or_404(
-                    Product,
-                    id=product_id,
-                    business=banner.page.business,
-                )
+                if not product.images.exists() and not banner.image:
+                    return Response(
+                        {
+                            "detail": (
+                                "That product has no photos yet. "
+                                "Add a product image first."
+                            ),
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
                 banner.product = product
                 updates.append("product")
 
@@ -701,9 +780,7 @@ class CommercePageBannerDetailView(BusinessOwnedAPIView):
             if item.display_order != index:
                 item.display_order = index
                 item.save(update_fields=["display_order"])
-        first = page.banners.order_by("display_order", "created_at").first()
-        page.cover = first.image if first else None
-        page.save(update_fields=["cover", "updated_at"])
+        _sync_page_cover_from_banners(page)
         return Response(_commerce_page_response(page, request))
 
 
@@ -736,10 +813,7 @@ class CommercePageBannerReorderView(BusinessOwnedAPIView):
                 banner.display_order = index
                 banner.save(update_fields=["display_order"])
 
-        first = page.banners.order_by("display_order", "created_at").first()
-        if first:
-            page.cover = first.image
-            page.save(update_fields=["cover", "updated_at"])
+        _sync_page_cover_from_banners(page)
 
         return Response(_commerce_page_response(page, request))
 
@@ -837,7 +911,9 @@ class PublicStorefrontView(APIView):
 
     def get(self, request, slug):
         page = get_object_or_404(
-            CommercePage.objects.prefetch_related("banners__product"),
+            CommercePage.objects.prefetch_related(
+                "banners__product__images",
+            ),
             slug=slug,
             is_published=True,
         )
@@ -876,7 +952,9 @@ class PublicProductView(APIView):
 
     def get(self, request, slug, product_slug):
         page = get_object_or_404(
-            CommercePage.objects.prefetch_related("banners__product"),
+            CommercePage.objects.prefetch_related(
+                "banners__product__images",
+            ),
             slug=slug,
             is_published=True,
         )

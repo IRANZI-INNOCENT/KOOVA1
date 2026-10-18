@@ -147,12 +147,14 @@ export default async function PublicStorePage({
   const layout = page.layout_preset || "compact";
   const bannerSlides =
     page.banners && page.banners.length > 0
-      ? page.banners.map((b) => ({
-          id: b.id,
-          url: b.url,
-          alt_text: b.alt_text,
-          href: b.href || undefined,
-        }))
+      ? page.banners
+          .filter((b) => !!b.url)
+          .map((b) => ({
+            id: b.id,
+            url: b.url as string,
+            alt_text: b.alt_text || b.product_name || "",
+            href: b.href || undefined,
+          }))
       : page.cover_url
         ? [{ id: "cover", url: page.cover_url, alt_text: "" }]
         : [];
@@ -193,24 +195,28 @@ export default async function PublicStorePage({
     <StoreFrame page={page} slug={slug}>
       <JsonLd data={storeLd} />
 
-      {showHero && (
+      {bannerSlides.length > 0 && page.show_hero !== false ? (
         <section
           className="border-b bg-white"
           style={{ borderColor: "var(--store-border)" }}
         >
-          {bannerSlides.length > 0 && (
-            <StoreHeroCarousel
-              slides={bannerSlides}
-              tall={layout === "editorial"}
-            />
-          )}
-          <div
-            className={`mx-auto max-w-6xl px-4 sm:px-6 ${
-              bannerSlides.length > 0
-                ? "py-5 sm:py-6"
-                : "py-8 sm:py-10"
-            }`}
-          >
+          <h1 className="sr-only">
+            {page.title?.trim() || page.business_name}
+          </h1>
+          <StoreHeroCarousel
+            slides={bannerSlides}
+            tall={layout === "editorial"}
+          />
+        </section>
+      ) : null}
+
+      {/* Title/WhatsApp block only when there is no carousel (header already has both). */}
+      {bannerSlides.length === 0 && showHero ? (
+        <section
+          className="border-b bg-white"
+          style={{ borderColor: "var(--store-border)" }}
+        >
+          <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div className="min-w-0">
                 <h1
@@ -244,9 +250,9 @@ export default async function PublicStorePage({
             </div>
           </div>
         </section>
-      )}
+      ) : null}
 
-      {!showHero && (
+      {!showHero && bannerSlides.length === 0 && (
         <div className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 sm:pt-10">
           <h1
             className="text-2xl font-bold tracking-tight sm:text-3xl"

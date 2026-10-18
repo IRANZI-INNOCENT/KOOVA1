@@ -288,10 +288,34 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         return value
 
 
+def _banner_product_image_field(product):
+    """Primary product photo (or first image) for hero slides."""
+    if product is None:
+        return None
+    images = list(product.images.all())
+    if not images:
+        return None
+    for image in images:
+        if image.is_primary and image.image:
+            return image.image
+    first = images[0]
+    return first.image if first.image else None
+
+
+def _absolute_media_url(field, request):
+    if not field:
+        return None
+    url = field.url
+    if request:
+        return request.build_absolute_uri(url)
+    return url
+
+
 class CommercePageBannerSerializer(serializers.ModelSerializer):
     """Hero / promo slide on a commerce page."""
 
     url = serializers.SerializerMethodField()
+    has_custom_image = serializers.SerializerMethodField()
     product_id = serializers.IntegerField(read_only=True, allow_null=True)
     product_slug = serializers.SerializerMethodField()
     product_name = serializers.SerializerMethodField()
@@ -303,6 +327,7 @@ class CommercePageBannerSerializer(serializers.ModelSerializer):
             "id",
             "image",
             "url",
+            "has_custom_image",
             "alt_text",
             "product_id",
             "product_slug",
@@ -314,6 +339,7 @@ class CommercePageBannerSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "url",
+            "has_custom_image",
             "product_id",
             "product_slug",
             "product_name",
@@ -322,18 +348,25 @@ class CommercePageBannerSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         extra_kwargs = {
-            "image": {"write_only": True, "required": True},
+            "image": {"write_only": True, "required": False},
             "alt_text": {"required": False},
         }
 
     def get_url(self, obj):
-        if not obj.image:
-            return None
+        """
+        Linked product photo when a product is set; otherwise custom banner.
+        """
         request = self.context.get("request")
-        url = obj.image.url
-        if request:
-            return request.build_absolute_uri(url)
-        return url
+        if obj.product_id:
+            product_image = _banner_product_image_field(obj.product)
+            if product_image:
+                return _absolute_media_url(product_image, request)
+        if obj.image:
+            return _absolute_media_url(obj.image, request)
+        return None
+
+    def get_has_custom_image(self, obj):
+        return bool(obj.image)
 
     def get_product_slug(self, obj):
         return obj.product.slug if obj.product_id else None
@@ -427,8 +460,13 @@ class CommercePageSerializer(serializers.ModelSerializer):
             first = banners[0] if banners else None
         else:
             first = obj.banners.first()
-        if first and first.image:
-            return self._absolute_image(first.image)
+        if first:
+            slide_url = CommercePageBannerSerializer(
+                first,
+                context=self.context,
+            ).data.get("url")
+            if slide_url:
+                return slide_url
         return self._absolute_image(obj.cover)
 
     def get_banner_limit(self, obj):

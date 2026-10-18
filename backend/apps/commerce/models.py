@@ -203,6 +203,8 @@ class CommercePageBanner(models.Model):
     )
     image = models.ImageField(
         upload_to="commerce/banners/%Y/%m/",
+        blank=True,
+        help_text="Optional custom creative. If empty, the linked product image is used.",
     )
     alt_text = models.CharField(
         max_length=200,
@@ -215,7 +217,7 @@ class CommercePageBanner(models.Model):
         null=True,
         blank=True,
         related_name="promo_banners",
-        help_text="Optional product this slide promotes (opens the product page).",
+        help_text="Product this slide promotes. Can be used alone (no custom banner).",
     )
     display_order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)

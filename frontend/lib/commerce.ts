@@ -107,7 +107,10 @@ export interface CommercePage {
 
 export interface StoreBanner {
   id: number;
-  url: string;
+  /** Resolved slide image: linked product photo, else custom banner. */
+  url: string | null;
+  /** True when an uploaded banner file exists (not only a product photo). */
+  has_custom_image?: boolean;
   alt_text: string;
   product_id?: number | null;
   product_slug?: string | null;
@@ -254,21 +257,41 @@ export async function uploadCommercePageImage(
   );
 }
 
-/** Add a hero banner slide (flash sale, announcement, etc). Max 5. */
+/** Add a hero slide — custom banner image and/or a featured product. Max 5. */
 export async function addCommercePageBanner(
   businessId: number,
   token: string,
-  file: File,
-  altText = "",
+  options: {
+    file?: File | null;
+    productId?: number | null;
+    altText?: string;
+  },
 ): Promise<CommercePage> {
-  const body = new FormData();
-  body.append("image", file, file.name || "banner.jpg");
-  if (altText.trim()) body.append("alt_text", altText.trim());
+  const { file, productId, altText = "" } = options;
   invalidateResourceCache(`commerce-page:${businessId}`);
+
+  if (file) {
+    const body = new FormData();
+    body.append("image", file, file.name || "banner.jpg");
+    if (altText.trim()) body.append("alt_text", altText.trim());
+    if (productId != null) body.append("product_id", String(productId));
+    return authenticatedApiRequest<CommercePage>(
+      `/commerce/${businessId}/page/banners/`,
+      token,
+      { method: "POST", body },
+    );
+  }
+
   return authenticatedApiRequest<CommercePage>(
     `/commerce/${businessId}/page/banners/`,
     token,
-    { method: "POST", body },
+    {
+      method: "POST",
+      body: JSON.stringify({
+        product_id: productId ?? null,
+        ...(altText.trim() ? { alt_text: altText.trim() } : {}),
+      }),
+    },
   );
 }
 

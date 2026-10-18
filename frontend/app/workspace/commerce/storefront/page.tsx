@@ -102,6 +102,8 @@ export default function StorefrontPage() {
   const [uploading, setUploading] = useState<"logo" | "banner" | null>(null);
   const [bannerBusyId, setBannerBusyId] = useState<number | null>(null);
   const [bannerError, setBannerError] = useState("");
+  const [featureProductId, setFeatureProductId] = useState("");
+  const [addingProductSlide, setAddingProductSlide] = useState(false);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -295,26 +297,30 @@ export default function StorefrontPage() {
     }
   }
 
-  async function handleBannerUpload(file: File | null): Promise<void> {
-    if (!business || !accessToken || !file) return;
+  function bannerSlotsFull(): boolean {
     const limit = page?.banner_limit ?? 5;
     const current = page?.banners?.length ?? 0;
     if (current >= limit) {
-      const message = `You can add up to ${limit} banner slides.`;
+      const message = `You can add up to ${limit} hero slides.`;
       setBannerError(message);
       setError(message);
-      return;
+      return true;
     }
+    return false;
+  }
+
+  async function handleBannerUpload(file: File | null): Promise<void> {
+    if (!business || !accessToken || !file) return;
+    if (bannerSlotsFull()) return;
+    const current = page?.banners?.length ?? 0;
     setUploading("banner");
     setBannerError("");
     setError("");
     setSuccess("");
     try {
-      const updated = await addCommercePageBanner(
-        business.id,
-        accessToken,
+      const updated = await addCommercePageBanner(business.id, accessToken, {
         file,
-      );
+      });
       setPage(updated);
       const count = updated.banners?.length ?? current + 1;
       setSuccess(
@@ -332,6 +338,41 @@ export default function StorefrontPage() {
       if (bannerInputRef.current) {
         bannerInputRef.current.value = "";
       }
+    }
+  }
+
+  async function handleAddProductSlide(): Promise<void> {
+    if (!business || !accessToken) return;
+    const productId = Number(featureProductId);
+    if (!featureProductId || !Number.isFinite(productId)) {
+      setBannerError("Choose a product to feature.");
+      return;
+    }
+    if (bannerSlotsFull()) return;
+    const current = page?.banners?.length ?? 0;
+    setAddingProductSlide(true);
+    setBannerError("");
+    setError("");
+    setSuccess("");
+    try {
+      const updated = await addCommercePageBanner(business.id, accessToken, {
+        productId,
+      });
+      setPage(updated);
+      setFeatureProductId("");
+      const count = updated.banners?.length ?? current + 1;
+      setSuccess(
+        `Product slide ${count} added — shoppers see the product photo and can tap to open it.`,
+      );
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : "We couldn't add that product slide.";
+      setBannerError(message);
+      setError(message);
+    } finally {
+      setAddingProductSlide(false);
     }
   }
 
@@ -892,12 +933,12 @@ export default function StorefrontPage() {
 
                   <div className="mt-6">
                     <label className="block text-sm font-medium text-kova-dark">
-                      Promo banners
+                      Hero slides
                     </label>
                     <p className="mt-1 text-xs leading-5 text-gray-500">
-                      Up to {page?.banner_limit ?? 5} slides for flash sales or
-                      discounts. Add a headline, then link a product so shoppers
-                      can tap the slide to open that offer.
+                      Up to {page?.banner_limit ?? 5} slides. Feature a product
+                      (uses its photo) or upload a custom banner. Linked products
+                      open when shoppers tap the slide.
                     </p>
 
                     {(page?.banners?.length ?? 0) > 0 && (
@@ -907,19 +948,30 @@ export default function StorefrontPage() {
                             key={banner.id}
                             className="flex flex-col gap-3 rounded-md border border-kova-border bg-kova-background/60 p-3 sm:flex-row sm:items-start"
                           >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={mediaSrc(banner.url)}
-                              alt=""
-                              className="h-16 w-full max-w-[140px] shrink-0 rounded object-cover border border-kova-border"
-                            />
+                            {banner.url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={mediaSrc(banner.url)}
+                                alt=""
+                                className="h-16 w-full max-w-[140px] shrink-0 rounded object-cover border border-kova-border"
+                              />
+                            ) : (
+                              <div className="flex h-16 w-full max-w-[140px] shrink-0 items-center justify-center rounded border border-dashed border-kova-border bg-white text-[10px] text-gray-400">
+                                No image
+                              </div>
+                            )}
                             <div className="min-w-0 flex-1 space-y-2">
                               <p className="text-xs font-semibold text-kova-dark">
                                 Slide {index + 1}
+                                {banner.product_id ? (
+                                  <span className="ml-2 font-normal text-gray-500">
+                                    · product photo
+                                  </span>
+                                ) : null}
                               </p>
                               <div>
                                 <label className="text-[11px] font-medium text-gray-500">
-                                  Headline on banner
+                                  Headline
                                 </label>
                                 <input
                                   type="text"
@@ -954,7 +1006,7 @@ export default function StorefrontPage() {
                               </div>
                               <div>
                                 <label className="text-[11px] font-medium text-gray-500">
-                                  Link to product (optional)
+                                  Product
                                 </label>
                                 <select
                                   value={banner.product_id ?? ""}
@@ -978,8 +1030,8 @@ export default function StorefrontPage() {
                                       );
                                       setSuccess(
                                         productId
-                                          ? "Slide linked to product — shoppers can tap it."
-                                          : "Product link cleared.",
+                                          ? "Slide shows this product’s photo and opens it on tap."
+                                          : "Product cleared — custom banner only.",
                                       );
                                     } catch (err) {
                                       const message =
@@ -993,7 +1045,12 @@ export default function StorefrontPage() {
                                     }
                                   }}
                                 >
-                                  <option value="">No link — display only</option>
+                                  {banner.has_custom_image ||
+                                  !banner.product_id ? (
+                                    <option value="">
+                                      No product — banner only
+                                    </option>
+                                  ) : null}
                                   {products.map((product) => (
                                     <option key={product.id} value={product.id}>
                                       {product.name}
@@ -1005,12 +1062,12 @@ export default function StorefrontPage() {
                                 </select>
                                 {banner.product_name ? (
                                   <p className="mt-1 text-[11px] text-kova-green">
-                                    Opens: {banner.product_name}
+                                    Shows & opens: {banner.product_name}
                                   </p>
                                 ) : null}
                                 {products.length === 0 ? (
                                   <p className="mt-1 text-[11px] text-gray-500">
-                                    Add products in your catalog to link them
+                                    Add products in your catalog to feature them
                                     here.
                                   </p>
                                 ) : null}
@@ -1053,12 +1110,12 @@ export default function StorefrontPage() {
                                           banner.id,
                                         ),
                                       );
-                                      setSuccess("Banner removed.");
+                                      setSuccess("Slide removed.");
                                     } catch (err) {
                                       setError(
                                         err instanceof ApiError
                                           ? err.message
-                                          : "Could not remove banner.",
+                                          : "Could not remove slide.",
                                       );
                                     } finally {
                                       setBannerBusyId(null);
@@ -1076,35 +1133,78 @@ export default function StorefrontPage() {
 
                     {(page?.banners?.length ?? 0) <
                       (page?.banner_limit ?? 5) && (
-                      <div className="mt-3">
-                        <input
-                          ref={bannerInputRef}
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp,image/gif"
-                          className="sr-only"
-                          disabled={uploading === "banner"}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0] ?? null;
-                            void handleBannerUpload(file);
-                          }}
-                        />
-                        <button
-                          type="button"
-                          disabled={uploading === "banner"}
-                          onClick={() => bannerInputRef.current?.click()}
-                          className="inline-flex h-10 items-center rounded-md border border-kova-green bg-kova-green px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {uploading === "banner"
-                            ? "Uploading…"
-                            : (page?.banners?.length ?? 0) > 0
-                              ? "Add another slide"
-                              : "Add banner slide"}
-                        </button>
-                        <p className="mt-2 text-[11px] text-gray-500">
-                          JPG, PNG, or WebP.{" "}
-                          {(page?.banners?.length ?? 0) + 1} of{" "}
-                          {page?.banner_limit ?? 5} slots.
-                        </p>
+                      <div className="mt-3 space-y-3">
+                        <div className="rounded-md border border-kova-border bg-white p-3">
+                          <p className="text-xs font-semibold text-kova-dark">
+                            Feature a product
+                          </p>
+                          <p className="mt-1 text-[11px] text-gray-500">
+                            No banner upload needed — we use the product photo.
+                          </p>
+                          <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                            <select
+                              value={featureProductId}
+                              disabled={addingProductSlide}
+                              className="w-full flex-1 border border-kova-border bg-white px-2 py-2 text-xs outline-none focus:border-kova-green disabled:opacity-60"
+                              onChange={(e) =>
+                                setFeatureProductId(e.target.value)
+                              }
+                            >
+                              <option value="">Choose a product…</option>
+                              {products.map((product) => (
+                                <option key={product.id} value={product.id}>
+                                  {product.name}
+                                  {product.status === "active"
+                                    ? ""
+                                    : ` (${product.status})`}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              disabled={
+                                addingProductSlide ||
+                                !featureProductId ||
+                                products.length === 0
+                              }
+                              onClick={() => void handleAddProductSlide()}
+                              className="inline-flex h-10 shrink-0 items-center justify-center rounded-md border border-kova-green bg-kova-green px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {addingProductSlide
+                                ? "Adding…"
+                                : "Add product slide"}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <input
+                            ref={bannerInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
+                            className="sr-only"
+                            disabled={uploading === "banner"}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] ?? null;
+                              void handleBannerUpload(file);
+                            }}
+                          />
+                          <button
+                            type="button"
+                            disabled={uploading === "banner"}
+                            onClick={() => bannerInputRef.current?.click()}
+                            className="inline-flex h-10 items-center rounded-md border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {uploading === "banner"
+                              ? "Uploading…"
+                              : "Or upload custom banner"}
+                          </button>
+                          <p className="mt-2 text-[11px] text-gray-500">
+                            JPG, PNG, or WebP.{" "}
+                            {(page?.banners?.length ?? 0) + 1} of{" "}
+                            {page?.banner_limit ?? 5} slots.
+                          </p>
+                        </div>
                       </div>
                     )}
                     {bannerError && (
