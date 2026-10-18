@@ -158,12 +158,25 @@ class CommercePage(models.Model):
     def save(self, *args, **kwargs):
         """
         Generate a storefront slug when one has not been supplied.
+        Optimize logo/cover uploads for fast storefront loads.
         """
+        from django.core.files.uploadedfile import UploadedFile
+
+        from apps.commerce.services.image_optimize import (
+            LOGO_MAX_SIDE,
+            BANNER_MAX_SIDE,
+            optimize_upload,
+        )
 
         if not self.slug:
             self.slug = slugify(
                 self.business.name
             ) or f"business-{self.business_id}"
+
+        if isinstance(self.logo, UploadedFile):
+            self.logo = optimize_upload(self.logo, max_side=LOGO_MAX_SIDE)
+        if isinstance(self.cover, UploadedFile):
+            self.cover = optimize_upload(self.cover, max_side=BANNER_MAX_SIDE)
 
         super().save(*args, **kwargs)
 
@@ -201,6 +214,18 @@ class CommercePageBanner(models.Model):
 
     class Meta:
         ordering = ["display_order", "created_at"]
+
+    def save(self, *args, **kwargs):
+        from django.core.files.uploadedfile import UploadedFile
+
+        from apps.commerce.services.image_optimize import (
+            BANNER_MAX_SIDE,
+            optimize_upload,
+        )
+
+        if isinstance(self.image, UploadedFile):
+            self.image = optimize_upload(self.image, max_side=BANNER_MAX_SIDE)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.alt_text or f"Banner {self.pk} ({self.page_id})"
@@ -493,6 +518,16 @@ class ProductImage(models.Model):
                 .exclude(pk=self.pk)
                 .update(is_primary=False)
             )
+
+        from django.core.files.uploadedfile import UploadedFile
+
+        from apps.commerce.services.image_optimize import (
+            PRODUCT_MAX_SIDE,
+            optimize_upload,
+        )
+
+        if isinstance(self.image, UploadedFile):
+            self.image = optimize_upload(self.image, max_side=PRODUCT_MAX_SIDE)
 
         super().save(*args, **kwargs)
 

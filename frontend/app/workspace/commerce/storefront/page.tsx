@@ -892,8 +892,9 @@ export default function StorefrontPage() {
                     </label>
                     <p className="mt-1 text-xs leading-5 text-gray-500">
                       Up to {page?.banner_limit ?? 5} slides for flash sales,
-                      new arrivals, or discounts. They rotate on your store
-                      home.
+                      new arrivals, or discounts. Use the label field for the
+                      words shown on the slide (e.g. “Weekend 20% off”). Images
+                      are compressed automatically for fast loading.
                     </p>
 
                     {(page?.banners?.length ?? 0) > 0 && (

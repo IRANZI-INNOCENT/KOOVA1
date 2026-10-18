@@ -266,7 +266,7 @@ Local / industry landing pages live under `/for/*` (e.g. Nairobi shops, fashion 
 2. `https://YOUR-SITE.up.railway.app` opens the site.
 3. Sign up or sign in. The refresh cookie is sent from the site to the API, so both addresses must be the ones you set above.
 4. Open a public store page and confirm a product photo loads from `https://YOUR-API.up.railway.app/media/...`.
-5. In **Commerce → Store**, set primary / secondary / accent colors, logo, promo banners (up to 5 carousel slides), and layout; save, publish, and confirm the live `/store/...` look matches (migrations through `0007_commercepage_secondary_color` run with the usual preDeploy migrate). Custom domains ship later; “Powered by KCOVA” stays for now.
+5. In **Commerce → Store**, set primary / secondary / accent colors, logo, promo banners (up to 5 carousel slides), and layout; save, publish, and confirm the live `/store/...` look matches (migrations through `0007_commercepage_secondary_color` run with the usual preDeploy migrate). New uploads are auto-compressed to WebP; to shrink older heavy images once, run `python manage.py optimize_commerce_images` on the API service. Custom domains ship later; “Powered by KCOVA” stays for now.
 6. Connect a Facebook Page from **Channels** after the redirect URI is saved in the Meta app.
 7. In the API deploy logs, look for `Attempted` from the scheduler and a comment pull on the first minute.
 

@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
 import { mediaSrc } from "@/lib/media";
 
@@ -11,7 +17,8 @@ export type HeroSlide = {
 };
 
 /**
- * Auto-advancing storefront hero for promo / flash-sale creatives.
+ * Storefront promo carousel — full graphic visible (contain), caption overlay,
+ * swipe + keyboard friendly.
  */
 export function StoreHeroCarousel({
   slides,
@@ -21,7 +28,10 @@ export function StoreHeroCarousel({
   tall?: boolean;
 }) {
   const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
   const count = slides.length;
+  const touchX = useRef<number | null>(null);
+  const regionRef = useRef<HTMLDivElement>(null);
 
   const slideKey = slides.map((s) => String(s.id)).join("|");
 
@@ -29,76 +39,157 @@ export function StoreHeroCarousel({
     setIndex(0);
   }, [slideKey]);
 
+  const go = useCallback(
+    (next: number) => {
+      if (count <= 0) return;
+      setIndex(((next % count) + count) % count);
+    },
+    [count],
+  );
+
   useEffect(() => {
-    if (count <= 1) return;
+    if (count <= 1 || paused) return;
     const timer = window.setInterval(() => {
       setIndex((current) => (current + 1) % count);
-    }, 5200);
+    }, 5600);
     return () => window.clearInterval(timer);
-  }, [count]);
+  }, [count, paused]);
+
+  useEffect(() => {
+    const node = regionRef.current;
+    if (!node) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "ArrowLeft") go(index - 1);
+      if (event.key === "ArrowRight") go(index + 1);
+    }
+    node.addEventListener("keydown", onKey);
+    return () => node.removeEventListener("keydown", onKey);
+  }, [go, index]);
 
   if (count === 0) return null;
 
-  const aspect = tall
-    ? "aspect-[21/9] max-h-[420px]"
-    : "aspect-[2.4/1] max-h-[320px]";
+  const active = slides[index];
+
+  function onPointerDown(event: ReactPointerEvent) {
+    touchX.current = event.clientX;
+  }
+
+  function onPointerUp(event: ReactPointerEvent) {
+    if (touchX.current == null) return;
+    const delta = event.clientX - touchX.current;
+    touchX.current = null;
+    if (Math.abs(delta) < 48) return;
+    go(delta < 0 ? index + 1 : index - 1);
+  }
 
   return (
-    <div className={`relative w-full overflow-hidden bg-kova-background ${aspect}`}>
-      {slides.map((slide, i) => (
-        <div
-          key={slide.id}
-          className="absolute inset-0 transition-opacity duration-500 ease-out"
-          style={{ opacity: i === index ? 1 : 0 }}
-          aria-hidden={i !== index}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={mediaSrc(slide.url)}
-            alt={slide.alt_text || ""}
-            className="h-full w-full object-cover"
-          />
-        </div>
-      ))}
-
-      {count > 1 && (
-        <>
-          <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-1.5">
-            {slides.map((slide, i) => (
-              <button
+    <div
+      ref={regionRef}
+      tabIndex={0}
+      role="region"
+      aria-roledescription="carousel"
+      aria-label="Store promotions"
+      className="relative w-full outline-none"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+      onPointerDown={onPointerDown}
+      onPointerUp={onPointerUp}
+      onPointerCancel={() => {
+        touchX.current = null;
+      }}
+    >
+      <div
+        className={
+          tall
+            ? "relative w-full overflow-hidden sm:aspect-[21/9] sm:max-h-[440px]"
+            : "relative w-full overflow-hidden sm:aspect-[2.2/1] sm:max-h-[380px]"
+        }
+        style={{
+          background:
+            "linear-gradient(160deg, var(--store-secondary-soft), var(--store-primary-soft))",
+          minHeight: "min(52vw, 280px)",
+        }}
+      >
+        {/* Mobile: taller stage so graphics aren’t crushed */}
+        <div className="relative mx-auto flex h-[min(58vw,300px)] max-h-[340px] w-full items-center justify-center sm:absolute sm:inset-0 sm:h-full sm:max-h-none">
+          {slides.map((slide, i) => {
+            const src = mediaSrc(slide.url);
+            const visible = i === index;
+            return (
+              <div
                 key={slide.id}
-                type="button"
-                aria-label={`Show slide ${i + 1}`}
-                aria-current={i === index}
-                onClick={() => setIndex(i)}
-                className={`h-1.5 rounded-full transition-all ${
-                  i === index
-                    ? "w-5 bg-white shadow-sm"
-                    : "w-1.5 bg-white/55 hover:bg-white/80"
-                }`}
-              />
-            ))}
+                className="absolute inset-0 flex items-center justify-center transition-opacity duration-500 ease-out"
+                style={{
+                  opacity: visible ? 1 : 0,
+                  pointerEvents: visible ? "auto" : "none",
+                }}
+                aria-hidden={!visible}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={src}
+                  alt={slide.alt_text || "Promotion"}
+                  className="max-h-full max-w-full object-contain"
+                  decoding={i === 0 ? "sync" : "async"}
+                  loading={i === 0 ? "eager" : "lazy"}
+                  fetchPriority={i === 0 ? "high" : "low"}
+                  sizes="100vw"
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Caption — promo words from slide label */}
+        {active?.alt_text?.trim() ? (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/35 to-transparent px-4 pb-10 pt-16 sm:px-8 sm:pb-12">
+            <p className="mx-auto max-w-6xl text-center text-base font-bold tracking-tight text-white drop-shadow sm:text-left sm:text-xl md:text-2xl">
+              {active.alt_text.trim()}
+            </p>
           </div>
-          <button
-            type="button"
-            aria-label="Previous slide"
-            onClick={() =>
-              setIndex((current) => (current - 1 + count) % count)
-            }
-            className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm transition hover:bg-black/50"
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            aria-label="Next slide"
-            onClick={() => setIndex((current) => (current + 1) % count)}
-            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm transition hover:bg-black/50"
-          >
-            ›
-          </button>
-        </>
-      )}
+        ) : null}
+
+        {count > 1 && (
+          <>
+            <div className="absolute inset-x-0 bottom-3 z-10 flex items-center justify-center gap-2">
+              {slides.map((slide, i) => (
+                <button
+                  key={slide.id}
+                  type="button"
+                  aria-label={`Show slide ${i + 1}${
+                    slide.alt_text ? `: ${slide.alt_text}` : ""
+                  }`}
+                  aria-current={i === index}
+                  onClick={() => go(i)}
+                  className={`h-2 rounded-full transition-all ${
+                    i === index
+                      ? "w-6 bg-white shadow"
+                      : "w-2 bg-white/55 hover:bg-white/85"
+                  }`}
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              aria-label="Previous slide"
+              onClick={() => go(index - 1)}
+              className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-xl text-white shadow-sm backdrop-blur-sm transition hover:bg-black/60 sm:left-4 sm:h-11 sm:w-11"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              aria-label="Next slide"
+              onClick={() => go(index + 1)}
+              className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-xl text-white shadow-sm backdrop-blur-sm transition hover:bg-black/60 sm:right-4 sm:h-11 sm:w-11"
+            >
+              ›
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

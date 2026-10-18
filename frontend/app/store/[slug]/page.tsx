@@ -81,6 +81,13 @@ function ProductCard({
               src={mediaSrc(image.url)}
               alt={image.alt_text || product.name}
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
+              decoding="async"
+              sizes={
+                large
+                  ? "(max-width: 640px) 100vw, 50vw"
+                  : "(max-width: 640px) 50vw, 25vw"
+              }
             />
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-gray-400">
@@ -186,39 +193,54 @@ export default async function PublicStorePage({
       <JsonLd data={storeLd} />
 
       {showHero && (
-        <section className="border-b border-kova-border bg-white">
+        <section
+          className="border-b bg-white"
+          style={{ borderColor: "var(--store-border)" }}
+        >
           {bannerSlides.length > 0 && (
             <StoreHeroCarousel
               slides={bannerSlides}
               tall={layout === "editorial"}
             />
           )}
-          <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-            <h1
-              className="text-2xl font-bold tracking-tight sm:text-3xl"
-              style={{ color: "var(--store-secondary)" }}
-            >
-              {page.title?.trim() || page.business_name}
-            </h1>
-            {(page.tagline || page.description) && (
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
-                {page.tagline || page.description}
-              </p>
-            )}
-            {layout === "whatsapp_first" && page.whatsapp && (
-              <a
-                href={whatsappLink(page.whatsapp)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-6 inline-flex h-12 items-center justify-center rounded-lg px-6 text-sm font-bold transition hover:brightness-105"
-                style={{
-                  backgroundColor: "var(--store-accent)",
-                  color: "var(--store-on-accent)",
-                }}
-              >
-                Chat on WhatsApp to order
-              </a>
-            )}
+          <div
+            className={`mx-auto max-w-6xl px-4 sm:px-6 ${
+              bannerSlides.length > 0
+                ? "py-5 sm:py-6"
+                : "py-8 sm:py-10"
+            }`}
+          >
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="min-w-0">
+                <h1
+                  className="text-2xl font-bold tracking-tight sm:text-3xl"
+                  style={{ color: "var(--store-secondary)" }}
+                >
+                  {page.title?.trim() || page.business_name}
+                </h1>
+                {(page.tagline || page.description) && (
+                  <p className="mt-1.5 max-w-2xl text-sm leading-6 text-gray-600 sm:text-[15px]">
+                    {page.tagline || page.description}
+                  </p>
+                )}
+              </div>
+              {page.whatsapp && (
+                <a
+                  href={whatsappLink(page.whatsapp)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg px-5 text-sm font-bold transition hover:brightness-105 sm:h-12 sm:px-6"
+                  style={{
+                    backgroundColor: "var(--store-accent)",
+                    color: "var(--store-on-accent)",
+                  }}
+                >
+                  {layout === "whatsapp_first"
+                    ? "Chat on WhatsApp to order"
+                    : "WhatsApp"}
+                </a>
+              )}
+            </div>
           </div>
         </section>
       )}
