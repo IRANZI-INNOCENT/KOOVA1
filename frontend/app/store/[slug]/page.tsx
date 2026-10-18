@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { StoreOrderButton } from "@/components/store/order-button";
+import { StoreHeroCarousel } from "@/components/store/store-hero-carousel";
 import { StoreFrame } from "@/components/store/store-frame";
 import { JsonLd } from "@/components/seo/json-ld";
 import type { Product } from "@/lib/commerce";
@@ -63,12 +64,16 @@ function ProductCard({
   const image =
     product.images.find((i) => i.is_primary) ?? product.images[0];
   return (
-    <article className="group overflow-hidden rounded-lg border border-kova-border bg-white transition hover:shadow-sm">
+    <article
+      className="group overflow-hidden rounded-lg bg-white transition hover:shadow-sm"
+      style={{ border: "1px solid var(--store-border)" }}
+    >
       <Link href={`/store/${slug}/${product.slug}`} className="block">
         <div
-          className={`overflow-hidden bg-kova-background ${
+          className={`overflow-hidden ${
             large ? "aspect-[4/5]" : "aspect-square"
           }`}
+          style={{ backgroundColor: "var(--store-secondary-soft)" }}
         >
           {image?.url ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -85,9 +90,10 @@ function ProductCard({
         </div>
         <div className="px-3.5 pt-3">
           <h3
-            className={`line-clamp-2 font-semibold leading-5 text-kova-dark ${
+            className={`line-clamp-2 font-semibold leading-5 ${
               large ? "text-base" : "text-sm"
             }`}
+            style={{ color: "var(--store-secondary)" }}
           >
             {product.name}
           </h3>
@@ -108,9 +114,8 @@ function ProductCard({
             whatsapp={whatsapp}
             className="inline-flex shrink-0 items-center rounded-md px-2.5 py-1 text-xs font-bold transition disabled:opacity-70"
             style={{
-              backgroundColor:
-                "color-mix(in srgb, var(--store-accent) 18%, white)",
-              color: "var(--store-primary)",
+              backgroundColor: "var(--store-accent-soft)",
+              color: "var(--store-secondary)",
             }}
           >
             Order
@@ -133,8 +138,22 @@ export default async function PublicStorePage({
   const { page, products } = data;
   const hasWhatsApp = !!page.whatsapp;
   const layout = page.layout_preset || "compact";
-  const coverSrc = resolveStoreImage(page.cover_url);
-  const showHero = page.show_hero !== false && (coverSrc || page.tagline || page.description);
+  const bannerSlides =
+    page.banners && page.banners.length > 0
+      ? page.banners.map((b) => ({
+          id: b.id,
+          url: b.url,
+          alt_text: b.alt_text,
+        }))
+      : page.cover_url
+        ? [{ id: "cover", url: page.cover_url, alt_text: "" }]
+        : [];
+  const coverSrc = resolveStoreImage(
+    bannerSlides[0]?.url || page.cover_url,
+  );
+  const showHero =
+    page.show_hero !== false &&
+    (bannerSlides.length > 0 || page.tagline || page.description);
   const featured =
     page.show_featured && products.length > 0 ? products.slice(0, 4) : [];
   const gridClass =
@@ -168,22 +187,17 @@ export default async function PublicStorePage({
 
       {showHero && (
         <section className="border-b border-kova-border bg-white">
-          {coverSrc && (
-            <div
-              className={`relative w-full overflow-hidden bg-kova-background ${
-                layout === "editorial" ? "aspect-[21/9] max-h-[420px]" : "aspect-[2.4/1] max-h-[320px]"
-              }`}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={coverSrc}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            </div>
+          {bannerSlides.length > 0 && (
+            <StoreHeroCarousel
+              slides={bannerSlides}
+              tall={layout === "editorial"}
+            />
           )}
           <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-            <h1 className="text-2xl font-bold tracking-tight text-kova-dark sm:text-3xl">
+            <h1
+              className="text-2xl font-bold tracking-tight sm:text-3xl"
+              style={{ color: "var(--store-secondary)" }}
+            >
               {page.title?.trim() || page.business_name}
             </h1>
             {(page.tagline || page.description) && (
@@ -211,7 +225,10 @@ export default async function PublicStorePage({
 
       {!showHero && (
         <div className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 sm:pt-10">
-          <h1 className="text-2xl font-bold tracking-tight text-kova-dark sm:text-3xl">
+          <h1
+            className="text-2xl font-bold tracking-tight sm:text-3xl"
+            style={{ color: "var(--store-secondary)" }}
+          >
             {page.title?.trim() || page.business_name}
           </h1>
           {(page.tagline || page.description) && (
@@ -223,9 +240,20 @@ export default async function PublicStorePage({
       )}
 
       {featured.length > 0 && (
-        <section className="border-b border-kova-border bg-white">
+        <section
+          className="border-b bg-white"
+          style={{
+            borderColor: "var(--store-border)",
+            backgroundColor: "var(--store-primary-soft)",
+          }}
+        >
           <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-            <h2 className="text-lg font-bold text-kova-dark">Featured</h2>
+            <h2
+              className="text-lg font-bold"
+              style={{ color: "var(--store-secondary)" }}
+            >
+              Featured
+            </h2>
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
               {featured.map((product) => (
                 <ProductCard
@@ -247,10 +275,19 @@ export default async function PublicStorePage({
         className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10"
       >
         <div className="flex items-end justify-between">
-          <h2 className="text-xl font-bold tracking-tight text-kova-dark">
+          <h2
+            className="text-xl font-bold tracking-tight"
+            style={{ color: "var(--store-secondary)" }}
+          >
             Products
           </h2>
-          <span className="text-sm font-medium text-gray-400">
+          <span
+            className="rounded-md px-2 py-0.5 text-xs font-semibold"
+            style={{
+              backgroundColor: "var(--store-secondary-soft)",
+              color: "var(--store-secondary)",
+            }}
+          >
             {products.length} item{products.length !== 1 ? "s" : ""}
           </span>
         </div>

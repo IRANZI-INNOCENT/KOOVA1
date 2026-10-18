@@ -106,7 +106,8 @@ export default async function PublicProductPage({
         <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6">
           <Link
             href={`/store/${slug}`}
-            className="text-sm font-semibold text-kova-orange hover:underline"
+            className="text-sm font-semibold hover:underline"
+            style={{ color: "var(--store-primary)" }}
           >
             ← All products
           </Link>
@@ -118,11 +119,17 @@ export default async function PublicProductPage({
 
         <div>
           {product.category && (
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-400">
+            <p
+              className="text-xs font-bold uppercase tracking-[0.16em]"
+              style={{ color: "var(--store-secondary)" }}
+            >
               {product.category}
             </p>
           )}
-          <h1 className="mt-2 break-words text-2xl font-bold tracking-tight text-kova-dark sm:text-3xl">
+          <h1
+            className="mt-2 break-words text-2xl font-bold tracking-tight sm:text-3xl"
+            style={{ color: "var(--store-secondary)" }}
+          >
             {product.name}
           </h1>
           <p

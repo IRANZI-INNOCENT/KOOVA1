@@ -89,9 +89,12 @@ export interface CommercePage {
   phone: string;
   location: string;
   primary_color?: string;
+  secondary_color?: string;
   accent_color?: string;
   logo_url?: string | null;
   cover_url?: string | null;
+  banners?: StoreBanner[];
+  banner_limit?: number;
   layout_preset?: "compact" | "editorial" | "whatsapp_first" | "gallery";
   font_preset?: "classic" | "modern" | "soft";
   show_hero?: boolean;
@@ -100,6 +103,14 @@ export interface CommercePage {
   is_published: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface StoreBanner {
+  id: number;
+  url: string;
+  alt_text: string;
+  display_order: number;
+  created_at: string;
 }
 
 export interface Business {
@@ -219,7 +230,7 @@ export async function saveCommercePage(
   );
 }
 
-/** Upload logo or cover (multipart). Other branding fields stay JSON via saveCommercePage. */
+/** Upload logo (multipart). Banner slides use addCommercePageBanner. */
 export async function uploadCommercePageImage(
   businessId: number,
   token: string,
@@ -235,6 +246,70 @@ export async function uploadCommercePageImage(
     {
       method: "PATCH",
       body,
+    },
+  );
+}
+
+/** Add a hero banner slide (flash sale, announcement, etc). Max 5. */
+export async function addCommercePageBanner(
+  businessId: number,
+  token: string,
+  file: File,
+  altText = "",
+): Promise<CommercePage> {
+  const body = new FormData();
+  body.append("image", file);
+  if (altText.trim()) body.append("alt_text", altText.trim());
+  invalidateResourceCache(`commerce-page:${businessId}`);
+  return authenticatedApiRequest<CommercePage>(
+    `/commerce/${businessId}/page/banners/`,
+    token,
+    { method: "POST", body },
+  );
+}
+
+export async function updateCommercePageBanner(
+  businessId: number,
+  token: string,
+  bannerId: number,
+  altText: string,
+): Promise<CommercePage> {
+  invalidateResourceCache(`commerce-page:${businessId}`);
+  return authenticatedApiRequest<CommercePage>(
+    `/commerce/${businessId}/page/banners/${bannerId}/`,
+    token,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ alt_text: altText }),
+    },
+  );
+}
+
+export async function deleteCommercePageBanner(
+  businessId: number,
+  token: string,
+  bannerId: number,
+): Promise<CommercePage> {
+  invalidateResourceCache(`commerce-page:${businessId}`);
+  return authenticatedApiRequest<CommercePage>(
+    `/commerce/${businessId}/page/banners/${bannerId}/`,
+    token,
+    { method: "DELETE" },
+  );
+}
+
+export async function reorderCommercePageBanners(
+  businessId: number,
+  token: string,
+  bannerIds: number[],
+): Promise<CommercePage> {
+  invalidateResourceCache(`commerce-page:${businessId}`);
+  return authenticatedApiRequest<CommercePage>(
+    `/commerce/${businessId}/page/banners/reorder/`,
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify({ banner_ids: bannerIds }),
     },
   );
 }

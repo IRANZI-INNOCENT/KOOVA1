@@ -1,6 +1,9 @@
 from django.urls import path
 
 from .views import (
+    CommercePageBannerDetailView,
+    CommercePageBannerListCreateView,
+    CommercePageBannerReorderView,
     CommercePagePublishView,
     CommercePageView,
     OrderDetailView,
@@ -63,6 +66,24 @@ urlpatterns = [
         "<int:business_id>/page/publish/",
         CommercePagePublishView.as_view(),
         name="commerce-page-publish",
+    ),
+
+    path(
+        "<int:business_id>/page/banners/",
+        CommercePageBannerListCreateView.as_view(),
+        name="commerce-page-banners",
+    ),
+
+    path(
+        "<int:business_id>/page/banners/reorder/",
+        CommercePageBannerReorderView.as_view(),
+        name="commerce-page-banners-reorder",
+    ),
+
+    path(
+        "<int:business_id>/page/banners/<int:banner_id>/",
+        CommercePageBannerDetailView.as_view(),
+        name="commerce-page-banner-detail",
     ),
 
     # --------------------------------------------------------------

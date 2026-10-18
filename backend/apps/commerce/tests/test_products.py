@@ -291,6 +291,7 @@ class CommerceAPITests(APITestCase):
             f"/api/commerce/{self.business.id}/page/",
             {
                 "primary_color": "#0A5C3A",
+                "secondary_color": "#1A1A2E",
                 "accent_color": "#E8A06A",
                 "layout_preset": "whatsapp_first",
                 "font_preset": "modern",
@@ -303,6 +304,7 @@ class CommerceAPITests(APITestCase):
         )
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(response.data["primary_color"], "#0A5C3A")
+        self.assertEqual(response.data["secondary_color"], "#1A1A2E")
         self.assertEqual(response.data["accent_color"], "#E8A06A")
         self.assertEqual(response.data["layout_preset"], "whatsapp_first")
         self.assertEqual(response.data["font_preset"], "modern")

@@ -17,13 +17,16 @@ from rest_framework.views import APIView
 from apps.businesses.models import Business
 
 from .models import (
+    COMMERCE_PAGE_BANNER_LIMIT,
     CommercePage,
+    CommercePageBanner,
     Order,
     Product,
     ProductImage,
 )
 from .permissions import IsBusinessOwner
 from .serializers import (
+    CommercePageBannerSerializer,
     CommercePageSerializer,
     OrderSerializer,
     ProductCreateSerializer,
@@ -470,6 +473,15 @@ class ProductImageDetailView(BusinessOwnedAPIView):
         )
 
 
+def _commerce_page_response(page, request):
+    page = (
+        CommercePage.objects
+        .prefetch_related("banners")
+        .get(pk=page.pk)
+    )
+    return CommercePageSerializer(page, context={"request": request}).data
+
+
 class CommercePageView(BusinessOwnedAPIView):
     """
     Retrieve or update the Commerce Page (including branding uploads).
@@ -495,10 +507,7 @@ class CommercePageView(BusinessOwnedAPIView):
 
     def get(self, request, business_id):
         page = self.get_or_create_page()
-
-        return Response(
-            CommercePageSerializer(page, context={"request": request}).data
-        )
+        return Response(_commerce_page_response(page, request))
 
     def patch(self, request, business_id):
         page = self.get_or_create_page()
@@ -521,6 +530,7 @@ class CommercePageView(BusinessOwnedAPIView):
         if clear_cover:
             page.cover = None
             image_updates.append("cover")
+            page.banners.all().delete()
         if image_updates:
             page.save(update_fields=[*image_updates, "updated_at"])
 
@@ -538,6 +548,17 @@ class CommercePageView(BusinessOwnedAPIView):
         serializer.save()
         page.refresh_from_db()
 
+        # Legacy single cover upload → first available banner slot
+        cover_file = request.FILES.get("cover")
+        if cover_file and page.banners.count() < COMMERCE_PAGE_BANNER_LIMIT:
+            next_order = page.banners.count()
+            CommercePageBanner.objects.create(
+                page=page,
+                image=cover_file,
+                alt_text="",
+                display_order=next_order,
+            )
+
         if page.is_published:
             try:
                 from apps.commerce.services.indexnow import notify_store_page, notify_urls, store_url
@@ -548,9 +569,144 @@ class CommercePageView(BusinessOwnedAPIView):
             except Exception:
                 pass
 
-        return Response(
-            CommercePageSerializer(page, context={"request": request}).data
+        return Response(_commerce_page_response(page, request))
+
+
+class CommercePageBannerListCreateView(BusinessOwnedAPIView):
+    """List or add storefront hero banners (max 5)."""
+
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_page(self):
+        business = self.get_business()
+        page, _ = CommercePage.objects.get_or_create(
+            business=business,
+            defaults={
+                "title": business.name,
+                "description": business.description,
+                "email": business.email,
+                "phone": business.phone,
+                "location": business.location,
+            },
         )
+        return page
+
+    def get(self, request, business_id):
+        page = self.get_page()
+        banners = page.banners.all()
+        return Response(
+            CommercePageBannerSerializer(
+                banners,
+                many=True,
+                context={"request": request},
+            ).data
+        )
+
+    def post(self, request, business_id):
+        page = self.get_page()
+        if page.banners.count() >= COMMERCE_PAGE_BANNER_LIMIT:
+            return Response(
+                {
+                    "detail": (
+                        f"You can add up to {COMMERCE_PAGE_BANNER_LIMIT} "
+                        "banner slides. Remove one to add another."
+                    ),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = CommercePageBannerSerializer(
+            data=request.data,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        banner = serializer.save(
+            page=page,
+            display_order=page.banners.count(),
+        )
+
+        # Keep legacy cover in sync with the first slide for older clients / OG.
+        if banner.display_order == 0 or page.banners.count() == 1:
+            page.cover = banner.image
+            page.save(update_fields=["cover", "updated_at"])
+
+        return Response(
+            _commerce_page_response(page, request),
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class CommercePageBannerDetailView(BusinessOwnedAPIView):
+    """Update alt text or delete a banner slide."""
+
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
+
+    def get_banner(self):
+        business = self.get_business()
+        return get_object_or_404(
+            CommercePageBanner,
+            id=self.kwargs["banner_id"],
+            page__business=business,
+        )
+
+    def patch(self, request, business_id, banner_id):
+        banner = self.get_banner()
+        alt = request.data.get("alt_text")
+        if alt is not None:
+            banner.alt_text = str(alt)[:200]
+            banner.save(update_fields=["alt_text"])
+        return Response(_commerce_page_response(banner.page, request))
+
+    def delete(self, request, business_id, banner_id):
+        banner = self.get_banner()
+        page = banner.page
+        banner.delete()
+        # Re-pack display_order
+        for index, item in enumerate(page.banners.order_by("display_order", "created_at")):
+            if item.display_order != index:
+                item.display_order = index
+                item.save(update_fields=["display_order"])
+        first = page.banners.order_by("display_order", "created_at").first()
+        page.cover = first.image if first else None
+        page.save(update_fields=["cover", "updated_at"])
+        return Response(_commerce_page_response(page, request))
+
+
+class CommercePageBannerReorderView(BusinessOwnedAPIView):
+    """Reorder banner slides: { "banner_ids": [3, 1, 2] }."""
+
+    def post(self, request, business_id):
+        business = self.get_business()
+        page = get_object_or_404(CommercePage, business=business)
+        ids = request.data.get("banner_ids") or []
+        if not isinstance(ids, list) or not ids:
+            return Response(
+                {"detail": "Send banner_ids as an ordered list."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        banners = {
+            b.id: b
+            for b in page.banners.filter(id__in=ids)
+        }
+        if len(banners) != len(ids) or len(ids) != page.banners.count():
+            return Response(
+                {"detail": "banner_ids must include every slide exactly once."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        for index, banner_id in enumerate(ids):
+            banner = banners[int(banner_id)]
+            if banner.display_order != index:
+                banner.display_order = index
+                banner.save(update_fields=["display_order"])
+
+        first = page.banners.order_by("display_order", "created_at").first()
+        if first:
+            page.cover = first.image
+            page.save(update_fields=["cover", "updated_at"])
+
+        return Response(_commerce_page_response(page, request))
 
 
 class CommercePagePublishView(BusinessOwnedAPIView):
@@ -588,9 +744,7 @@ class CommercePagePublishView(BusinessOwnedAPIView):
             except Exception:
                 pass
 
-        return Response(
-            CommercePageSerializer(page, context={"request": request}).data
-        )
+        return Response(_commerce_page_response(page, request))
 
 
 class PublicSitemapCatalogView(APIView):
@@ -648,7 +802,7 @@ class PublicStorefrontView(APIView):
 
     def get(self, request, slug):
         page = get_object_or_404(
-            CommercePage,
+            CommercePage.objects.prefetch_related("banners"),
             slug=slug,
             is_published=True,
         )
@@ -687,7 +841,7 @@ class PublicProductView(APIView):
 
     def get(self, request, slug, product_slug):
         page = get_object_or_404(
-            CommercePage,
+            CommercePage.objects.prefetch_related("banners"),
             slug=slug,
             is_published=True,
         )

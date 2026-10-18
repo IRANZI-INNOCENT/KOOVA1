@@ -2,6 +2,7 @@
 
 from django.test import SimpleTestCase
 
+from apps.commerce.models import COMMERCE_PAGE_BANNER_LIMIT
 from apps.commerce.services.store_theme import (
     normalize_hex_color,
     normalize_store_slug,
@@ -31,3 +32,6 @@ class StoreThemeHelpersTests(SimpleTestCase):
             normalize_store_slug("a")
         with self.assertRaises(ValueError):
             normalize_store_slug("admin")
+
+    def test_banner_limit(self):
+        self.assertEqual(COMMERCE_PAGE_BANNER_LIMIT, 5)

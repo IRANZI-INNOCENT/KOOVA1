@@ -1,7 +1,9 @@
 from rest_framework import serializers
 
 from .models import (
+    COMMERCE_PAGE_BANNER_LIMIT,
     CommercePage,
+    CommercePageBanner,
     Order,
     Product,
     ProductAIAnalysis,
@@ -286,6 +288,37 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         return value
 
 
+class CommercePageBannerSerializer(serializers.ModelSerializer):
+    """Hero / promo slide on a commerce page."""
+
+    url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CommercePageBanner
+        fields = [
+            "id",
+            "image",
+            "url",
+            "alt_text",
+            "display_order",
+            "created_at",
+        ]
+        read_only_fields = ["id", "url", "display_order", "created_at"]
+        extra_kwargs = {
+            "image": {"write_only": True, "required": True},
+            "alt_text": {"required": False},
+        }
+
+    def get_url(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get("request")
+        url = obj.image.url
+        if request:
+            return request.build_absolute_uri(url)
+        return url
+
+
 class CommercePageSerializer(serializers.ModelSerializer):
     """
     Public commerce page representation.
@@ -299,6 +332,8 @@ class CommercePageSerializer(serializers.ModelSerializer):
     )
     logo_url = serializers.SerializerMethodField()
     cover_url = serializers.SerializerMethodField()
+    banners = CommercePageBannerSerializer(many=True, read_only=True)
+    banner_limit = serializers.SerializerMethodField()
 
     class Meta:
         model = CommercePage
@@ -316,11 +351,14 @@ class CommercePageSerializer(serializers.ModelSerializer):
             "phone",
             "location",
             "primary_color",
+            "secondary_color",
             "accent_color",
             "logo",
             "logo_url",
             "cover",
             "cover_url",
+            "banners",
+            "banner_limit",
             "layout_preset",
             "font_preset",
             "show_hero",
@@ -337,6 +375,8 @@ class CommercePageSerializer(serializers.ModelSerializer):
             "business_name",
             "logo_url",
             "cover_url",
+            "banners",
+            "banner_limit",
             "created_at",
             "updated_at",
         ]
@@ -349,7 +389,18 @@ class CommercePageSerializer(serializers.ModelSerializer):
         return self._absolute_image(obj.logo)
 
     def get_cover_url(self, obj):
+        """First carousel slide (or legacy cover) for OG / link previews."""
+        banners = getattr(obj, "_prefetched_objects_cache", {}).get("banners")
+        if banners is not None:
+            first = banners[0] if banners else None
+        else:
+            first = obj.banners.first()
+        if first and first.image:
+            return self._absolute_image(first.image)
         return self._absolute_image(obj.cover)
+
+    def get_banner_limit(self, obj):
+        return COMMERCE_PAGE_BANNER_LIMIT
 
     def _absolute_image(self, field):
         if not field:
@@ -365,6 +416,14 @@ class CommercePageSerializer(serializers.ModelSerializer):
 
         try:
             return normalize_hex_color(value, default="#176B4D")
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
+
+    def validate_secondary_color(self, value):
+        from apps.commerce.services.store_theme import normalize_hex_color
+
+        try:
+            return normalize_hex_color(value, default="#17211D")
         except ValueError as exc:
             raise serializers.ValidationError(str(exc)) from exc
 

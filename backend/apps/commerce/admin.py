@@ -2,11 +2,20 @@ from django.contrib import admin
 
 from .models import (
     CommercePage,
+    CommercePageBanner,
     Order,
     Product,
     ProductAIAnalysis,
     ProductImage,
 )
+
+
+class CommercePageBannerInline(admin.TabularInline):
+    model = CommercePageBanner
+    extra = 0
+    fields = ("image", "alt_text", "display_order", "created_at")
+    readonly_fields = ("created_at",)
+    ordering = ("display_order", "created_at")
 
 
 class ProductImageInline(admin.TabularInline):
@@ -44,6 +53,7 @@ class CommercePageAdmin(admin.ModelAdmin):
     autocomplete_fields = ("business",)
     readonly_fields = ("created_at", "updated_at")
     actions = ("publish_stores", "unpublish_stores")
+    inlines = (CommercePageBannerInline,)
     fieldsets = (
         (
             "Identity",
@@ -67,6 +77,7 @@ class CommercePageAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "primary_color",
+                    "secondary_color",
                     "accent_color",
                     "logo",
                     "cover",

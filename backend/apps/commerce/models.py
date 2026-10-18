@@ -95,11 +95,17 @@ class CommercePage(models.Model):
         blank=True,
         help_text="Header/footer brand color as #RRGGBB.",
     )
+    secondary_color = models.CharField(
+        max_length=7,
+        default="#17211D",
+        blank=True,
+        help_text="Supporting color for badges, labels, and soft fills as #RRGGBB.",
+    )
     accent_color = models.CharField(
         max_length=7,
         default="#F4B183",
         blank=True,
-        help_text="CTA / highlight color as #RRGGBB.",
+        help_text="CTA / price highlight color as #RRGGBB.",
     )
     logo = models.ImageField(
         upload_to="commerce/storefront/%Y/%m/",
@@ -163,6 +169,41 @@ class CommercePage(models.Model):
 
     def __str__(self):
         return self.title or self.business.name
+
+
+# Max hero slides on a public store (flash sales, announcements, promos).
+COMMERCE_PAGE_BANNER_LIMIT = 5
+
+
+class CommercePageBanner(models.Model):
+    """
+    Storefront hero slide.
+
+    Replaces a single static cover so owners can rotate flash sales,
+    new arrivals, and discount creatives (up to COMMERCE_PAGE_BANNER_LIMIT).
+    """
+
+    page = models.ForeignKey(
+        CommercePage,
+        on_delete=models.CASCADE,
+        related_name="banners",
+    )
+    image = models.ImageField(
+        upload_to="commerce/banners/%Y/%m/",
+    )
+    alt_text = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Short label for the slide, e.g. Weekend flash sale.",
+    )
+    display_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["display_order", "created_at"]
+
+    def __str__(self):
+        return self.alt_text or f"Banner {self.pk} ({self.page_id})"
 
 
 class Product(models.Model):

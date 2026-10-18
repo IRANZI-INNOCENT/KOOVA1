@@ -19,10 +19,14 @@ import {
 } from "@/lib/api";
 
 import {
+  addCommercePageBanner,
+  deleteCommercePageBanner,
   getBusiness,
   getCommercePage,
   publishCommercePage,
+  reorderCommercePageBanners,
   saveCommercePage,
+  updateCommercePageBanner,
   uploadCommercePageImage,
   type Business,
   type CommercePage,
@@ -31,6 +35,7 @@ import { mediaSrc } from "@/lib/media";
 import {
   FONT_PRESETS,
   LAYOUT_PRESETS,
+  storeThemeStyle,
 } from "@/lib/store-theme";
 
 
@@ -80,6 +85,7 @@ export default function StorefrontPage() {
     location: "",
     slug: "",
     primary_color: "#176B4D",
+    secondary_color: "#17211D",
     accent_color: "#F4B183",
     layout_preset: "compact" as CommercePage["layout_preset"],
     font_preset: "classic" as CommercePage["font_preset"],
@@ -87,7 +93,8 @@ export default function StorefrontPage() {
     show_about: true,
     show_featured: false,
   });
-  const [uploading, setUploading] = useState<"logo" | "cover" | null>(null);
+  const [uploading, setUploading] = useState<"logo" | "banner" | null>(null);
+  const [bannerBusyId, setBannerBusyId] = useState<number | null>(null);
 
 
   /**
@@ -204,6 +211,7 @@ export default function StorefrontPage() {
       location: commercePage.location || "",
       slug: commercePage.slug || "",
       primary_color: commercePage.primary_color || "#176B4D",
+      secondary_color: commercePage.secondary_color || "#17211D",
       accent_color: commercePage.accent_color || "#F4B183",
       layout_preset: (commercePage.layout_preset ||
         "compact") as CommercePage["layout_preset"],
@@ -226,6 +234,7 @@ export default function StorefrontPage() {
       location: form.location.trim(),
       slug: form.slug.trim(),
       primary_color: form.primary_color,
+      secondary_color: form.secondary_color,
       accent_color: form.accent_color,
       layout_preset: form.layout_preset,
       font_preset: form.font_preset,
@@ -251,24 +260,19 @@ export default function StorefrontPage() {
     setError("");
   }
 
-  async function handleImageUpload(
-    field: "logo" | "cover",
-    file: File | null,
-  ): Promise<void> {
+  async function handleLogoUpload(file: File | null): Promise<void> {
     if (!business || !accessToken || !file) return;
-    setUploading(field);
+    setUploading("logo");
     setError("");
     try {
       const updated = await uploadCommercePageImage(
         business.id,
         accessToken,
-        field,
+        "logo",
         file,
       );
       setPage(updated);
-      setSuccess(
-        field === "logo" ? "Logo uploaded." : "Cover image uploaded.",
-      );
+      setSuccess("Logo uploaded.");
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -277,6 +281,65 @@ export default function StorefrontPage() {
       );
     } finally {
       setUploading(null);
+    }
+  }
+
+  async function handleBannerUpload(file: File | null): Promise<void> {
+    if (!business || !accessToken || !file) return;
+    const limit = page?.banner_limit ?? 5;
+    const current = page?.banners?.length ?? 0;
+    if (current >= limit) {
+      setError(`You can add up to ${limit} banner slides.`);
+      return;
+    }
+    setUploading("banner");
+    setError("");
+    try {
+      const updated = await addCommercePageBanner(
+        business.id,
+        accessToken,
+        file,
+      );
+      setPage(updated);
+      setSuccess("Banner slide added. It will rotate on your store.");
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "We couldn't upload that banner.",
+      );
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  async function moveBanner(bannerId: number, direction: -1 | 1): Promise<void> {
+    if (!business || !accessToken || !page?.banners?.length) return;
+    const ids = page.banners.map((b) => b.id);
+    const index = ids.indexOf(bannerId);
+    const next = index + direction;
+    if (index < 0 || next < 0 || next >= ids.length) return;
+    const reordered = [...ids];
+    const [item] = reordered.splice(index, 1);
+    reordered.splice(next, 0, item);
+    setBannerBusyId(bannerId);
+    setError("");
+    try {
+      setPage(
+        await reorderCommercePageBanners(
+          business.id,
+          accessToken,
+          reordered,
+        ),
+      );
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "We couldn't reorder banners.",
+      );
+    } finally {
+      setBannerBusyId(null);
     }
   }
 
@@ -658,23 +721,26 @@ export default function StorefrontPage() {
                     Brand look
                   </p>
                   <p className="mt-1 text-sm text-gray-500">
-                    Colors, logo, and cover so your shop does not look like
-                    every other KCOVA storefront.
+                    Three brand colors, logo, and promo banners so your shop
+                    feels like yours — not a default template.
                   </p>
 
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <div className="mt-4 grid gap-4 sm:grid-cols-3">
                     <div>
                       <label className="block text-sm font-medium text-kova-dark">
-                        Primary color
+                        Primary
                       </label>
-                      <div className="mt-2 flex items-center gap-3">
+                      <p className="mt-0.5 text-[11px] text-gray-500">
+                        Header & footer
+                      </p>
+                      <div className="mt-2 flex items-center gap-2">
                         <input
                           type="color"
                           value={form.primary_color}
                           onChange={(e) =>
                             updateField("primary_color", e.target.value)
                           }
-                          className="h-10 w-14 cursor-pointer border border-kova-border bg-white"
+                          className="h-10 w-12 shrink-0 cursor-pointer border border-kova-border bg-white"
                         />
                         <input
                           type="text"
@@ -682,22 +748,51 @@ export default function StorefrontPage() {
                           onChange={(e) =>
                             updateField("primary_color", e.target.value)
                           }
-                          className="w-full border border-kova-border px-3 py-2 text-sm uppercase outline-none focus:border-kova-green"
+                          className="w-full border border-kova-border px-2 py-2 text-xs uppercase outline-none focus:border-kova-green"
                         />
                       </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-kova-dark">
-                        Accent color
+                        Secondary
                       </label>
-                      <div className="mt-2 flex items-center gap-3">
+                      <p className="mt-0.5 text-[11px] text-gray-500">
+                        Titles & badges
+                      </p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={form.secondary_color}
+                          onChange={(e) =>
+                            updateField("secondary_color", e.target.value)
+                          }
+                          className="h-10 w-12 shrink-0 cursor-pointer border border-kova-border bg-white"
+                        />
+                        <input
+                          type="text"
+                          value={form.secondary_color}
+                          onChange={(e) =>
+                            updateField("secondary_color", e.target.value)
+                          }
+                          className="w-full border border-kova-border px-2 py-2 text-xs uppercase outline-none focus:border-kova-green"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-kova-dark">
+                        Accent
+                      </label>
+                      <p className="mt-0.5 text-[11px] text-gray-500">
+                        Prices & CTAs
+                      </p>
+                      <div className="mt-2 flex items-center gap-2">
                         <input
                           type="color"
                           value={form.accent_color}
                           onChange={(e) =>
                             updateField("accent_color", e.target.value)
                           }
-                          className="h-10 w-14 cursor-pointer border border-kova-border bg-white"
+                          className="h-10 w-12 shrink-0 cursor-pointer border border-kova-border bg-white"
                         />
                         <input
                           type="text"
@@ -705,13 +800,13 @@ export default function StorefrontPage() {
                           onChange={(e) =>
                             updateField("accent_color", e.target.value)
                           }
-                          className="w-full border border-kova-border px-3 py-2 text-sm uppercase outline-none focus:border-kova-green"
+                          className="w-full border border-kova-border px-2 py-2 text-xs uppercase outline-none focus:border-kova-green"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <div className="mt-5 max-w-sm">
                     <div>
                       <label className="block text-sm font-medium text-kova-dark">
                         Logo
@@ -730,10 +825,7 @@ export default function StorefrontPage() {
                         className="mt-2 block w-full text-xs text-gray-500"
                         disabled={uploading === "logo"}
                         onChange={(e) =>
-                          handleImageUpload(
-                            "logo",
-                            e.target.files?.[0] ?? null,
-                          )
+                          handleLogoUpload(e.target.files?.[0] ?? null)
                         }
                       />
                       {page?.logo_url && (
@@ -754,48 +846,142 @@ export default function StorefrontPage() {
                         </button>
                       )}
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-kova-dark">
-                        Cover image
-                      </label>
-                      {page?.cover_url && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={mediaSrc(page.cover_url)}
-                          alt=""
-                          className="mt-2 h-16 w-full max-w-[200px] rounded-md object-cover border border-kova-border"
-                        />
-                      )}
+                  </div>
+
+                  <div className="mt-6">
+                    <label className="block text-sm font-medium text-kova-dark">
+                      Promo banners
+                    </label>
+                    <p className="mt-1 text-xs leading-5 text-gray-500">
+                      Up to {page?.banner_limit ?? 5} slides for flash sales,
+                      new arrivals, or discounts. They rotate on your store
+                      home.
+                    </p>
+
+                    {(page?.banners?.length ?? 0) > 0 && (
+                      <ul className="mt-3 space-y-3">
+                        {page!.banners!.map((banner, index) => (
+                          <li
+                            key={banner.id}
+                            className="flex flex-col gap-2 rounded-md border border-kova-border bg-kova-background/60 p-3 sm:flex-row sm:items-center"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={mediaSrc(banner.url)}
+                              alt=""
+                              className="h-16 w-full max-w-[140px] rounded object-cover border border-kova-border"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-semibold text-kova-dark">
+                                Slide {index + 1}
+                              </p>
+                              <input
+                                type="text"
+                                defaultValue={banner.alt_text || ""}
+                                placeholder="e.g. Weekend flash sale"
+                                className="mt-1 w-full border border-kova-border bg-white px-2 py-1.5 text-xs outline-none focus:border-kova-green"
+                                onBlur={async (e) => {
+                                  if (!business || !accessToken) return;
+                                  const next = e.target.value.trim();
+                                  if (next === (banner.alt_text || "")) return;
+                                  setBannerBusyId(banner.id);
+                                  try {
+                                    setPage(
+                                      await updateCommercePageBanner(
+                                        business.id,
+                                        accessToken,
+                                        banner.id,
+                                        next,
+                                      ),
+                                    );
+                                  } catch (err) {
+                                    setError(
+                                      err instanceof ApiError
+                                        ? err.message
+                                        : "Could not update label.",
+                                    );
+                                  } finally {
+                                    setBannerBusyId(null);
+                                  }
+                                }}
+                              />
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  disabled={
+                                    index === 0 || bannerBusyId === banner.id
+                                  }
+                                  className="text-xs font-semibold text-kova-dark disabled:opacity-40"
+                                  onClick={() => moveBanner(banner.id, -1)}
+                                >
+                                  Move up
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={
+                                    index ===
+                                      (page?.banners?.length ?? 0) - 1 ||
+                                    bannerBusyId === banner.id
+                                  }
+                                  className="text-xs font-semibold text-kova-dark disabled:opacity-40"
+                                  onClick={() => moveBanner(banner.id, 1)}
+                                >
+                                  Move down
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={bannerBusyId === banner.id}
+                                  className="text-xs font-semibold text-red-600 disabled:opacity-40"
+                                  onClick={async () => {
+                                    if (!business || !accessToken) return;
+                                    setBannerBusyId(banner.id);
+                                    try {
+                                      setPage(
+                                        await deleteCommercePageBanner(
+                                          business.id,
+                                          accessToken,
+                                          banner.id,
+                                        ),
+                                      );
+                                      setSuccess("Banner removed.");
+                                    } catch (err) {
+                                      setError(
+                                        err instanceof ApiError
+                                          ? err.message
+                                          : "Could not remove banner.",
+                                      );
+                                    } finally {
+                                      setBannerBusyId(null);
+                                    }
+                                  }}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {(page?.banners?.length ?? 0) <
+                      (page?.banner_limit ?? 5) && (
                       <input
                         type="file"
                         accept="image/*"
-                        className="mt-2 block w-full text-xs text-gray-500"
-                        disabled={uploading === "cover"}
-                        onChange={(e) =>
-                          handleImageUpload(
-                            "cover",
-                            e.target.files?.[0] ?? null,
-                          )
-                        }
+                        className="mt-3 block w-full text-xs text-gray-500"
+                        disabled={uploading === "banner"}
+                        onChange={(e) => {
+                          handleBannerUpload(e.target.files?.[0] ?? null);
+                          e.target.value = "";
+                        }}
                       />
-                      {page?.cover_url && (
-                        <button
-                          type="button"
-                          className="mt-2 text-xs font-semibold text-red-600"
-                          onClick={async () => {
-                            if (!business || !accessToken) return;
-                            const updated = await saveCommercePage(
-                              business.id,
-                              accessToken,
-                              { clear_cover: true },
-                            );
-                            setPage(updated);
-                          }}
-                        >
-                          Remove cover
-                        </button>
-                      )}
-                    </div>
+                    )}
+                    {uploading === "banner" && (
+                      <p className="mt-2 text-xs text-gray-500">
+                        Uploading banner…
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -858,7 +1044,7 @@ export default function StorefrontPage() {
                           updateField("show_hero", e.target.checked)
                         }
                       />
-                      Show hero / cover block
+                      Show banner / hero block
                     </label>
                     <label className="flex items-center gap-2 text-kova-dark">
                       <input
@@ -1048,18 +1234,27 @@ export default function StorefrontPage() {
                   Live preview
                 </p>
                 <p className="mt-2 text-sm text-gray-500">
-                  How your header and accents will read for customers.
+                  Primary chrome, secondary titles, accent CTAs — balanced
+                  for customers.
                 </p>
                 <div
-                  className="mt-4 overflow-hidden rounded-md border border-kova-border"
+                  className="mt-4 overflow-hidden rounded-md border"
                   style={{
-                    ["--store-primary" as string]: form.primary_color,
-                    ["--store-accent" as string]: form.accent_color,
+                    ...storeThemeStyle({
+                      primary_color: form.primary_color,
+                      secondary_color: form.secondary_color,
+                      accent_color: form.accent_color,
+                      font_preset: form.font_preset,
+                    }),
+                    borderColor: "var(--store-border)",
                   }}
                 >
                   <div
-                    className="flex items-center justify-between gap-3 px-3 py-2.5 text-white"
-                    style={{ backgroundColor: "var(--store-primary)" }}
+                    className="flex items-center justify-between gap-3 px-3 py-2.5"
+                    style={{
+                      backgroundColor: "var(--store-primary)",
+                      color: "var(--store-on-primary)",
+                    }}
                   >
                     <div className="flex min-w-0 items-center gap-2">
                       {page?.logo_url ? (
@@ -1079,14 +1274,25 @@ export default function StorefrontPage() {
                       </span>
                     </div>
                     <span
-                      className="shrink-0 rounded px-2 py-1 text-[10px] font-bold text-kova-dark"
-                      style={{ backgroundColor: "var(--store-accent)" }}
+                      className="shrink-0 rounded px-2 py-1 text-[10px] font-bold"
+                      style={{
+                        backgroundColor: "var(--store-accent)",
+                        color: "var(--store-on-accent)",
+                      }}
                     >
                       WhatsApp
                     </span>
                   </div>
-                  <div className="bg-kova-background px-3 py-3">
-                    <p className="text-xs font-semibold text-kova-dark">
+                  <div
+                    className="h-0.5 w-full"
+                    style={{ backgroundColor: "var(--store-secondary)" }}
+                    aria-hidden
+                  />
+                  <div className="px-3 py-3">
+                    <p
+                      className="text-xs font-semibold"
+                      style={{ color: "var(--store-secondary)" }}
+                    >
                       Sample product
                     </p>
                     <p
