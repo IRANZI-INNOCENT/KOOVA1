@@ -258,7 +258,7 @@ export async function addCommercePageBanner(
   altText = "",
 ): Promise<CommercePage> {
   const body = new FormData();
-  body.append("image", file);
+  body.append("image", file, file.name || "banner.jpg");
   if (altText.trim()) body.append("alt_text", altText.trim());
   invalidateResourceCache(`commerce-page:${businessId}`);
   return authenticatedApiRequest<CommercePage>(

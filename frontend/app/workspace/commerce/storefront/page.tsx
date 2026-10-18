@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -34,6 +35,7 @@ import {
 import { mediaSrc } from "@/lib/media";
 import {
   FONT_PRESETS,
+  KCOVA_STORE_COLORS,
   LAYOUT_PRESETS,
   storeThemeStyle,
 } from "@/lib/store-theme";
@@ -84,9 +86,9 @@ export default function StorefrontPage() {
     phone: "",
     location: "",
     slug: "",
-    primary_color: "#176B4D",
-    secondary_color: "#17211D",
-    accent_color: "#F4B183",
+    primary_color: KCOVA_STORE_COLORS.primary,
+    secondary_color: KCOVA_STORE_COLORS.secondary,
+    accent_color: KCOVA_STORE_COLORS.accent,
     layout_preset: "compact" as CommercePage["layout_preset"],
     font_preset: "classic" as CommercePage["font_preset"],
     show_hero: true,
@@ -95,6 +97,8 @@ export default function StorefrontPage() {
   });
   const [uploading, setUploading] = useState<"logo" | "banner" | null>(null);
   const [bannerBusyId, setBannerBusyId] = useState<number | null>(null);
+  const [bannerError, setBannerError] = useState("");
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
 
   /**
@@ -210,9 +214,12 @@ export default function StorefrontPage() {
       phone: commercePage.phone || "",
       location: commercePage.location || "",
       slug: commercePage.slug || "",
-      primary_color: commercePage.primary_color || "#176B4D",
-      secondary_color: commercePage.secondary_color || "#17211D",
-      accent_color: commercePage.accent_color || "#F4B183",
+      primary_color:
+        commercePage.primary_color || KCOVA_STORE_COLORS.primary,
+      secondary_color:
+        commercePage.secondary_color || KCOVA_STORE_COLORS.secondary,
+      accent_color:
+        commercePage.accent_color || KCOVA_STORE_COLORS.accent,
       layout_preset: (commercePage.layout_preset ||
         "compact") as CommercePage["layout_preset"],
       font_preset: (commercePage.font_preset ||
@@ -289,11 +296,15 @@ export default function StorefrontPage() {
     const limit = page?.banner_limit ?? 5;
     const current = page?.banners?.length ?? 0;
     if (current >= limit) {
-      setError(`You can add up to ${limit} banner slides.`);
+      const message = `You can add up to ${limit} banner slides.`;
+      setBannerError(message);
+      setError(message);
       return;
     }
     setUploading("banner");
+    setBannerError("");
     setError("");
+    setSuccess("");
     try {
       const updated = await addCommercePageBanner(
         business.id,
@@ -301,15 +312,22 @@ export default function StorefrontPage() {
         file,
       );
       setPage(updated);
-      setSuccess("Banner slide added. It will rotate on your store.");
+      const count = updated.banners?.length ?? current + 1;
+      setSuccess(
+        `Banner slide ${count} added. It will rotate on your store.`,
+      );
     } catch (err) {
-      setError(
+      const message =
         err instanceof ApiError
           ? err.message
-          : "We couldn't upload that banner.",
-      );
+          : "We couldn't upload that banner.";
+      setBannerError(message);
+      setError(message);
     } finally {
       setUploading(null);
+      if (bannerInputRef.current) {
+        bannerInputRef.current.value = "";
+      }
     }
   }
 
@@ -717,13 +735,33 @@ export default function StorefrontPage() {
                 </div>
 
                 <div className="border-t border-kova-border pt-6">
-                  <p className="font-semibold text-kova-dark">
-                    Brand look
-                  </p>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Three brand colors, logo, and promo banners so your shop
-                    feels like yours — not a default template.
-                  </p>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-kova-dark">
+                        Brand look
+                      </p>
+                      <p className="mt-1 text-sm text-gray-500">
+                        Three brand colors, logo, and promo banners so your shop
+                        feels like yours — not a default template.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForm((current) => ({
+                          ...current,
+                          primary_color: KCOVA_STORE_COLORS.primary,
+                          secondary_color: KCOVA_STORE_COLORS.secondary,
+                          accent_color: KCOVA_STORE_COLORS.accent,
+                        }));
+                        setSuccess("");
+                        setError("");
+                      }}
+                      className="shrink-0 text-xs font-semibold text-kova-green underline-offset-2 hover:underline"
+                    >
+                      Reset to KCOVA colors
+                    </button>
+                  </div>
 
                   <div className="mt-4 grid gap-4 sm:grid-cols-3">
                     <div>
@@ -966,20 +1004,40 @@ export default function StorefrontPage() {
 
                     {(page?.banners?.length ?? 0) <
                       (page?.banner_limit ?? 5) && (
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="mt-3 block w-full text-xs text-gray-500"
-                        disabled={uploading === "banner"}
-                        onChange={(e) => {
-                          handleBannerUpload(e.target.files?.[0] ?? null);
-                          e.target.value = "";
-                        }}
-                      />
+                      <div className="mt-3">
+                        <input
+                          ref={bannerInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          className="sr-only"
+                          disabled={uploading === "banner"}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] ?? null;
+                            void handleBannerUpload(file);
+                          }}
+                        />
+                        <button
+                          type="button"
+                          disabled={uploading === "banner"}
+                          onClick={() => bannerInputRef.current?.click()}
+                          className="inline-flex h-10 items-center rounded-md border border-kova-green bg-kova-green px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {uploading === "banner"
+                            ? "Uploading…"
+                            : (page?.banners?.length ?? 0) > 0
+                              ? "Add another slide"
+                              : "Add banner slide"}
+                        </button>
+                        <p className="mt-2 text-[11px] text-gray-500">
+                          JPG, PNG, or WebP.{" "}
+                          {(page?.banners?.length ?? 0) + 1} of{" "}
+                          {page?.banner_limit ?? 5} slots.
+                        </p>
+                      </div>
                     )}
-                    {uploading === "banner" && (
-                      <p className="mt-2 text-xs text-gray-500">
-                        Uploading banner…
+                    {bannerError && (
+                      <p className="mt-2 text-xs font-medium text-red-600">
+                        {bannerError}
                       </p>
                     )}
                   </div>

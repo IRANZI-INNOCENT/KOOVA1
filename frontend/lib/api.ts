@@ -155,6 +155,22 @@ async function refreshAccessToken(): Promise<string | null> {
 }
 
 
+function cloneRequestBody(body: BodyInit | null | undefined): BodyInit | null | undefined {
+  if (!(body instanceof FormData)) {
+    return body;
+  }
+  /*
+   * FormData can only be reliably sent once in some browsers. Clone before
+   * each fetch so a 401 → retry still includes the file.
+   */
+  const clone = new FormData();
+  for (const [key, value] of body.entries()) {
+    clone.append(key, value);
+  }
+  return clone;
+}
+
+
 export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {},
@@ -193,6 +209,7 @@ export async function apiRequest<T>(
       `${apiUrl()}${endpoint}`,
       {
         ...requestOptions,
+        body: cloneRequestBody(requestOptions.body),
         credentials: "include",
         headers,
       },

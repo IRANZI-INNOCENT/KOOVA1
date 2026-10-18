@@ -35,9 +35,16 @@ export const FONT_PRESETS = [
 export type LayoutPresetId = (typeof LAYOUT_PRESETS)[number]["id"];
 export type FontPresetId = (typeof FONT_PRESETS)[number]["id"];
 
-const DEFAULT_PRIMARY = "#176B4D";
-const DEFAULT_SECONDARY = "#17211D";
-const DEFAULT_ACCENT = "#F4B183";
+/** Default KCOVA brand palette for storefronts. */
+export const KCOVA_STORE_COLORS = {
+  primary: "#176B4D",
+  secondary: "#17211D",
+  accent: "#F4B183",
+} as const;
+
+const DEFAULT_PRIMARY = KCOVA_STORE_COLORS.primary;
+const DEFAULT_SECONDARY = KCOVA_STORE_COLORS.secondary;
+const DEFAULT_ACCENT = KCOVA_STORE_COLORS.accent;
 
 function parseHex(hex: string): [number, number, number] | null {
   const raw = hex.trim().replace(/^#/, "");

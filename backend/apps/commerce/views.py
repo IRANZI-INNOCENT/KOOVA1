@@ -615,18 +615,27 @@ class CommercePageBannerListCreateView(BusinessOwnedAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = CommercePageBannerSerializer(
-            data=request.data,
-            context={"request": request},
+        image = (
+            request.FILES.get("image")
+            or request.FILES.get("banner")
+            or request.FILES.get("file")
         )
-        serializer.is_valid(raise_exception=True)
-        banner = serializer.save(
+        if not image:
+            return Response(
+                {"detail": "Choose an image file to upload as a banner."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        alt_text = str(request.data.get("alt_text") or "")[:200]
+        banner = CommercePageBanner.objects.create(
             page=page,
+            image=image,
+            alt_text=alt_text,
             display_order=page.banners.count(),
         )
 
         # Keep legacy cover in sync with the first slide for older clients / OG.
-        if banner.display_order == 0 or page.banners.count() == 1:
+        if banner.display_order == 0:
             page.cover = banner.image
             page.save(update_fields=["cover", "updated_at"])
 
