@@ -151,6 +151,7 @@ export default async function PublicStorePage({
           id: b.id,
           url: b.url,
           alt_text: b.alt_text,
+          href: b.href || undefined,
         }))
       : page.cover_url
         ? [{ id: "cover", url: page.cover_url, alt_text: "" }]

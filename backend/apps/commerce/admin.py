@@ -13,8 +13,9 @@ from .models import (
 class CommercePageBannerInline(admin.TabularInline):
     model = CommercePageBanner
     extra = 0
-    fields = ("image", "alt_text", "display_order", "created_at")
+    fields = ("image", "alt_text", "product", "display_order", "created_at")
     readonly_fields = ("created_at",)
+    autocomplete_fields = ("product",)
     ordering = ("display_order", "created_at")
 
 

@@ -109,6 +109,10 @@ export interface StoreBanner {
   id: number;
   url: string;
   alt_text: string;
+  product_id?: number | null;
+  product_slug?: string | null;
+  product_name?: string | null;
+  href?: string | null;
   display_order: number;
   created_at: string;
 }
@@ -272,7 +276,10 @@ export async function updateCommercePageBanner(
   businessId: number,
   token: string,
   bannerId: number,
-  altText: string,
+  payload: {
+    alt_text?: string;
+    product_id?: number | null;
+  },
 ): Promise<CommercePage> {
   invalidateResourceCache(`commerce-page:${businessId}`);
   return authenticatedApiRequest<CommercePage>(
@@ -280,7 +287,7 @@ export async function updateCommercePageBanner(
     token,
     {
       method: "PATCH",
-      body: JSON.stringify({ alt_text: altText }),
+      body: JSON.stringify(payload),
     },
   );
 }

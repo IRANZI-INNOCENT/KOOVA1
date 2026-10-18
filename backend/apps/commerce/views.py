@@ -476,7 +476,7 @@ class ProductImageDetailView(BusinessOwnedAPIView):
 def _commerce_page_response(page, request):
     page = (
         CommercePage.objects
-        .prefetch_related("banners")
+        .prefetch_related("banners__product")
         .get(pk=page.pk)
     )
     return CommercePageSerializer(page, context={"request": request}).data
@@ -660,10 +660,36 @@ class CommercePageBannerDetailView(BusinessOwnedAPIView):
 
     def patch(self, request, business_id, banner_id):
         banner = self.get_banner()
-        alt = request.data.get("alt_text")
-        if alt is not None:
-            banner.alt_text = str(alt)[:200]
-            banner.save(update_fields=["alt_text"])
+        updates: list[str] = []
+
+        if "alt_text" in request.data:
+            banner.alt_text = str(request.data.get("alt_text") or "")[:200]
+            updates.append("alt_text")
+
+        if "product" in request.data or "product_id" in request.data:
+            raw = request.data.get("product", request.data.get("product_id"))
+            if raw in (None, "", "null", "none", 0, "0"):
+                banner.product = None
+                updates.append("product")
+            else:
+                try:
+                    product_id = int(raw)
+                except (TypeError, ValueError) as exc:
+                    return Response(
+                        {"detail": "Choose a valid product."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    ) from exc
+                product = get_object_or_404(
+                    Product,
+                    id=product_id,
+                    business=banner.page.business,
+                )
+                banner.product = product
+                updates.append("product")
+
+        if updates:
+            banner.save(update_fields=updates)
+
         return Response(_commerce_page_response(banner.page, request))
 
     def delete(self, request, business_id, banner_id):
@@ -811,7 +837,7 @@ class PublicStorefrontView(APIView):
 
     def get(self, request, slug):
         page = get_object_or_404(
-            CommercePage.objects.prefetch_related("banners"),
+            CommercePage.objects.prefetch_related("banners__product"),
             slug=slug,
             is_published=True,
         )
@@ -850,7 +876,7 @@ class PublicProductView(APIView):
 
     def get(self, request, slug, product_slug):
         page = get_object_or_404(
-            CommercePage.objects.prefetch_related("banners"),
+            CommercePage.objects.prefetch_related("banners__product"),
             slug=slug,
             is_published=True,
         )

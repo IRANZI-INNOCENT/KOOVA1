@@ -292,6 +292,10 @@ class CommercePageBannerSerializer(serializers.ModelSerializer):
     """Hero / promo slide on a commerce page."""
 
     url = serializers.SerializerMethodField()
+    product_id = serializers.IntegerField(read_only=True, allow_null=True)
+    product_slug = serializers.SerializerMethodField()
+    product_name = serializers.SerializerMethodField()
+    href = serializers.SerializerMethodField()
 
     class Meta:
         model = CommercePageBanner
@@ -300,10 +304,23 @@ class CommercePageBannerSerializer(serializers.ModelSerializer):
             "image",
             "url",
             "alt_text",
+            "product_id",
+            "product_slug",
+            "product_name",
+            "href",
             "display_order",
             "created_at",
         ]
-        read_only_fields = ["id", "url", "display_order", "created_at"]
+        read_only_fields = [
+            "id",
+            "url",
+            "product_id",
+            "product_slug",
+            "product_name",
+            "href",
+            "display_order",
+            "created_at",
+        ]
         extra_kwargs = {
             "image": {"write_only": True, "required": True},
             "alt_text": {"required": False},
@@ -317,6 +334,21 @@ class CommercePageBannerSerializer(serializers.ModelSerializer):
         if request:
             return request.build_absolute_uri(url)
         return url
+
+    def get_product_slug(self, obj):
+        return obj.product.slug if obj.product_id else None
+
+    def get_product_name(self, obj):
+        return obj.product.name if obj.product_id else None
+
+    def get_href(self, obj):
+        """Relative storefront path when a product is linked."""
+        if not obj.product_id or not obj.product or not obj.product.slug:
+            return None
+        page = obj.page
+        if not page or not page.slug:
+            return None
+        return f"/store/{page.slug}/{obj.product.slug}"
 
 
 class CommercePageSerializer(serializers.ModelSerializer):

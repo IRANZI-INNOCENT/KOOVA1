@@ -24,6 +24,7 @@ import {
   deleteCommercePageBanner,
   getBusiness,
   getCommercePage,
+  getProducts,
   publishCommercePage,
   reorderCommercePageBanners,
   saveCommercePage,
@@ -31,6 +32,7 @@ import {
   uploadCommercePageImage,
   type Business,
   type CommercePage,
+  type Product,
 } from "@/lib/commerce";
 import { mediaSrc } from "@/lib/media";
 import {
@@ -61,6 +63,8 @@ export default function StorefrontPage() {
 
   const [page, setPage] =
     useState<CommercePage | null>(null);
+
+  const [products, setProducts] = useState<Product[]>([]);
 
   const [loading, setLoading] =
     useState(true);
@@ -150,17 +154,17 @@ export default function StorefrontPage() {
           currentBusiness,
         );
 
-        const commercePage =
-          await getCommercePage(
-            currentBusiness.id,
-            accessToken!,
-          );
+        const [commercePage, catalog] = await Promise.all([
+          getCommercePage(currentBusiness.id, accessToken!),
+          getProducts(currentBusiness.id, accessToken!).catch(() => []),
+        ]);
 
         if (cancelled) {
           return;
         }
 
         setPage(commercePage);
+        setProducts(catalog);
         setForm(formFromPage(commercePage));
 
       } catch (err) {
@@ -891,10 +895,9 @@ export default function StorefrontPage() {
                       Promo banners
                     </label>
                     <p className="mt-1 text-xs leading-5 text-gray-500">
-                      Up to {page?.banner_limit ?? 5} slides for flash sales,
-                      new arrivals, or discounts. Use the label field for the
-                      words shown on the slide (e.g. “Weekend 20% off”). Images
-                      are compressed automatically for fast loading.
+                      Up to {page?.banner_limit ?? 5} slides for flash sales or
+                      discounts. Add a headline, then link a product so shoppers
+                      can tap the slide to open that offer.
                     </p>
 
                     {(page?.banners?.length ?? 0) > 0 && (
@@ -902,49 +905,117 @@ export default function StorefrontPage() {
                         {page!.banners!.map((banner, index) => (
                           <li
                             key={banner.id}
-                            className="flex flex-col gap-2 rounded-md border border-kova-border bg-kova-background/60 p-3 sm:flex-row sm:items-center"
+                            className="flex flex-col gap-3 rounded-md border border-kova-border bg-kova-background/60 p-3 sm:flex-row sm:items-start"
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={mediaSrc(banner.url)}
                               alt=""
-                              className="h-16 w-full max-w-[140px] rounded object-cover border border-kova-border"
+                              className="h-16 w-full max-w-[140px] shrink-0 rounded object-cover border border-kova-border"
                             />
-                            <div className="min-w-0 flex-1">
+                            <div className="min-w-0 flex-1 space-y-2">
                               <p className="text-xs font-semibold text-kova-dark">
                                 Slide {index + 1}
                               </p>
-                              <input
-                                type="text"
-                                defaultValue={banner.alt_text || ""}
-                                placeholder="e.g. Weekend flash sale"
-                                className="mt-1 w-full border border-kova-border bg-white px-2 py-1.5 text-xs outline-none focus:border-kova-green"
-                                onBlur={async (e) => {
-                                  if (!business || !accessToken) return;
-                                  const next = e.target.value.trim();
-                                  if (next === (banner.alt_text || "")) return;
-                                  setBannerBusyId(banner.id);
-                                  try {
-                                    setPage(
-                                      await updateCommercePageBanner(
-                                        business.id,
-                                        accessToken,
-                                        banner.id,
-                                        next,
-                                      ),
-                                    );
-                                  } catch (err) {
-                                    setError(
-                                      err instanceof ApiError
-                                        ? err.message
-                                        : "Could not update label.",
-                                    );
-                                  } finally {
-                                    setBannerBusyId(null);
-                                  }
-                                }}
-                              />
-                              <div className="mt-2 flex flex-wrap gap-2">
+                              <div>
+                                <label className="text-[11px] font-medium text-gray-500">
+                                  Headline on banner
+                                </label>
+                                <input
+                                  type="text"
+                                  defaultValue={banner.alt_text || ""}
+                                  placeholder="e.g. Weekend 20% off"
+                                  className="mt-1 w-full border border-kova-border bg-white px-2 py-1.5 text-xs outline-none focus:border-kova-green"
+                                  onBlur={async (e) => {
+                                    if (!business || !accessToken) return;
+                                    const next = e.target.value.trim();
+                                    if (next === (banner.alt_text || "")) return;
+                                    setBannerBusyId(banner.id);
+                                    try {
+                                      setPage(
+                                        await updateCommercePageBanner(
+                                          business.id,
+                                          accessToken,
+                                          banner.id,
+                                          { alt_text: next },
+                                        ),
+                                      );
+                                    } catch (err) {
+                                      setError(
+                                        err instanceof ApiError
+                                          ? err.message
+                                          : "Could not update label.",
+                                      );
+                                    } finally {
+                                      setBannerBusyId(null);
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[11px] font-medium text-gray-500">
+                                  Link to product (optional)
+                                </label>
+                                <select
+                                  value={banner.product_id ?? ""}
+                                  disabled={bannerBusyId === banner.id}
+                                  className="mt-1 w-full border border-kova-border bg-white px-2 py-1.5 text-xs outline-none focus:border-kova-green disabled:opacity-60"
+                                  onChange={async (e) => {
+                                    if (!business || !accessToken) return;
+                                    const raw = e.target.value;
+                                    const productId =
+                                      raw === "" ? null : Number(raw);
+                                    setBannerBusyId(banner.id);
+                                    setBannerError("");
+                                    try {
+                                      setPage(
+                                        await updateCommercePageBanner(
+                                          business.id,
+                                          accessToken,
+                                          banner.id,
+                                          { product_id: productId },
+                                        ),
+                                      );
+                                      setSuccess(
+                                        productId
+                                          ? "Slide linked to product — shoppers can tap it."
+                                          : "Product link cleared.",
+                                      );
+                                    } catch (err) {
+                                      const message =
+                                        err instanceof ApiError
+                                          ? err.message
+                                          : "Could not link product.";
+                                      setBannerError(message);
+                                      setError(message);
+                                    } finally {
+                                      setBannerBusyId(null);
+                                    }
+                                  }}
+                                >
+                                  <option value="">No link — display only</option>
+                                  {products.map((product) => (
+                                    <option key={product.id} value={product.id}>
+                                      {product.name}
+                                      {product.status === "active"
+                                        ? ""
+                                        : ` (${product.status})`}
+                                    </option>
+                                  ))}
+                                </select>
+                                {banner.product_name ? (
+                                  <p className="mt-1 text-[11px] text-kova-green">
+                                    Opens: {banner.product_name}
+                                  </p>
+                                ) : null}
+                                {products.length === 0 ? (
+                                  <p className="mt-1 text-[11px] text-gray-500">
+                                    Add products in your catalog to link them
+                                    here.
+                                  </p>
+                                ) : null}
+                              </div>
+                              <div className="flex flex-wrap gap-2">
                                 <button
                                   type="button"
                                   disabled={

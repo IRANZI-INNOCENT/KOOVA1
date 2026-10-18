@@ -209,6 +209,14 @@ class CommercePageBanner(models.Model):
         blank=True,
         help_text="Short label for the slide, e.g. Weekend flash sale.",
     )
+    product = models.ForeignKey(
+        "commerce.Product",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="promo_banners",
+        help_text="Optional product this slide promotes (opens the product page).",
+    )
     display_order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
