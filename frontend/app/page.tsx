@@ -12,16 +12,42 @@ import OneWorkspaceSection from "@/components/landing/one-workspace";
 import FAQSection from "@/components/landing/faq-section";
 import FinalCTASection from "@/components/landing/final-cta";
 import Footer from "@/components/footer";
+import { JsonLd } from "@/components/seo/json-ld";
+import { LANDING_FAQ } from "@/lib/landing-faq";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+const homeMeta = buildPageMetadata({
   title: "KCOVA — Social Media, Products and WhatsApp Sales in One Place",
   description:
-    "Manage social content, prepare product listings, bring your products together on one commerce page, and guide customers to WhatsApp with KCOVA.",
+    "Sell on WhatsApp, Instagram, and Facebook from one workspace. Prepare product listings, share a commerce page, and guide customers to order — built for Kenyan shops.",
+  path: "/",
+});
+
+export const metadata: Metadata = {
+  ...homeMeta,
+  // Avoid "%s · KCOVA" doubling the brand on the homepage.
+  title: {
+    absolute: "KCOVA — Social Media, Products and WhatsApp Sales in One Place",
+  },
 };
 
 export default function Home() {
+  const faqLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: LANDING_FAQ.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.answer,
+      },
+    })),
+  };
+
   return (
     <main className="min-h-screen bg-kova-background">
+      <JsonLd data={faqLd} />
       <Navbar />
       <HeroSection />
       <PlatformsSection />

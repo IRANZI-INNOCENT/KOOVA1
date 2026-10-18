@@ -23,9 +23,15 @@ import {
   getCommercePage,
   publishCommercePage,
   saveCommercePage,
+  uploadCommercePageImage,
   type Business,
   type CommercePage,
 } from "@/lib/commerce";
+import { mediaSrc } from "@/lib/media";
+import {
+  FONT_PRESETS,
+  LAYOUT_PRESETS,
+} from "@/lib/store-theme";
 
 
 /**
@@ -72,7 +78,16 @@ export default function StorefrontPage() {
     email: "",
     phone: "",
     location: "",
+    slug: "",
+    primary_color: "#176B4D",
+    accent_color: "#F4B183",
+    layout_preset: "compact" as CommercePage["layout_preset"],
+    font_preset: "classic" as CommercePage["font_preset"],
+    show_hero: true,
+    show_about: true,
+    show_featured: false,
   });
+  const [uploading, setUploading] = useState<"logo" | "cover" | null>(null);
 
 
   /**
@@ -134,26 +149,8 @@ export default function StorefrontPage() {
           return;
         }
 
-        setPage(
-          commercePage,
-        );
-
-        setForm({
-          title:
-            commercePage.title || "",
-          tagline:
-            commercePage.tagline || "",
-          description:
-            commercePage.description || "",
-          whatsapp:
-            commercePage.whatsapp || "",
-          email:
-            commercePage.email || "",
-          phone:
-            commercePage.phone || "",
-          location:
-            commercePage.location || "",
-        });
+        setPage(commercePage);
+        setForm(formFromPage(commercePage));
 
       } catch (err) {
         if (cancelled) {
@@ -196,23 +193,91 @@ export default function StorefrontPage() {
   ]);
 
 
+  function formFromPage(commercePage: CommercePage) {
+    return {
+      title: commercePage.title || "",
+      tagline: commercePage.tagline || "",
+      description: commercePage.description || "",
+      whatsapp: commercePage.whatsapp || "",
+      email: commercePage.email || "",
+      phone: commercePage.phone || "",
+      location: commercePage.location || "",
+      slug: commercePage.slug || "",
+      primary_color: commercePage.primary_color || "#176B4D",
+      accent_color: commercePage.accent_color || "#F4B183",
+      layout_preset: (commercePage.layout_preset ||
+        "compact") as CommercePage["layout_preset"],
+      font_preset: (commercePage.font_preset ||
+        "classic") as CommercePage["font_preset"],
+      show_hero: commercePage.show_hero !== false,
+      show_about: commercePage.show_about !== false,
+      show_featured: !!commercePage.show_featured,
+    };
+  }
+
+  function brandingPayload() {
+    return {
+      title: form.title.trim(),
+      tagline: form.tagline.trim(),
+      description: form.description.trim(),
+      whatsapp: form.whatsapp.trim(),
+      email: form.email.trim(),
+      phone: form.phone.trim(),
+      location: form.location.trim(),
+      slug: form.slug.trim(),
+      primary_color: form.primary_color,
+      accent_color: form.accent_color,
+      layout_preset: form.layout_preset,
+      font_preset: form.font_preset,
+      show_hero: form.show_hero,
+      show_about: form.show_about,
+      show_featured: form.show_featured,
+    };
+  }
+
   /**
    * Update one storefront field without replacing the rest
    * of the form state.
    */
-  function updateField(
-    field: keyof typeof form,
-    value: string,
+  function updateField<K extends keyof typeof form>(
+    field: K,
+    value: (typeof form)[K],
   ): void {
-    setForm(
-      (current) => ({
-        ...current,
-        [field]: value,
-      }),
-    );
-
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
     setSuccess("");
     setError("");
+  }
+
+  async function handleImageUpload(
+    field: "logo" | "cover",
+    file: File | null,
+  ): Promise<void> {
+    if (!business || !accessToken || !file) return;
+    setUploading(field);
+    setError("");
+    try {
+      const updated = await uploadCommercePageImage(
+        business.id,
+        accessToken,
+        field,
+        file,
+      );
+      setPage(updated);
+      setSuccess(
+        field === "logo" ? "Logo uploaded." : "Cover image uploaded.",
+      );
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "We couldn't upload that image.",
+      );
+    } finally {
+      setUploading(null);
+    }
   }
 
 
@@ -243,34 +308,16 @@ export default function StorefrontPage() {
     setSuccess("");
 
     try {
-      const updatedPage =
-        await saveCommercePage(
-          business.id,
-          accessToken,
-          {
-            title: form.title.trim(),
-            tagline:
-              form.tagline.trim(),
-            description:
-              form.description.trim(),
-            whatsapp:
-              form.whatsapp.trim(),
-            email:
-              form.email.trim(),
-            phone:
-              form.phone.trim(),
-            location:
-              form.location.trim(),
-          },
-        );
-
-      setPage(
-        updatedPage,
+      const updatedPage = await saveCommercePage(
+        business.id,
+        accessToken,
+        brandingPayload(),
       );
 
-      setSuccess(
-        "Your storefront has been saved.",
-      );
+      setPage(updatedPage);
+      setForm(formFromPage(updatedPage));
+
+      setSuccess("Your storefront has been saved.");
 
     } catch (err) {
       console.error(
@@ -326,56 +373,22 @@ export default function StorefrontPage() {
     try {
       /**
        * Save the current form first so publishing never exposes
-       * stale storefront information.
+       * stale storefront information (including brand look).
        */
-      const savedPage =
-        await saveCommercePage(
-          business.id,
-          accessToken,
-          {
-            title: form.title.trim(),
-            tagline:
-              form.tagline.trim(),
-            description:
-              form.description.trim(),
-            whatsapp:
-              form.whatsapp.trim(),
-            email:
-              form.email.trim(),
-            phone:
-              form.phone.trim(),
-            location:
-              form.location.trim(),
-          },
-        );
-
-      const publishedPage =
-        await publishCommercePage(
-          business.id,
-          accessToken,
-          !page.is_published,
-        );
-
-      setPage(
-        publishedPage,
+      await saveCommercePage(
+        business.id,
+        accessToken,
+        brandingPayload(),
       );
 
-      setForm({
-        title:
-          savedPage.title || "",
-        tagline:
-          savedPage.tagline || "",
-        description:
-          savedPage.description || "",
-        whatsapp:
-          savedPage.whatsapp || "",
-        email:
-          savedPage.email || "",
-        phone:
-          savedPage.phone || "",
-        location:
-          savedPage.location || "",
-      });
+      const publishedPage = await publishCommercePage(
+        business.id,
+        accessToken,
+        !page.is_published,
+      );
+
+      setPage(publishedPage);
+      setForm(formFromPage(publishedPage));
 
       setSuccess(
         publishedPage.is_published
@@ -624,6 +637,254 @@ export default function StorefrontPage() {
 
                 <div className="border-t border-kova-border pt-6">
                   <p className="font-semibold text-kova-dark">
+                    Store link
+                  </p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Your public URL: /store/{form.slug || "your-shop"}
+                  </p>
+                  <input
+                    type="text"
+                    value={form.slug}
+                    onChange={(event) =>
+                      updateField("slug", event.target.value.toLowerCase())
+                    }
+                    placeholder="your-shop"
+                    className="mt-3 w-full border border-kova-border px-3 py-3 text-sm outline-none focus:border-kova-green"
+                  />
+                </div>
+
+                <div className="border-t border-kova-border pt-6">
+                  <p className="font-semibold text-kova-dark">
+                    Brand look
+                  </p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Colors, logo, and cover so your shop does not look like
+                    every other KCOVA storefront.
+                  </p>
+
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-kova-dark">
+                        Primary color
+                      </label>
+                      <div className="mt-2 flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={form.primary_color}
+                          onChange={(e) =>
+                            updateField("primary_color", e.target.value)
+                          }
+                          className="h-10 w-14 cursor-pointer border border-kova-border bg-white"
+                        />
+                        <input
+                          type="text"
+                          value={form.primary_color}
+                          onChange={(e) =>
+                            updateField("primary_color", e.target.value)
+                          }
+                          className="w-full border border-kova-border px-3 py-2 text-sm uppercase outline-none focus:border-kova-green"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-kova-dark">
+                        Accent color
+                      </label>
+                      <div className="mt-2 flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={form.accent_color}
+                          onChange={(e) =>
+                            updateField("accent_color", e.target.value)
+                          }
+                          className="h-10 w-14 cursor-pointer border border-kova-border bg-white"
+                        />
+                        <input
+                          type="text"
+                          value={form.accent_color}
+                          onChange={(e) =>
+                            updateField("accent_color", e.target.value)
+                          }
+                          className="w-full border border-kova-border px-3 py-2 text-sm uppercase outline-none focus:border-kova-green"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-kova-dark">
+                        Logo
+                      </label>
+                      {page?.logo_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={mediaSrc(page.logo_url)}
+                          alt=""
+                          className="mt-2 h-16 w-16 rounded-md object-cover border border-kova-border"
+                        />
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="mt-2 block w-full text-xs text-gray-500"
+                        disabled={uploading === "logo"}
+                        onChange={(e) =>
+                          handleImageUpload(
+                            "logo",
+                            e.target.files?.[0] ?? null,
+                          )
+                        }
+                      />
+                      {page?.logo_url && (
+                        <button
+                          type="button"
+                          className="mt-2 text-xs font-semibold text-red-600"
+                          onClick={async () => {
+                            if (!business || !accessToken) return;
+                            const updated = await saveCommercePage(
+                              business.id,
+                              accessToken,
+                              { clear_logo: true },
+                            );
+                            setPage(updated);
+                          }}
+                        >
+                          Remove logo
+                        </button>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-kova-dark">
+                        Cover image
+                      </label>
+                      {page?.cover_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={mediaSrc(page.cover_url)}
+                          alt=""
+                          className="mt-2 h-16 w-full max-w-[200px] rounded-md object-cover border border-kova-border"
+                        />
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="mt-2 block w-full text-xs text-gray-500"
+                        disabled={uploading === "cover"}
+                        onChange={(e) =>
+                          handleImageUpload(
+                            "cover",
+                            e.target.files?.[0] ?? null,
+                          )
+                        }
+                      />
+                      {page?.cover_url && (
+                        <button
+                          type="button"
+                          className="mt-2 text-xs font-semibold text-red-600"
+                          onClick={async () => {
+                            if (!business || !accessToken) return;
+                            const updated = await saveCommercePage(
+                              business.id,
+                              accessToken,
+                              { clear_cover: true },
+                            );
+                            setPage(updated);
+                          }}
+                        >
+                          Remove cover
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-kova-border pt-6">
+                  <p className="font-semibold text-kova-dark">Layout</p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Pick a preset — not a blank canvas. Your catalog stays easy
+                    to shop.
+                  </p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {LAYOUT_PRESETS.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() =>
+                          updateField("layout_preset", preset.id)
+                        }
+                        className={`rounded-md border px-3 py-3 text-left text-sm transition ${
+                          form.layout_preset === preset.id
+                            ? "border-kova-green bg-kova-green/5"
+                            : "border-kova-border bg-white hover:border-kova-green/40"
+                        }`}
+                      >
+                        <span className="font-semibold text-kova-dark">
+                          {preset.label}
+                        </span>
+                        <span className="mt-1 block text-xs text-gray-500">
+                          {preset.blurb}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <p className="mt-5 text-sm font-medium text-kova-dark">
+                    Type style
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {FONT_PRESETS.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => updateField("font_preset", preset.id)}
+                        className={`rounded-md border px-3 py-2 text-xs font-semibold ${
+                          form.font_preset === preset.id
+                            ? "border-kova-green bg-kova-green text-white"
+                            : "border-kova-border text-kova-dark"
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="mt-5 space-y-2 text-sm">
+                    <label className="flex items-center gap-2 text-kova-dark">
+                      <input
+                        type="checkbox"
+                        checked={form.show_hero}
+                        onChange={(e) =>
+                          updateField("show_hero", e.target.checked)
+                        }
+                      />
+                      Show hero / cover block
+                    </label>
+                    <label className="flex items-center gap-2 text-kova-dark">
+                      <input
+                        type="checkbox"
+                        checked={form.show_featured}
+                        onChange={(e) =>
+                          updateField("show_featured", e.target.checked)
+                        }
+                      />
+                      Show featured products strip
+                    </label>
+                    <label className="flex items-center gap-2 text-kova-dark">
+                      <input
+                        type="checkbox"
+                        checked={form.show_about}
+                        onChange={(e) =>
+                          updateField("show_about", e.target.checked)
+                        }
+                      />
+                      Show about text in the footer
+                    </label>
+                  </div>
+                </div>
+
+                <div className="border-t border-kova-border pt-6">
+                  <p className="font-semibold text-kova-dark">
                     Customer contact
                   </p>
 
@@ -782,16 +1043,89 @@ export default function StorefrontPage() {
               </div>
 
 
+              <div className="border border-kova-border bg-white p-6">
+                <p className="text-sm font-semibold uppercase tracking-[0.12em] text-kova-green">
+                  Live preview
+                </p>
+                <p className="mt-2 text-sm text-gray-500">
+                  How your header and accents will read for customers.
+                </p>
+                <div
+                  className="mt-4 overflow-hidden rounded-md border border-kova-border"
+                  style={{
+                    ["--store-primary" as string]: form.primary_color,
+                    ["--store-accent" as string]: form.accent_color,
+                  }}
+                >
+                  <div
+                    className="flex items-center justify-between gap-3 px-3 py-2.5 text-white"
+                    style={{ backgroundColor: "var(--store-primary)" }}
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      {page?.logo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={mediaSrc(page.logo_url)}
+                          alt=""
+                          className="h-7 w-7 rounded object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-7 w-7 items-center justify-center rounded bg-white/15 text-[10px] font-bold">
+                          {(form.title || "S").slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
+                      <span className="truncate text-sm font-bold">
+                        {form.title.trim() || "Your shop"}
+                      </span>
+                    </div>
+                    <span
+                      className="shrink-0 rounded px-2 py-1 text-[10px] font-bold text-kova-dark"
+                      style={{ backgroundColor: "var(--store-accent)" }}
+                    >
+                      WhatsApp
+                    </span>
+                  </div>
+                  <div className="bg-kova-background px-3 py-3">
+                    <p className="text-xs font-semibold text-kova-dark">
+                      Sample product
+                    </p>
+                    <p
+                      className="mt-1 text-sm font-bold"
+                      style={{ color: "var(--store-accent)" }}
+                    >
+                      KES 1,200
+                    </p>
+                    <p className="mt-2 text-[11px] text-gray-500">
+                      Layout:{" "}
+                      {LAYOUT_PRESETS.find((p) => p.id === form.layout_preset)
+                        ?.label || form.layout_preset}
+                      {" · "}
+                      {FONT_PRESETS.find((p) => p.id === form.font_preset)
+                        ?.label || form.font_preset}
+                    </p>
+                  </div>
+                </div>
+                {page?.slug && page.is_published && (
+                  <a
+                    href={`/store/${page.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 inline-flex text-sm font-semibold text-kova-green hover:underline"
+                  >
+                    Open live store →
+                  </a>
+                )}
+              </div>
+
               <div className="border border-kova-border bg-kova-background p-6">
                 <p className="font-semibold text-kova-dark">
                   What happens next?
                 </p>
 
                 <p className="mt-2 text-sm leading-6 text-gray-500">
-                  Your products will become part of this commerce
-                  presence. Kova can then use them when creating
-                  content, responding to customers, and supporting
-                  future social selling workflows.
+                  Save and publish when ready. Customers see your colors,
+                  logo, and layout on /store/{form.slug || "your-shop"}.
+                  Custom domains come later — “Powered by KCOVA” stays for now.
                 </p>
               </div>
 

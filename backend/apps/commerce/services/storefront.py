@@ -66,6 +66,14 @@ def publish_product_on_store(product: Product) -> CommercePage:
         product.status = Product.Status.ACTIVE
         product.save(update_fields=["status", "updated_at"])
 
+    try:
+        from apps.commerce.services.indexnow import notify_product
+
+        notify_product(product, page=page)
+    except Exception:
+        # Indexing must never block publishing.
+        pass
+
     return page
 
 

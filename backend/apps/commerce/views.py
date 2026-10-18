@@ -472,8 +472,10 @@ class ProductImageDetailView(BusinessOwnedAPIView):
 
 class CommercePageView(BusinessOwnedAPIView):
     """
-    Retrieve or update the Commerce Page.
+    Retrieve or update the Commerce Page (including branding uploads).
     """
+
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
 
     def get_or_create_page(self):
         business = self.get_business()
@@ -495,16 +497,38 @@ class CommercePageView(BusinessOwnedAPIView):
         page = self.get_or_create_page()
 
         return Response(
-            CommercePageSerializer(page).data
+            CommercePageSerializer(page, context={"request": request}).data
         )
 
     def patch(self, request, business_id):
         page = self.get_or_create_page()
+        old_slug = page.slug
+
+        data = request.data
+
+        def _flag(key: str) -> bool:
+            value = data.get(key, False)
+            if isinstance(value, bool):
+                return value
+            return str(value).lower() in ("1", "true", "yes")
+
+        clear_logo = _flag("clear_logo")
+        clear_cover = _flag("clear_cover")
+        image_updates: list[str] = []
+        if clear_logo:
+            page.logo = None
+            image_updates.append("logo")
+        if clear_cover:
+            page.cover = None
+            image_updates.append("cover")
+        if image_updates:
+            page.save(update_fields=[*image_updates, "updated_at"])
 
         serializer = CommercePageSerializer(
             page,
-            data=request.data,
+            data=data,
             partial=True,
+            context={"request": request},
         )
 
         serializer.is_valid(
@@ -512,9 +536,20 @@ class CommercePageView(BusinessOwnedAPIView):
         )
 
         serializer.save()
+        page.refresh_from_db()
+
+        if page.is_published:
+            try:
+                from apps.commerce.services.indexnow import notify_store_page, notify_urls, store_url
+
+                if old_slug != page.slug:
+                    notify_urls([store_url(old_slug), store_url(page.slug)])
+                notify_store_page(page)
+            except Exception:
+                pass
 
         return Response(
-            CommercePageSerializer(page).data
+            CommercePageSerializer(page, context={"request": request}).data
         )
 
 
@@ -545,9 +580,57 @@ class CommercePagePublishView(BusinessOwnedAPIView):
             ]
         )
 
+        if page.is_published:
+            try:
+                from apps.commerce.services.indexnow import notify_store_page
+
+                notify_store_page(page)
+            except Exception:
+                pass
+
         return Response(
-            CommercePageSerializer(page).data
+            CommercePageSerializer(page, context={"request": request}).data
         )
+
+
+class PublicSitemapCatalogView(APIView):
+    """
+    Lightweight catalog of published stores and active products for
+    the Next.js sitemap generator. Unauthenticated.
+    """
+
+    permission_classes = []
+
+    def get(self, request):
+        pages = (
+            CommercePage.objects
+            .filter(is_published=True)
+            .select_related("business")
+            .order_by("slug")
+        )
+        stores = []
+        for page in pages:
+            products = (
+                Product.objects
+                .filter(
+                    business=page.business,
+                    status=Product.Status.ACTIVE,
+                )
+                .only("slug", "updated_at")
+                .order_by("slug")
+            )
+            stores.append({
+                "slug": page.slug,
+                "updated_at": page.updated_at.isoformat(),
+                "products": [
+                    {
+                        "slug": product.slug,
+                        "updated_at": product.updated_at.isoformat(),
+                    }
+                    for product in products
+                ],
+            })
+        return Response({"stores": stores})
 
 
 class PublicStorefrontView(APIView):
@@ -581,7 +664,10 @@ class PublicStorefrontView(APIView):
         )
 
         return Response({
-            "page": CommercePageSerializer(page).data,
+            "page": CommercePageSerializer(
+                page,
+                context={"request": request},
+            ).data,
             "products": ProductSerializer(
                 products,
                 many=True,
@@ -625,7 +711,10 @@ class PublicProductView(APIView):
         )
 
         return Response({
-            "page": CommercePageSerializer(page).data,
+            "page": CommercePageSerializer(
+                page,
+                context={"request": request},
+            ).data,
             "product": ProductSerializer(
                 product,
                 context={"request": request},

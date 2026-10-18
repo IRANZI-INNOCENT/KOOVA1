@@ -33,16 +33,53 @@ class CommercePageAdmin(admin.ModelAdmin):
         "business",
         "slug",
         "is_published",
+        "layout_preset",
         "whatsapp",
         "phone",
         "updated_at",
     )
-    list_filter = ("is_published",)
+    list_filter = ("is_published", "layout_preset", "font_preset")
     list_editable = ("is_published",)
     search_fields = ("business__name", "slug", "title", "whatsapp", "phone")
     autocomplete_fields = ("business",)
     readonly_fields = ("created_at", "updated_at")
     actions = ("publish_stores", "unpublish_stores")
+    fieldsets = (
+        (
+            "Identity",
+            {
+                "fields": (
+                    "business",
+                    "slug",
+                    "title",
+                    "tagline",
+                    "description",
+                    "is_published",
+                )
+            },
+        ),
+        (
+            "Contact",
+            {"fields": ("whatsapp", "phone", "email", "location")},
+        ),
+        (
+            "Brand look",
+            {
+                "fields": (
+                    "primary_color",
+                    "accent_color",
+                    "logo",
+                    "cover",
+                    "layout_preset",
+                    "font_preset",
+                    "show_hero",
+                    "show_about",
+                    "show_featured",
+                )
+            },
+        ),
+        ("Dates", {"fields": ("created_at", "updated_at")}),
+    )
 
     @admin.action(description="Publish selected stores")
     def publish_stores(self, request, queryset):

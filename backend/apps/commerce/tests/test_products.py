@@ -285,6 +285,40 @@ class CommerceAPITests(APITestCase):
         page.refresh_from_db()
         self.assertFalse(page.is_published)
 
+    def test_commerce_page_branding_update(self):
+        """Owners can set colors, layout, sections, and slug."""
+        response = self.client.patch(
+            f"/api/commerce/{self.business.id}/page/",
+            {
+                "primary_color": "#0A5C3A",
+                "accent_color": "#E8A06A",
+                "layout_preset": "whatsapp_first",
+                "font_preset": "modern",
+                "show_hero": True,
+                "show_featured": True,
+                "show_about": False,
+                "slug": "kova-branded-shop",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data["primary_color"], "#0A5C3A")
+        self.assertEqual(response.data["accent_color"], "#E8A06A")
+        self.assertEqual(response.data["layout_preset"], "whatsapp_first")
+        self.assertEqual(response.data["font_preset"], "modern")
+        self.assertTrue(response.data["show_featured"])
+        self.assertFalse(response.data["show_about"])
+        self.assertEqual(response.data["slug"], "kova-branded-shop")
+
+        page = self.commerce_page
+        page.is_published = True
+        page.save(update_fields=["is_published"])
+
+        public = self.client.get("/api/commerce/public/kova-branded-shop/")
+        self.assertEqual(public.status_code, 200)
+        self.assertEqual(public.data["page"]["primary_color"], "#0A5C3A")
+        self.assertEqual(public.data["page"]["layout_preset"], "whatsapp_first")
+
     # ------------------------------------------------------------------
     # Public storefront
     # ------------------------------------------------------------------

@@ -297,6 +297,8 @@ class CommercePageSerializer(serializers.ModelSerializer):
         source="business.name",
         read_only=True,
     )
+    logo_url = serializers.SerializerMethodField()
+    cover_url = serializers.SerializerMethodField()
 
     class Meta:
         model = CommercePage
@@ -313,6 +315,17 @@ class CommercePageSerializer(serializers.ModelSerializer):
             "email",
             "phone",
             "location",
+            "primary_color",
+            "accent_color",
+            "logo",
+            "logo_url",
+            "cover",
+            "cover_url",
+            "layout_preset",
+            "font_preset",
+            "show_hero",
+            "show_about",
+            "show_featured",
             "is_published",
             "created_at",
             "updated_at",
@@ -322,10 +335,63 @@ class CommercePageSerializer(serializers.ModelSerializer):
             "id",
             "business",
             "business_name",
-            "slug",
+            "logo_url",
+            "cover_url",
             "created_at",
             "updated_at",
         ]
+        extra_kwargs = {
+            "logo": {"write_only": True, "required": False},
+            "cover": {"write_only": True, "required": False},
+        }
+
+    def get_logo_url(self, obj):
+        return self._absolute_image(obj.logo)
+
+    def get_cover_url(self, obj):
+        return self._absolute_image(obj.cover)
+
+    def _absolute_image(self, field):
+        if not field:
+            return None
+        request = self.context.get("request")
+        url = field.url
+        if request:
+            return request.build_absolute_uri(url)
+        return url
+
+    def validate_primary_color(self, value):
+        from apps.commerce.services.store_theme import normalize_hex_color
+
+        try:
+            return normalize_hex_color(value, default="#176B4D")
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
+
+    def validate_accent_color(self, value):
+        from apps.commerce.services.store_theme import normalize_hex_color
+
+        try:
+            return normalize_hex_color(value, default="#F4B183")
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
+
+    def validate_slug(self, value):
+        from apps.commerce.services.store_theme import normalize_store_slug
+
+        try:
+            cleaned = normalize_store_slug(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
+
+        qs = CommercePage.objects.filter(slug=cleaned)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError(
+                "That store link is already taken. Choose another.",
+            )
+        return cleaned
 
 
 class OrderSerializer(serializers.ModelSerializer):

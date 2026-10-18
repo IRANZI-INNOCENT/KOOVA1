@@ -30,7 +30,19 @@ class CommercePage(models.Model):
 
     Every business can have one Commerce Page. The page provides the
     public-facing storefront around the business and its products.
+    Owners can brand the page (colors, logo, layout) without a freeform builder.
     """
+
+    class LayoutPreset(models.TextChoices):
+        COMPACT = "compact", "Compact catalog"
+        EDITORIAL = "editorial", "Editorial"
+        WHATSAPP_FIRST = "whatsapp_first", "WhatsApp-first"
+        GALLERY = "gallery", "Gallery"
+
+    class FontPreset(models.TextChoices):
+        CLASSIC = "classic", "Classic"
+        MODERN = "modern", "Modern"
+        SOFT = "soft", "Soft"
 
     business = models.OneToOneField(
         Business,
@@ -74,6 +86,52 @@ class CommercePage(models.Model):
     location = models.CharField(
         max_length=200,
         blank=True,
+    )
+
+    # Visual identity (defaults match KCOVA chrome until the owner customizes)
+    primary_color = models.CharField(
+        max_length=7,
+        default="#176B4D",
+        blank=True,
+        help_text="Header/footer brand color as #RRGGBB.",
+    )
+    accent_color = models.CharField(
+        max_length=7,
+        default="#F4B183",
+        blank=True,
+        help_text="CTA / highlight color as #RRGGBB.",
+    )
+    logo = models.ImageField(
+        upload_to="commerce/storefront/%Y/%m/",
+        blank=True,
+        null=True,
+    )
+    cover = models.ImageField(
+        upload_to="commerce/storefront/%Y/%m/",
+        blank=True,
+        null=True,
+    )
+    layout_preset = models.CharField(
+        max_length=32,
+        choices=LayoutPreset.choices,
+        default=LayoutPreset.COMPACT,
+    )
+    font_preset = models.CharField(
+        max_length=32,
+        choices=FontPreset.choices,
+        default=FontPreset.CLASSIC,
+    )
+    show_hero = models.BooleanField(
+        default=True,
+        help_text="Show cover/hero block on the store home.",
+    )
+    show_about = models.BooleanField(
+        default=True,
+        help_text="Show about copy in the footer / about section.",
+    )
+    show_featured = models.BooleanField(
+        default=False,
+        help_text="Highlight a few products above the full grid.",
     )
 
     is_published = models.BooleanField(

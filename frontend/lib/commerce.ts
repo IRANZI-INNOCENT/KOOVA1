@@ -88,6 +88,15 @@ export interface CommercePage {
   email: string;
   phone: string;
   location: string;
+  primary_color?: string;
+  accent_color?: string;
+  logo_url?: string | null;
+  cover_url?: string | null;
+  layout_preset?: "compact" | "editorial" | "whatsapp_first" | "gallery";
+  font_preset?: "classic" | "modern" | "soft";
+  show_hero?: boolean;
+  show_about?: boolean;
+  show_featured?: boolean;
   is_published: boolean;
   created_at: string;
   updated_at: string;
@@ -194,14 +203,38 @@ export async function getCommercePage(
 export async function saveCommercePage(
   businessId: number,
   token: string,
-  payload: Partial<CommercePage>,
+  payload: Partial<CommercePage> & {
+    clear_logo?: boolean;
+    clear_cover?: boolean;
+  },
 ): Promise<CommercePage> {
+  invalidateResourceCache(`commerce-page:${businessId}`);
   return authenticatedApiRequest<CommercePage>(
     `/commerce/${businessId}/page/`,
     token,
     {
       method: "PATCH",
       body: JSON.stringify(payload),
+    },
+  );
+}
+
+/** Upload logo or cover (multipart). Other branding fields stay JSON via saveCommercePage. */
+export async function uploadCommercePageImage(
+  businessId: number,
+  token: string,
+  field: "logo" | "cover",
+  file: File,
+): Promise<CommercePage> {
+  const body = new FormData();
+  body.append(field, file);
+  invalidateResourceCache(`commerce-page:${businessId}`);
+  return authenticatedApiRequest<CommercePage>(
+    `/commerce/${businessId}/page/`,
+    token,
+    {
+      method: "PATCH",
+      body,
     },
   );
 }

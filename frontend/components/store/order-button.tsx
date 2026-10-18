@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 
 import { placeStoreOrder } from "@/lib/operations";
 import { whatsappLink } from "@/lib/storefront";
@@ -11,6 +11,7 @@ export function StoreOrderButton({
   productName,
   whatsapp,
   className,
+  style,
   children,
 }: {
   slug: string;
@@ -18,6 +19,7 @@ export function StoreOrderButton({
   productName: string;
   whatsapp: string;
   className?: string;
+  style?: CSSProperties;
   children: ReactNode;
 }) {
   const [busy, setBusy] = useState(false);
@@ -33,7 +35,13 @@ export function StoreOrderButton({
   }
 
   return (
-    <button type="button" onClick={onOrder} disabled={busy} className={className}>
+    <button
+      type="button"
+      onClick={onOrder}
+      disabled={busy}
+      className={className}
+      style={style}
+    >
       {children}
     </button>
   );

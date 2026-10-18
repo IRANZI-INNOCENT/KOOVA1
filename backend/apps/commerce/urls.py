@@ -12,6 +12,7 @@ from .views import (
     ProductListCreateView,
     PublicOrderView,
     PublicProductView,
+    PublicSitemapCatalogView,
     PublicStorefrontView,
     SnapToSellBatchView,
     SnapToSellView,
@@ -22,6 +23,13 @@ urlpatterns = [
     # --------------------------------------------------------------
     # Public storefront (unauthenticated)
     # --------------------------------------------------------------
+
+    # Fixed path before slug catch-all
+    path(
+        "public/sitemap/",
+        PublicSitemapCatalogView.as_view(),
+        name="public-sitemap-catalog",
+    ),
 
     path(
         "public/<slug:slug>/products/<slug:product_slug>/",

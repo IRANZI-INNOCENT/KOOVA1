@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 
 import { Logo } from "@/components/ui/logo";
 
@@ -8,10 +9,12 @@ const links = [
   { label: "How it works", href: "/#how-it-works" },
   { label: "Social", href: "/#social" },
   { label: "Commerce", href: "/#commerce" },
+  { label: "Guides", href: "/guides" },
 ];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-kova-green/95 pt-[env(safe-area-inset-top)] backdrop-blur-md">
@@ -19,15 +22,25 @@ export default function Navbar() {
         <Logo href="/" tone="light" />
 
         <nav className="hidden items-center gap-8 md:flex" aria-label="Primary">
-          {links.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-[13px] font-medium text-white/88 transition-colors hover:text-kova-orange focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-kova-green"
-            >
-              {link.label}
-            </a>
-          ))}
+          {links.map((link) => {
+            const active =
+              link.href === "/guides" &&
+              (pathname === "/guides" || pathname?.startsWith("/guides/"));
+            return (
+              <a
+                key={link.href}
+                href={link.href}
+                aria-current={active ? "page" : undefined}
+                className={
+                  active
+                    ? "text-[13px] font-semibold text-kova-orange transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-kova-green"
+                    : "text-[13px] font-medium text-white/88 transition-colors hover:text-kova-orange focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-kova-green"
+                }
+              >
+                {link.label}
+              </a>
+            );
+          })}
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -81,16 +94,26 @@ export default function Navbar() {
           className="border-t border-white/10 bg-kova-green px-5 py-3 md:hidden"
           aria-label="Mobile"
         >
-          {links.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              onClick={() => setOpen(false)}
-              className="block py-2.5 text-sm font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-            >
-              {link.label}
-            </a>
-          ))}
+          {links.map((link) => {
+            const active =
+              link.href === "/guides" &&
+              (pathname === "/guides" || pathname?.startsWith("/guides/"));
+            return (
+              <a
+                key={link.href}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                aria-current={active ? "page" : undefined}
+                className={
+                  active
+                    ? "block py-2.5 text-sm font-semibold text-kova-orange focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    : "block py-2.5 text-sm font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                }
+              >
+                {link.label}
+              </a>
+            );
+          })}
           <a
             href="/login"
             className="block py-2.5 text-sm font-medium text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"

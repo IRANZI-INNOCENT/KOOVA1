@@ -208,14 +208,15 @@ Set on the **API** service only:
 
 | Variable | Purpose |
 |----------|---------|
-| `KOVA_SUPERUSER_EMAIL` | Admin login email (created on first deploy) |
-| `KOVA_SUPERUSER_PASSWORD` | At least 12 characters; used only when the user is first created |
-| `KOVA_SUPERUSER_FORCE_PASSWORD` | Set to `1` to reset that password on the next deploy |
+| `KOVA_SUPERUSER_EMAIL` | Admin login email (`DJANGO_SUPERUSER_EMAIL` also accepted) |
+| `KOVA_SUPERUSER_PASSWORD` | At least 12 characters (`DJANGO_SUPERUSER_PASSWORD` also accepted). Synced on deploy when it does not already match |
+| `KOVA_SUPERUSER_FORCE_PASSWORD` | Set to `1` to always rewrite the password on deploy |
+| `KOVA_SUPERUSER_OPTIONAL` | Set to `1` only if you intentionally skip creating an admin (otherwise production **fails** the deploy when email/password are missing) |
 | `KOVA_ADMIN_GATE_SECRET` | Long random secret to open admin (optional if `DJANGO_SECRET_KEY` is set — see below) |
 | `KOVA_ADMIN_URL` | Optional path prefix (default `admin/`) |
 | `KOVA_ADMIN_IP_ALLOWLIST` | Optional comma-separated IPs/CIDRs allowed to reach admin |
 
-`ensure_superuser` runs in the Railway **preDeploy** hook after migrations.
+`ensure_superuser` runs in the Railway **preDeploy** hook after migrations and **before** `collectstatic`, so a static-files failure cannot skip admin creation. Missing credentials on Railway fail the deploy (clear error in logs) instead of silently skipping.
 
 **Opening admin in production**
 
@@ -229,14 +230,45 @@ Without the gate query param, `/admin/` returns 403.
 
 If you omit `KOVA_ADMIN_GATE_SECRET`, the gate value is derived from `DJANGO_SECRET_KEY` (SHA-256 of `SECRET_KEY + ":kova-admin-gate-v1"`). Set an explicit `KOVA_ADMIN_GATE_SECRET` when you want admin access independent of rotating the Django secret.
 
+## 9c. SEO — Search Console, Bing, IndexNow (site + API)
+
+Public discovery depends on the **site** host (`NEXT_PUBLIC_SITE_URL` / `FRONTEND_URL`).
+
+### Variables
+
+| Where | Variable | Purpose |
+|-------|----------|---------|
+| Site | `NEXT_PUBLIC_SITE_URL` | Canonical origin (no trailing slash) |
+| Site | `INDEXNOW_KEY` | Same random key as API (serves `/indexnow-key.txt`) |
+| Site | `GOOGLE_SITE_VERIFICATION` or `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` | Google Search Console HTML-tag content |
+| Site | `BING_SITE_VERIFICATION` or `NEXT_PUBLIC_BING_SITE_VERIFICATION` | Bing `msvalidate.01` content |
+| API | `FRONTEND_URL` | Must match the public site origin |
+| API | `INDEXNOW_KEY` | Same key as site; enables pings on store/product publish |
+| API | `INDEXNOW_DISABLED=1` | Optional kill switch |
+
+Generate a long random `INDEXNOW_KEY` (UUID without dashes is fine). Set it on **both** services.
+
+### After deploy
+
+1. Confirm `https://YOUR-SITE/sitemap.xml` and `https://YOUR-SITE/robots.txt`.
+2. Confirm `https://YOUR-SITE/indexnow-key.txt` returns the key body.
+3. Confirm `https://YOUR-SITE/llms.txt` loads (AI-engine summary).
+4. **Google Search Console** → Add the site property → verify with the meta tag env var → Submit sitemap `https://YOUR-SITE/sitemap.xml`.
+5. **Bing Webmaster Tools** → Add site → verify → Submit the same sitemap (IndexNow also notifies Bing automatically when catalogs publish).
+
+Publishing a store or activating a product triggers IndexNow for that store URL and product URLs. Failures are logged and never block commerce.
+
+Local / industry landing pages live under `/for/*` (e.g. Nairobi shops, fashion Kenya). Product SEO health scores appear in the commerce product editor to keep public listings crawl-ready.
+
 ## 10. Check the live site
 
 1. `https://YOUR-API.up.railway.app/api/health/` returns `{"status":"ok"}` (503 if Postgres is not attached).
 2. `https://YOUR-SITE.up.railway.app` opens the site.
 3. Sign up or sign in. The refresh cookie is sent from the site to the API, so both addresses must be the ones you set above.
 4. Open a public store page and confirm a product photo loads from `https://YOUR-API.up.railway.app/media/...`.
-5. Connect a Facebook Page from **Channels** after the redirect URI is saved in the Meta app.
-6. In the API deploy logs, look for `Attempted` from the scheduler and a comment pull on the first minute.
+5. In **Commerce → Store**, set brand colors / logo / layout, save, publish, and confirm the live `/store/...` header matches (migration `0005_commercepage_branding` runs with the usual preDeploy migrate). Custom domains ship later; “Powered by KCOVA” stays for now.
+6. Connect a Facebook Page from **Channels** after the redirect URI is saved in the Meta app.
+7. In the API deploy logs, look for `Attempted` from the scheduler and a comment pull on the first minute.
 
 ## Pre-deploy checklist (this repo)
 

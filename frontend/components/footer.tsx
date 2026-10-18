@@ -4,9 +4,14 @@ const productLinks = [
   { label: "How it works", href: "/#how-it-works" },
   { label: "Social", href: "/#social" },
   { label: "Commerce", href: "/#commerce" },
+  { label: "WhatsApp shops", href: "/for/whatsapp-shops" },
+  { label: "Instagram sellers", href: "/for/instagram-sellers" },
+  { label: "Nairobi shops", href: "/for/nairobi-shops" },
+  { label: "Fashion Kenya", href: "/for/fashion-kenya" },
 ];
 
 const companyLinks = [
+  { label: "Guides", href: "/guides" },
   { label: "Privacy", href: "/privacy" },
   { label: "Terms", href: "/terms" },
   { label: "Cookies", href: "/cookies" },

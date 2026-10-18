@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
+import { SeoHealthCard } from "@/components/commerce/seo-health-card";
 import { WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -552,8 +553,10 @@ export default function ProductDetailPage() {
               <section className="rounded-lg border border-kova-border bg-white p-6">
                 <h2 className="font-bold text-kova-dark">SEO</h2>
                 <p className="mt-0.5 text-xs text-gray-400">
-                  AI-generated metadata for search engines.
+                  Metadata for search engines and link previews on your public
+                  product page.
                 </p>
+                <SeoHealthCard product={product} />
                 <div className="mt-4 space-y-4">
                   <Input
                     label="SEO title"
@@ -577,6 +580,10 @@ export default function ProductDetailPage() {
                       rows={4}
                       className="w-full rounded-md border border-kova-border px-4 py-3 text-sm transition focus:border-kova-orange focus:outline-none focus:ring-1 focus:ring-kova-orange"
                     />
+                    <p className="mt-1.5 text-xs text-gray-400">
+                      {(product.seo_description || "").trim().length}/160
+                      characters (aim 50–160)
+                    </p>
                   </div>
                 </div>
               </section>

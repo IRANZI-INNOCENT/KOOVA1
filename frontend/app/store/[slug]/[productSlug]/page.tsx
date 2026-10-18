@@ -1,83 +1,60 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { StoreOrderButton } from "@/components/store/order-button";
+import { ProductGallery } from "@/components/store/product-gallery";
 import { StoreFrame } from "@/components/store/store-frame";
-import { type CommercePage, type Product } from "@/lib/commerce";
+import { JsonLd } from "@/components/seo/json-ld";
+import { mediaSrc } from "@/lib/media";
+import { fetchPublicProduct } from "@/lib/public-store-api";
+import { buildPageMetadata } from "@/lib/seo";
+import { absoluteUrl } from "@/lib/site-url";
 import { formatPrice } from "@/lib/storefront";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+type Params = { slug: string; productSlug: string };
 
-interface PublicProductResponse {
-  page: CommercePage;
-  product: Product;
-  related_products: Product[];
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<Params>;
+}): Promise<Metadata> {
+  const { slug, productSlug } = await params;
+  const data = await fetchPublicProduct(slug, productSlug);
+  if (!data) {
+    return { title: "Product not found", robots: { index: false } };
+  }
+  const { page, product } = data;
+  const title =
+    product.seo_title?.trim() ||
+    `${product.name} | ${page.business_name}`;
+  const description =
+    product.seo_description?.trim() ||
+    product.short_description?.trim() ||
+    `Buy ${product.name} from ${page.business_name}. Order on WhatsApp.`;
+  const primary =
+    product.images.find((i) => i.is_primary)?.url ||
+    product.images[0]?.url ||
+    undefined;
+
+  return buildPageMetadata({
+    title,
+    description,
+    path: `/store/${slug}/${productSlug}`,
+    images: primary ? [mediaSrc(primary)] : undefined,
+  });
 }
 
-export default function PublicProductPage() {
-  const params = useParams<{ slug: string; productSlug: string }>();
-  const [data, setData] = useState<PublicProductResponse | null>(null);
-  const [error, setError] = useState("");
-  const [activeImage, setActiveImage] = useState(0);
-
-  useEffect(() => {
-    setData(null);
-    setError("");
-    setActiveImage(0);
-
-    fetch(
-      `${API_URL}/commerce/public/${params.slug}/products/${params.productSlug}/`,
-    )
-      .then(async (response) => {
-        if (!response.ok) throw new Error("This product is not available.");
-        return response.json();
-      })
-      .then(setData)
-      .catch((err) =>
-        setError(
-          err instanceof Error
-            ? err.message
-            : "This product is not available.",
-        ),
-      );
-  }, [params.slug, params.productSlug]);
-
-  if (error) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-kova-background px-6 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-kova-orange/15">
-          <span className="text-xl text-kova-orange">!</span>
-        </div>
-        <p className="mt-4 text-lg font-semibold text-kova-dark">
-          Product unavailable
-        </p>
-        <p className="mt-2 text-sm text-gray-500">{error}</p>
-        <Link
-          href={`/store/${params.slug}`}
-          className="mt-5 text-sm font-bold text-kova-orange hover:underline"
-        >
-          Back to the store
-        </Link>
-      </main>
-    );
-  }
-
-  if (!data) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-kova-background">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-kova-orange border-t-transparent" />
-      </main>
-    );
-  }
+export default async function PublicProductPage({
+  params,
+}: {
+  params: Promise<Params>;
+}) {
+  const { slug, productSlug } = await params;
+  const data = await fetchPublicProduct(slug, productSlug);
+  if (!data) notFound();
 
   const { page, product, related_products: related } = data;
-  const images = [...product.images].sort(
-    (a, b) => a.display_order - b.display_order,
-  );
-  const image = images[activeImage] ?? images[0];
   const facts = [
     product.brand && ["Brand", product.brand],
     product.material && ["Material", product.material],
@@ -87,13 +64,48 @@ export default function PublicProductPage() {
     product.sku && ["SKU", product.sku],
   ].filter(Boolean) as [string, string][];
 
+  const productUrl = absoluteUrl(`/store/${slug}/${productSlug}`);
+  const availability =
+    product.stock != null && product.stock <= 0
+      ? "https://schema.org/OutOfStock"
+      : "https://schema.org/InStock";
+
+  const productLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description:
+      product.seo_description ||
+      product.short_description ||
+      product.description ||
+      undefined,
+    image: product.images
+      .map((img) => (img.url ? mediaSrc(img.url) : ""))
+      .filter(Boolean),
+    sku: product.sku || undefined,
+    brand: product.brand
+      ? { "@type": "Brand", name: product.brand }
+      : { "@type": "Brand", name: page.business_name },
+    offers: {
+      "@type": "Offer",
+      url: productUrl,
+      priceCurrency: product.currency || "KES",
+      price: product.price || undefined,
+      availability,
+      seller: {
+        "@type": "Organization",
+        name: page.business_name,
+      },
+    },
+  };
+
   return (
-    <StoreFrame page={page} slug={params.slug}>
-      {/* Breadcrumb */}
+    <StoreFrame page={page} slug={slug}>
+      <JsonLd data={productLd} />
       <div className="border-b border-kova-border bg-white">
         <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6">
           <Link
-            href={`/store/${params.slug}`}
+            href={`/store/${slug}`}
             className="text-sm font-semibold text-kova-orange hover:underline"
           >
             ← All products
@@ -101,50 +113,9 @@ export default function PublicProductPage() {
         </div>
       </div>
 
-      {/* ──── Product layout ──── */}
       <section className="mx-auto grid max-w-6xl gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        {/* Images */}
-        <div>
-          <div className="aspect-square overflow-hidden rounded-lg border border-kova-border bg-white">
-            {image?.url ? (
-              <img
-                src={image.url}
-                alt={image.alt_text || product.name}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-gray-400">
-                No image
-              </div>
-            )}
-          </div>
-          {images.length > 1 && (
-            <div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-5 sm:gap-3">
-              {images.map((item, index) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setActiveImage(index)}
-                  className={`aspect-square overflow-hidden rounded-lg border bg-white transition ${
-                    index === activeImage
-                      ? "border-kova-orange ring-1 ring-kova-orange/30"
-                      : "border-kova-border hover:border-kova-orange/40"
-                  }`}
-                >
-                  {item.url && (
-                    <img
-                      src={item.url}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <ProductGallery images={product.images} productName={product.name} />
 
-        {/* Details */}
         <div>
           {product.category && (
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-400">
@@ -154,7 +125,10 @@ export default function PublicProductPage() {
           <h1 className="mt-2 break-words text-2xl font-bold tracking-tight text-kova-dark sm:text-3xl">
             {product.name}
           </h1>
-          <p className="mt-4 text-2xl font-bold text-kova-orange">
+          <p
+            className="mt-4 text-2xl font-bold"
+            style={{ color: "var(--store-accent)" }}
+          >
             {formatPrice(product.currency, product.price)}
           </p>
           {product.stock != null && (
@@ -170,14 +144,17 @@ export default function PublicProductPage() {
             </p>
           )}
 
-          {/* WhatsApp CTA */}
           {page.whatsapp && (
             <StoreOrderButton
-              slug={params.slug}
-              productSlug={params.productSlug}
+              slug={slug}
+              productSlug={productSlug}
               productName={product.name}
               whatsapp={page.whatsapp}
-              className="mt-6 inline-flex h-12 items-center justify-center rounded-lg bg-kova-orange px-6 text-sm font-bold text-kova-dark shadow-sm transition hover:bg-[#f0a46e] disabled:opacity-70"
+              className="mt-6 inline-flex h-12 items-center justify-center rounded-lg px-6 text-sm font-bold shadow-sm transition hover:brightness-105 disabled:opacity-70"
+              style={{
+                backgroundColor: "var(--store-accent)",
+                color: "var(--store-on-accent)",
+              }}
             >
               <svg
                 width="18"
@@ -196,7 +173,6 @@ export default function PublicProductPage() {
             </StoreOrderButton>
           )}
 
-          {/* Selling points */}
           {product.selling_points?.length > 0 && (
             <ul className="mt-8 space-y-2.5">
               {product.selling_points.map((point) => (
@@ -211,7 +187,6 @@ export default function PublicProductPage() {
             </ul>
           )}
 
-          {/* Full description */}
           {product.description && (
             <div className="mt-8">
               <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-gray-400">
@@ -223,7 +198,6 @@ export default function PublicProductPage() {
             </div>
           )}
 
-          {/* Specs table */}
           {facts.length > 0 && (
             <dl className="mt-8 overflow-hidden rounded-lg border border-kova-border bg-white">
               {facts.map(([label, value], i) => (
@@ -244,28 +218,26 @@ export default function PublicProductPage() {
         </div>
       </section>
 
-      {/* ──── Related products ──── */}
       {related.length > 0 && (
         <section className="border-t border-kova-border bg-white">
           <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
             <h2 className="text-xl font-bold text-kova-dark">
               More from {page.business_name}
             </h2>
-            <div className="mt-6 grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {related.map((item) => {
                 const thumb =
-                  item.images.find((img) => img.is_primary) ??
-                  item.images[0];
+                  item.images.find((img) => img.is_primary) ?? item.images[0];
                 return (
                   <Link
                     key={item.id}
-                    href={`/store/${params.slug}/${item.slug}`}
+                    href={`/store/${slug}/${item.slug}`}
                     className="group overflow-hidden rounded-lg border border-kova-border bg-white transition hover:border-kova-orange/50 hover:shadow-sm"
                   >
                     <div className="aspect-square overflow-hidden bg-kova-background">
                       {thumb?.url && (
                         <img
-                          src={thumb.url}
+                          src={mediaSrc(thumb.url)}
                           alt={item.name}
                           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
@@ -275,7 +247,10 @@ export default function PublicProductPage() {
                       <p className="line-clamp-2 text-sm font-semibold text-kova-dark">
                         {item.name}
                       </p>
-                      <p className="mt-1.5 text-sm font-bold text-kova-orange">
+                      <p
+                        className="mt-1.5 text-sm font-bold"
+                        style={{ color: "var(--store-accent)" }}
+                      >
                         {formatPrice(item.currency, item.price)}
                       </p>
                     </div>
