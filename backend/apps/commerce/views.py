@@ -674,11 +674,11 @@ class CommercePageBannerDetailView(BusinessOwnedAPIView):
             else:
                 try:
                     product_id = int(raw)
-                except (TypeError, ValueError) as exc:
+                except (TypeError, ValueError):
                     return Response(
                         {"detail": "Choose a valid product."},
                         status=status.HTTP_400_BAD_REQUEST,
-                    ) from exc
+                    )
                 product = get_object_or_404(
                     Product,
                     id=product_id,
