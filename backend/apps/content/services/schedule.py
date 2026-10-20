@@ -1,5 +1,6 @@
 """
-Ask Kova when each drafted post should go out.
+Ask Kova when each drafted post should go out, then clamp to
+BusinessPolicy posting cadence (Meta-aligned day/week/gap limits).
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from django.utils import timezone
 from apps.businesses.models import Business
 from apps.content.models import Content
 from apps.kova_ai.services.openrouter import OpenRouterError, OpenRouterService
+from apps.social.services.posting_limits import get_cadence_limits, plan_publish_times
 from apps.social.services.publish import enqueue, parse_when
 
 NAIROBI = ZoneInfo("Africa/Nairobi")
@@ -24,7 +26,7 @@ def schedule_posts(
     *,
     autopilot: bool = False,
 ) -> list[dict]:
-    """Place each post on the calendar at a time Kova chooses."""
+    """Place each post on the calendar at a cadence-safe time."""
     contents = list(
         Content.objects.filter(business=business, pk__in=content_ids)
         .exclude(status=Content.Status.REJECTED)
@@ -38,42 +40,54 @@ def schedule_posts(
 
         return publish_autopilot_batch(business, content_ids)
 
+    preferred: dict[int, datetime] = {}
     try:
-        plan = _ask_for_times(business, contents, autopilot=autopilot)
+        plan = _ask_for_times(business, contents)
     except OpenRouterError:
         plan = []
 
-    by_id = {content.id: content for content in contents}
-    scheduled: list[dict] = []
     now = timezone.now()
+    by_id = {content.id: content for content in contents}
 
     for item in plan:
         try:
             content_id = int(item.get("content_id"))
         except (TypeError, ValueError):
             continue
-        content = by_id.get(content_id)
-        if content is None:
+        if content_id not in by_id:
             continue
         when = _future_time(parse_when(item.get("scheduled_at")), now)
         if when is None:
             continue
+        preferred[content_id] = when
+
+    # Prefer AI order when present; otherwise content id order.
+    ordered = sorted(
+        contents,
+        key=lambda c: (preferred[c.id].timestamp() if c.id in preferred else 1e20, c.id),
+    )
+    planned = plan_publish_times(
+        business,
+        ordered,
+        now=now,
+        preferred=preferred or None,
+    )
+    if not planned:
+        raise ValueError(
+            "Posting limits are full for your Facebook/Instagram cadence. "
+            "Raise the limits under Settings → Business policy, or wait "
+            "for the next open slot."
+        )
+
+    scheduled: list[dict] = []
+    for content, when in planned:
+        reason = ""
+        if content.id in preferred:
+            reason = "Placed within your posting limits."
+        else:
+            reason = "Spread to respect your Facebook/Instagram posting limits."
         enqueue(content, when)
-        scheduled.append(_scheduled_row(content, when, item.get("reason")))
-
-    missing = set(by_id) - {row["content_id"] for row in scheduled}
-    if missing:
-        for content, when in _fallback_times(
-            [by_id[cid] for cid in sorted(missing)],
-            now,
-            autopilot=autopilot,
-        ):
-            enqueue(content, when)
-            scheduled.append(_scheduled_row(content, when, "Spread on the calendar."))
-
-    still_missing = set(by_id) - {row["content_id"] for row in scheduled}
-    if still_missing:
-        raise OpenRouterError("Kova could not place every post on the calendar.")
+        scheduled.append(_scheduled_row(content, when, reason))
     return scheduled
 
 
@@ -98,32 +112,12 @@ def _future_time(when: datetime | None, now: datetime) -> datetime | None:
     return when
 
 
-def _fallback_times(
-    contents: list[Content],
-    now: datetime,
-    *,
-    autopilot: bool,
-) -> list[tuple[Content, datetime]]:
-    """Deterministic spacing when the model omits or backdates slots."""
-    if not contents:
-        return []
-    start_gap = timedelta(minutes=45 if autopilot else 90)
-    step = timedelta(hours=6)
-    rows: list[tuple[Content, datetime]] = []
-    cursor = now + start_gap
-    for index, content in enumerate(contents):
-        when = cursor + step * index
-        rows.append((content, when))
-    return rows
-
-
 def _ask_for_times(
     business: Business,
     contents: list[Content],
-    *,
-    autopilot: bool = False,
 ) -> list[dict]:
     now = datetime.now(NAIROBI)
+    limits = get_cadence_limits(business)
     pieces = [
         {
             "content_id": content.id,
@@ -141,17 +135,20 @@ def _ask_for_times(
                 "role": "system",
                 "content": (
                     "You are Kova, scheduling social posts for a business in Kenya. "
-                    "Spread the posts across the next 7 days. Prefer late afternoon and "
+                    "Spread the posts across the next 7–14 days. Prefer late afternoon and "
                     "evening in Nairobi, when shoppers are likely to see them. "
-                    "Do not place two posts in the same hour. "
+                    "Respect these hard cadence caps (Meta does not publish a single "
+                    "official number; these match common Page/IG guidance and the "
+                    "owner's settings):\n"
+                    f"- Facebook: max {limits.facebook_max_per_day}/day, "
+                    f"{limits.facebook_max_per_week}/week\n"
+                    f"- Instagram: max {limits.instagram_max_per_day}/day, "
+                    f"{limits.instagram_max_per_week}/week\n"
+                    f"- At least {limits.min_hours_between} hours between posts "
+                    "on the same channel.\n"
+                    "Do not place two posts for the same channel closer than that gap. "
                     "Vary products so the same product is not posted back to back. "
-                    + (
-                        "Autopilot is on: place the first post within the next 90 minutes, "
-                        "then space the rest across the week. "
-                        if autopilot
-                        else ""
-                    )
-                    + "Return JSON {\"plan\": [{\"content_id\": number, "
+                    "Return JSON {\"plan\": [{\"content_id\": number, "
                     "\"scheduled_at\": ISO-8601 with +03:00, \"reason\": short string}]}. "
                     "Include every content_id exactly once. Every time must be in the future."
                 ),

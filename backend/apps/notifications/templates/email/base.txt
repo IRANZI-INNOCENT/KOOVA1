@@ -1,0 +1,19 @@
+KCOVA — {{ category_label }}
+{{ title }}
+
+{% if greeting %}{{ greeting }}
+
+{% endif %}{% for paragraph in paragraphs %}{{ paragraph }}
+
+{% endfor %}{% if stats %}{% for stat in stats %}{{ stat.label }}: {{ stat.value }}
+{% endfor %}
+{% endif %}{% if bullets %}{% for bullet in bullets %}- {{ bullet }}
+{% endfor %}
+{% endif %}{% if cta_url %}{{ cta_label }}: {{ cta_url }}
+{% endif %}{% if secondary_url %}{{ secondary_label }}: {{ secondary_url }}
+{% endif %}
+--
+{% if footer_context %}You’re getting this because you manage {{ footer_context }} on KCOVA.
+{% else %}You’re getting this because you have a KCOVA account.
+{% endif %}{% if prefs_url %}Manage email preferences: {{ prefs_url }}
+{% endif %}{{ site_url }}

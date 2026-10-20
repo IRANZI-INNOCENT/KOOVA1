@@ -49,6 +49,22 @@ FAKE_BRIEF_JSON = json.dumps({
     },
 })
 
+FAKE_WEEKLY_JSON = json.dumps({
+    "greeting": "Week in review for Test Biz",
+    "summary": {
+        "headline": "Quiet but steady week.",
+        "metrics": [{"label": "Posts", "value": 2, "change": "up"}],
+    },
+    "wins": {"summary": "Published consistently.", "items": []},
+    "gaps": {"summary": "Inbox still light.", "items": []},
+    "channels": {"summary": "Facebook carried reach.", "highlights": ["2 posts"]},
+    "commerce": {"summary": "No new orders.", "highlights": []},
+    "next_week": {
+        "summary": "Push one product feature.",
+        "steps": ["Draft product posts", "Reply faster"],
+    },
+})
+
 
 class FakeResponse:
     """Mocks OpenRouterService.chat()."""
@@ -104,10 +120,17 @@ class GatherTests(TestCase):
         evidence = gather_evidence(self.business)
         self.assertIn("business", evidence)
         self.assertIn("social", evidence)
+        self.assertIn("publishing", evidence)
+        self.assertIn("cadence", evidence)
+        self.assertIn("inbox", evidence)
         self.assertIn("content", evidence)
         self.assertIn("leads", evidence)
         self.assertIn("commerce", evidence)
         self.assertIn("actions", evidence)
+        self.assertEqual(
+            evidence["business"]["report_to"]["role"],
+            "business_manager",
+        )
 
     def test_gather_counts_content(self):
         Content.objects.create(
@@ -183,3 +206,19 @@ class BriefAPITests(TestCase):
         anon = APIClient()
         resp = anon.get(f"/api/brief/{self.business.id}/latest/")
         self.assertEqual(resp.status_code, 401)
+
+    def test_weekly_latest_empty(self):
+        resp = self.client.get(f"/api/brief/{self.business.id}/weekly/latest/")
+        self.assertEqual(resp.status_code, 404)
+
+    @patch("apps.brief.services.weekly.OpenRouterService")
+    def test_generate_weekly_report(self, MockService):
+        instance = MockService.return_value
+        instance.chat.return_value = FakeResponse(FAKE_WEEKLY_JSON)
+
+        resp = self.client.post(f"/api/brief/{self.business.id}/weekly/latest/")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["status"], "ready")
+        self.assertIn("summary", data["sections"])
+        self.assertIn("next_week", data["sections"])

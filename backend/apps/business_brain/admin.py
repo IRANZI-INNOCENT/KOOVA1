@@ -43,6 +43,8 @@ class BusinessPolicyAdmin(_BrainAdmin):
         "business",
         "social_operating_mode",
         "allow_auto_publish",
+        "facebook_max_posts_per_day",
+        "instagram_max_posts_per_week",
         "allow_comment_replies",
         "allow_dm_replies",
         "updated_at",
@@ -52,6 +54,38 @@ class BusinessPolicyAdmin(_BrainAdmin):
         "allow_auto_publish",
         "allow_comment_replies",
         "allow_dm_replies",
+    )
+    fieldsets = (
+        (None, {
+            "fields": (
+                "business",
+                "social_operating_mode",
+                "allow_content_creation",
+                "allow_auto_publish",
+                "allow_comment_replies",
+                "allow_dm_replies",
+                "allow_lead_creation",
+                "allow_product_management",
+                "allow_order_management",
+                "require_discount_approval",
+                "max_auto_discount_percent",
+                "require_refund_approval",
+                "require_payment_approval",
+                "automation_paused",
+                "automation_pause_reason",
+                "created_at",
+                "updated_at",
+            ),
+        }),
+        ("Posting cadence", {
+            "fields": (
+                "facebook_max_posts_per_day",
+                "facebook_max_posts_per_week",
+                "instagram_max_posts_per_day",
+                "instagram_max_posts_per_week",
+                "min_hours_between_posts",
+            ),
+        }),
     )
 
 

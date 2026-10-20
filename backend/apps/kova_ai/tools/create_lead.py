@@ -122,6 +122,16 @@ class CreateLeadTool(Tool):
         if not Lead.objects.filter(pk=lead.pk).exists():
             return self._failure("Lead was not persisted to the database.")
 
+        try:
+            from apps.businesses.models import Business
+            from apps.notifications.services.events import send_new_lead
+
+            business = Business.objects.filter(pk=business_id).select_related("owner").first()
+            if business is not None:
+                send_new_lead(business, lead)
+        except Exception:
+            pass
+
         return ToolResult(
             status=ToolStatus.SUCCESS,
             message="Lead created and saved to database.",

@@ -74,9 +74,16 @@ class SignupSerializer(serializers.ModelSerializer):
         Using create_user() ensures the password is properly hashed.
         """
 
-        return User.objects.create_user(
+        user = User.objects.create_user(
             **validated_data,
         )
+        try:
+            from apps.notifications.services.events import send_welcome
+
+            send_welcome(user)
+        except Exception:
+            pass
+        return user
 
 class LoginSerializer(serializers.Serializer):
     """

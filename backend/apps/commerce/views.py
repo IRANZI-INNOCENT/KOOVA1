@@ -1221,6 +1221,12 @@ class OrderListView(BusinessOwnedAPIView):
             quantity=int(request.data.get("quantity") or 1),
             source=Order.Source.MANUAL,
         )
+        try:
+            from apps.notifications.services.events import send_new_order
+
+            send_new_order(business, order)
+        except Exception:
+            pass
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 
 
@@ -1261,6 +1267,12 @@ class PublicOrderView(APIView):
             note=(request.data.get("note") or "")[:1000],
             source=Order.Source.STORE,
         )
+        try:
+            from apps.notifications.services.events import send_new_order
+
+            send_new_order(page.business, order)
+        except Exception:
+            pass
         return Response(
             {"id": order.id, "status": order.status},
             status=status.HTTP_201_CREATED,

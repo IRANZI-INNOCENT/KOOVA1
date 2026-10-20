@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "apps.leads",
     "apps.social",
     "apps.brief",
+    "apps.notifications.apps.NotificationsConfig",
     "apps.kova_ai",
     "apps.professional",
 ]
@@ -224,3 +225,8 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 
 CELERY_TIMEZONE = TIME_ZONE
+
+# Transactional email (Resend)
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
+EMAIL_FROM = os.getenv("EMAIL_FROM", "KCOVA <noreply@kcova.com>").strip()
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000").strip().rstrip("/")

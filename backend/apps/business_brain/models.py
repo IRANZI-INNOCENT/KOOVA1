@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.db import models
-from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
 
 class BusinessProfile(models.Model):
@@ -346,6 +345,34 @@ class BusinessPolicy(models.Model):
 
     require_payment_approval = models.BooleanField(
         default=True,
+    )
+
+    # Social posting cadence (Meta does not publish a hard rule; defaults
+    # follow common 2025–2026 Page/IG best-practice ranges).
+    facebook_max_posts_per_day = models.PositiveSmallIntegerField(
+        default=2,
+        validators=[MinValueValidator(0), MaxValueValidator(10)],
+        help_text="Max Facebook Page posts per day (recommended 1–2).",
+    )
+    facebook_max_posts_per_week = models.PositiveSmallIntegerField(
+        default=10,
+        validators=[MinValueValidator(0), MaxValueValidator(40)],
+        help_text="Max Facebook Page posts per week (recommended ~7–14).",
+    )
+    instagram_max_posts_per_day = models.PositiveSmallIntegerField(
+        default=1,
+        validators=[MinValueValidator(0), MaxValueValidator(10)],
+        help_text="Max Instagram feed posts per day (recommended ~1).",
+    )
+    instagram_max_posts_per_week = models.PositiveSmallIntegerField(
+        default=5,
+        validators=[MinValueValidator(0), MaxValueValidator(40)],
+        help_text="Max Instagram feed posts per week (recommended 3–5).",
+    )
+    min_hours_between_posts = models.PositiveSmallIntegerField(
+        default=4,
+        validators=[MinValueValidator(1), MaxValueValidator(48)],
+        help_text="Minimum hours between posts on the same channel.",
     )
 
     automation_paused = models.BooleanField(

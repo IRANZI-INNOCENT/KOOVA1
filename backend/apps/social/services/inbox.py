@@ -256,6 +256,12 @@ def _attach_lead(message: SocialMessage, product_name: str = "") -> None:
     )
     message.lead = lead
     message.save(update_fields=["lead"])
+    try:
+        from apps.notifications.services.events import send_new_lead
+
+        send_new_lead(message.business, lead)
+    except Exception:
+        pass
     if product is not None and product.stock is None:
         message.needs_review = True
         message.save(update_fields=["needs_review"])

@@ -135,25 +135,44 @@ def enqueue(content: Content, scheduled_at: datetime | None = None) -> SocialPos
 
 def publish_autopilot_batch(business, content_ids: list[int]) -> list[dict]:
     """
-    Autopilot: send drafts live with a short stagger (not a distant calendar slot).
+    Autopilot: enqueue drafts at cadence-safe times from BusinessPolicy.
 
-    The first piece publishes during the shift; the rest follow within a few minutes
-    and are picked up by dispatch_due (shift end or the worker loop).
+    Pieces that fit today's remaining slots go out during the shift;
+    later ones land on future open slots (hours/days apart), not every
+    75 seconds.
     """
+    from apps.social.services.posting_limits import plan_publish_times
+
     contents = list(
         Content.objects.filter(business=business, pk__in=content_ids)
         .exclude(status=Content.Status.REJECTED)
+        .select_related("product")
         .order_by("id")
     )
     if not contents:
         raise ValueError("There is no content to publish.")
 
     now = timezone.now()
-    gap = timedelta(seconds=75)
+    planned = plan_publish_times(business, contents, now=now)
+    if not planned:
+        raise ValueError(
+            "Posting limits are full for your Facebook/Instagram cadence. "
+            "Raise the limits under Settings → Business policy, or wait "
+            "for the next open slot."
+        )
+
     rows: list[dict] = []
-    for index, content in enumerate(contents):
-        when = now if index == 0 else now + gap * index
+    for content, when in planned:
         enqueue(content, when)
+        delta = when - now
+        if delta <= timedelta(seconds=90):
+            reason = "Autopilot: publishing now (within your posting limits)."
+        else:
+            hours = max(1, int(delta.total_seconds() // 3600))
+            reason = (
+                f"Autopilot: scheduled in about {hours}h to respect "
+                "your Facebook/Instagram posting limits."
+            )
         rows.append(
             {
                 "content_id": content.id,
@@ -161,11 +180,7 @@ def publish_autopilot_batch(business, content_ids: list[int]) -> list[dict]:
                 "content_type": content.content_type,
                 "product_name": content.product.name if content.product_id else "",
                 "scheduled_at": when.isoformat(),
-                "reason": (
-                    "Autopilot: publishing now."
-                    if index == 0
-                    else f"Autopilot: sending in about {index * 75 // 60 or 1} min."
-                ),
+                "reason": reason,
             }
         )
 
@@ -286,6 +301,17 @@ def dispatch_post(post: SocialPost) -> SocialPost:
     _record_publish_action(account, content, post, result_ok, action_result, raw)
     _remember_outcome(post, result_ok, action_result)
     if not result_ok:
+        try:
+            from apps.notifications.services.events import send_publish_failed
+
+            send_publish_failed(
+                account.business,
+                platform=account.platform,
+                error=post.publishing_error,
+                post_id=post.id,
+            )
+        except Exception:
+            pass
         _maybe_pause(account.business_id)
         raise PublishError(post.publishing_error)
     return post
@@ -358,6 +384,15 @@ def _maybe_pause(business_id: int) -> None:
         "Scheduled sends are paused until you retry a post or reconnect the account."
     )
     policy.save(update_fields=["automation_paused", "automation_pause_reason", "updated_at"])
+    try:
+        from apps.notifications.services.events import send_automation_paused
+
+        send_automation_paused(
+            policy.business,
+            reason=policy.automation_pause_reason,
+        )
+    except Exception:
+        pass
 
 
 def price_conflict(content, caption: str) -> str:

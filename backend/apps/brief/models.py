@@ -67,3 +67,51 @@ class MorningBrief(models.Model):
 
     def __str__(self):
         return f"{self.business.name} brief {self.date}"
+
+
+class WeeklyReport(models.Model):
+    """
+    A Monday–Sunday performance report for a business.
+
+    Sections cover wins, gaps, channel mix, commerce, and next week's plan.
+    Evidence stores the factual week snapshot used to write the report.
+    """
+
+    class Status(models.TextChoices):
+        GENERATING = "generating", "Generating"
+        READY = "ready", "Ready"
+        FAILED = "failed", "Failed"
+
+    business = models.ForeignKey(
+        "businesses.Business",
+        on_delete=models.CASCADE,
+        related_name="weekly_reports",
+    )
+
+    week_start = models.DateField(
+        help_text="Monday (Nairobi) of the week this report covers.",
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.GENERATING,
+    )
+
+    greeting = models.CharField(max_length=200, blank=True)
+
+    sections = models.JSONField(default=dict, blank=True)
+
+    evidence = models.JSONField(default=dict, blank=True)
+
+    error_message = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-week_start", "-created_at"]
+        unique_together = [("business", "week_start")]
+
+    def __str__(self):
+        return f"{self.business.name} week of {self.week_start}"

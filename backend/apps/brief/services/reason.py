@@ -20,50 +20,59 @@ from ..models import MorningBrief
 from .gather import gather_evidence
 
 
-SYSTEM_PROMPT = """You are Kova, an intelligent business employee.
-You are generating a personalised daily morning brief for a small business owner.
+SYSTEM_PROMPT = """You are Kova — the business's trusted social and commerce teammate.
+You are writing today's personal report to the manager of this business
+(the person who runs it day to day). Speak to them by name when evidence.report_to.address_as is set.
+
+Voice and posture:
+- Address the manager directly ("you", their first name). Never sound like a public blog or a generic SaaS tip sheet.
+- You work for THIS business. Reference their name, location, goals, audience, and brand when evidence includes them.
+- Prioritise what the manager should decide or do today. Be candid, warm, and practical.
+- Prefer "for your shop / your page / your customers" language over abstract marketing jargon.
+- If operating_mode is autopilot, note what you already handled for them; if assist/approval, highlight what needs their OK.
 
 Rules:
-- Every number you cite must come from the evidence provided.  Do not invent metrics.
-- If data is unavailable, say so honestly.  Do not imply you have full visibility.
-- Be specific and actionable.  Avoid generic advice.
-- Be concise.  The owner reads this on their phone.
-- Adapt the brief to the business type, goals, and connected channels.
+- Every number you cite must come from the evidence provided. Do not invent metrics.
+- If data is unavailable, say so honestly. Do not imply you have full visibility.
+- Be specific and actionable. Avoid generic advice that could fit any business.
+- Be concise. The manager reads this on their phone.
+- Use publishing metrics, inbox, leads, orders, and posting cadence from evidence.
+- Call out unanswered messages, failed posts, and remaining posting slots when relevant.
 - Reply with one JSON object and no markdown fences.
 
 Return this exact JSON structure:
 {
-  "greeting": "Good morning, <owner name or business name>!",
+  "greeting": "Good morning, <address_as> — short personal opener about their business today.",
   "pulse": {
-    "summary": "1-2 sentence business pulse.",
+    "summary": "1-2 sentences to the manager: how THEIR business looks right now.",
     "metrics": [
       {"label": "<metric name>", "value": <number or string>, "change": "<up/down/steady or null>"}
     ]
   },
   "pending": {
-    "summary": "What needs the owner's attention today.",
+    "summary": "What needs YOUR attention today.",
     "items": [
       {"title": "...", "description": "...", "priority": "high|medium|low"}
     ]
   },
   "opportunities": {
-    "summary": "Emerging opportunities worth acting on.",
+    "summary": "Opportunities for YOUR customers / channels.",
     "items": [
       {"title": "...", "description": "..."}
     ]
   },
   "performance": {
-    "summary": "What worked, what underperformed.",
+    "summary": "What worked for you, what underperformed.",
     "highlights": ["..."]
   },
   "plan": {
-    "summary": "Today's recommended plan.",
+    "summary": "My recommended plan for you today.",
     "steps": ["Step 1...", "Step 2...", "Step 3..."]
   },
   "kova_actions": {
-    "completed": ["What Kova already did."],
-    "planned": ["What Kova plans to do."],
-    "needs_approval": ["What needs the owner's OK."]
+    "completed": ["What I already did for you."],
+    "planned": ["What I plan to do next."],
+    "needs_approval": ["What needs your OK."]
   }
 }"""
 
@@ -78,14 +87,12 @@ def generate_brief(business: Business, brief_date: date | None = None) -> Mornin
     if brief_date is None:
         brief_date = date.today()
 
-    # Return existing ready brief
     existing = MorningBrief.objects.filter(
         business=business, date=brief_date, status=MorningBrief.Status.READY,
     ).first()
     if existing:
         return existing
 
-    # Create or get the brief record
     brief, _created = MorningBrief.objects.update_or_create(
         business=business,
         date=brief_date,
@@ -97,12 +104,24 @@ def generate_brief(business: Business, brief_date: date | None = None) -> Mornin
         brief.evidence = evidence
 
         sections = _reason(business, evidence)
-        brief.greeting = str(sections.pop("greeting", f"Good morning, {business.name}!"))
+        address = (
+            ((evidence.get("business") or {}).get("report_to") or {}).get("address_as")
+            or business.name
+        )
+        brief.greeting = str(
+            sections.pop("greeting", f"Good morning, {address} — here’s where {business.name} stands today.")
+        )
         brief.sections = sections
         brief.status = MorningBrief.Status.READY
         brief.save(update_fields=[
             "evidence", "greeting", "sections", "status", "updated_at",
         ])
+        try:
+            from apps.notifications.services.events import send_daily_brief
+
+            send_daily_brief(business, brief)
+        except Exception:
+            pass
     except (OpenRouterError, Exception) as exc:
         brief.status = MorningBrief.Status.FAILED
         brief.error_message = str(exc)[:2000]
@@ -113,9 +132,14 @@ def generate_brief(business: Business, brief_date: date | None = None) -> Mornin
 
 def _reason(business: Business, evidence: dict) -> dict:
     """Call the AI to reason over the evidence and produce the brief."""
+    report_to = (evidence.get("business") or {}).get("report_to") or {}
+    address = report_to.get("address_as") or business.name
     user_prompt = (
-        f"Generate today's morning brief for the business.\n\n"
-        f"Business evidence snapshot:\n{json.dumps(evidence, default=str, ensure_ascii=False)}"
+        f"Write today's personal manager report for {address}, "
+        f"who runs {business.name}.\n"
+        "Speak directly to them. Use their goals, audience, and brand from evidence "
+        "so this could only be about their business.\n\n"
+        f"Evidence snapshot:\n{json.dumps(evidence, default=str, ensure_ascii=False)}"
     )
 
     service = OpenRouterService(timeout=90)
@@ -124,7 +148,7 @@ def _reason(business: Business, evidence: dict) -> dict:
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt},
         ],
-        temperature=0.4,
+        temperature=0.45,
         max_tokens=2000,
         response_format={"type": "json_object"},
     )

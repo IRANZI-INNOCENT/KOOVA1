@@ -192,19 +192,54 @@ class LoopTests(TestCase):
             content_type="post",
             caption="Autopilot soon.",
         )
-        ig_account = SocialAccount.objects.create(
+        SocialAccount.objects.create(
             business=self.business,
             platform=SocialAccount.Platform.INSTAGRAM,
             connection_status=SocialAccount.ConnectionStatus.CONNECTED,
             account_name="Loop IG",
+            access_token="ig-token",
+        )
+        publish_autopilot_batch(self.business, [first.id, second.id])
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertEqual(first.status, Content.Status.PUBLISHED)
+        # Different channels can both go out when remaining slots allow.
+        self.assertEqual(second.status, Content.Status.PUBLISHED)
+        self.assertEqual(publish_post.call_count, 2)
+
+    @patch("apps.social.services.publish.MetaAdapter.publish_post")
+    def test_autopilot_batch_respects_daily_facebook_cap(self, publish_post):
+        from apps.business_brain.models import BusinessPolicy
+
+        publish_post.return_value = PublishResult(success=True, external_post_id="fb-cap")
+        policy, _ = BusinessPolicy.objects.get_or_create(business=self.business)
+        policy.facebook_max_posts_per_day = 1
+        policy.facebook_max_posts_per_week = 7
+        policy.min_hours_between_posts = 4
+        policy.save()
+        first = Content.objects.create(
+            business=self.business,
+            platform="facebook",
+            content_type="post",
+            caption="First.",
+        )
+        second = Content.objects.create(
+            business=self.business,
+            platform="facebook",
+            content_type="post",
+            caption="Second.",
         )
         publish_autopilot_batch(self.business, [first.id, second.id])
         first.refresh_from_db()
         second_post = SocialPost.objects.get(content=second)
         self.assertEqual(first.status, Content.Status.PUBLISHED)
-        publish_post.assert_called_once()
         self.assertEqual(second_post.publishing_status, SocialPost.PublishingStatus.SCHEDULED)
         self.assertIsNotNone(second_post.scheduled_at)
+        self.assertGreater(
+            second_post.scheduled_at,
+            timezone.now() + timedelta(hours=3),
+        )
+        publish_post.assert_called_once()
 
     @patch("apps.social.services.publish.MetaAdapter.publish_post")
     def test_future_post_waits_until_dispatch(self, publish_post):

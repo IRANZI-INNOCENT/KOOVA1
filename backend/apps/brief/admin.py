@@ -4,7 +4,7 @@ from django.utils.safestring import mark_safe
 
 from apps.businesses.dossier import brief_blocks
 
-from .models import MorningBrief
+from .models import MorningBrief, WeeklyReport
 
 
 @admin.register(MorningBrief)
@@ -31,3 +31,13 @@ class MorningBriefAdmin(admin.ModelAdmin):
             lines = format_html_join("", "<li>{}</li>", ((line,) for line in block["lines"]))
             parts.append(format_html("<h3>{}</h3><ul>{}</ul>", block["title"], lines))
         return mark_safe("".join(parts))
+
+
+@admin.register(WeeklyReport)
+class WeeklyReportAdmin(admin.ModelAdmin):
+    list_display = ("business", "week_start", "status", "greeting", "created_at")
+    list_filter = ("status", "week_start")
+    search_fields = ("greeting", "business__name", "error_message")
+    autocomplete_fields = ("business",)
+    readonly_fields = ("created_at", "updated_at")
+    date_hierarchy = "week_start"

@@ -91,6 +91,12 @@ urlpatterns = [
         include("apps.brief.urls"),
     ),
 
+    # Transactional email preferences + password reset.
+    path(
+        "api/notifications/",
+        include("apps.notifications.urls"),
+    ),
+
     # Kova AI Agent.
     path(
         "api/kova/",

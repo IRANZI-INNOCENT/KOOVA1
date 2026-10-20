@@ -617,6 +617,16 @@ def _polish(shift: AutopilotShift, business: Business, names: list) -> None:
 
 def _publish(shift: AutopilotShift, business: Business, posts: list) -> None:
     from apps.content.services.product_pipeline import product_has_open_pipeline
+    from apps.social.services.posting_limits import can_autopilot_publish_more
+
+    if not can_autopilot_publish_more(business):
+        _event(
+            shift,
+            "Posting limits",
+            "Facebook/Instagram cadence is full. No new product posts this shift. "
+            "Adjust limits under Settings → Business policy if you want more.",
+        )
+        return
 
     names = []
     for item in posts:
@@ -669,6 +679,15 @@ def _publish_organic(shift: AutopilotShift, business: Business, items: list) -> 
         generate_organic_seeds,
         pick_autopilot_organic_seed,
     )
+    from apps.social.services.posting_limits import can_autopilot_publish_more
+
+    if not can_autopilot_publish_more(business):
+        _event(
+            shift,
+            "Posting limits",
+            "Facebook/Instagram cadence is full. Skipping organic posts this shift.",
+        )
+        return
 
     valid_themes = {t["key"] for t in organic_themes_for_business(business)}
     seeds = generate_organic_seeds(business)
