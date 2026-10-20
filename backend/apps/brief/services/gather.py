@@ -392,14 +392,42 @@ def _commerce_evidence(business: Business, since=None, *, until=None) -> dict:
     if until is not None:
         period_orders = period_orders.filter(created_at__lt=until)
 
+    from apps.commerce.models import BusinessExpense
+    from apps.commerce.services.orders import low_stock_products
+
+    today = timezone.now().astimezone(NAIROBI).date()
+    confirmed_today = orders.filter(
+        status__in=[
+            Order.Status.CONFIRMED,
+            Order.Status.PACKING,
+            Order.Status.OUT_FOR_DELIVERY,
+            Order.Status.DELIVERED,
+        ],
+        updated_at__date=today,
+    ).count()
+    expenses_today = BusinessExpense.objects.filter(
+        business=business,
+        spent_on=today,
+    )
+    cash_out = expenses_today.aggregate(total=Sum("amount"))["total"]
+
     return {
         "total_products": sum(counts.values()),
         "active": counts.get("active", 0),
         "draft": counts.get("draft", 0),
         "orders_total": orders.count(),
         "orders_new": orders.filter(status=Order.Status.NEW).count(),
+        "orders_packing": orders.filter(status=Order.Status.PACKING).count(),
+        "orders_out_for_delivery": orders.filter(
+            status=Order.Status.OUT_FOR_DELIVERY,
+        ).count(),
         "orders_in_period": period_orders.count(),
-        "orders_fulfilled": orders.filter(status=Order.Status.FULFILLED).count(),
+        "orders_delivered": orders.filter(status=Order.Status.DELIVERED).count(),
+        "orders_fulfilled": orders.filter(status=Order.Status.DELIVERED).count(),
+        "orders_confirmed_today": confirmed_today,
+        "low_stock": low_stock_products(business),
+        "expenses_today_total": str(cash_out or 0),
+        "expenses_today_count": expenses_today.count(),
     }
 
 

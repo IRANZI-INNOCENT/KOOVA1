@@ -8,6 +8,7 @@ from apps.businesses.models import Business
 
 from .models import Lead
 from .serializers import LeadSerializer
+from .services.followups import mark_followed_up, schedule_initial_follow_up
 
 
 class LeadListView(APIView):
@@ -29,6 +30,11 @@ class LeadListView(APIView):
         if source:
             leads = leads.filter(source=source)
 
+        if request.query_params.get("due") == "1":
+            from .services.followups import due_follow_ups
+
+            return Response(LeadSerializer(due_follow_ups(business), many=True).data)
+
         return Response(LeadSerializer(leads, many=True).data)
 
     def post(self, request, business_id):
@@ -37,8 +43,10 @@ class LeadListView(APIView):
         )
         serializer = LeadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(business=business, created_by_ai=False)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        lead = serializer.save(business=business, created_by_ai=False)
+        schedule_initial_follow_up(lead)
+        lead.refresh_from_db()
+        return Response(LeadSerializer(lead).data, status=status.HTTP_201_CREATED)
 
 
 class LeadDetailView(APIView):
@@ -58,10 +66,20 @@ class LeadDetailView(APIView):
             Business, id=business_id, owner=request.user
         )
         lead = get_object_or_404(Lead, pk=pk, business=business)
+        if request.data.get("mark_followed_up"):
+            lead = mark_followed_up(lead)
+            return Response(LeadSerializer(lead).data)
         serializer = LeadSerializer(lead, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+        lead = serializer.save()
+        if lead.status in {
+            Lead.Status.NEW,
+            Lead.Status.CONTACTED,
+            Lead.Status.QUALIFIED,
+        }:
+            schedule_initial_follow_up(lead)
+            lead.refresh_from_db()
+        return Response(LeadSerializer(lead).data)
 
     def delete(self, request, business_id, pk):
         business = get_object_or_404(

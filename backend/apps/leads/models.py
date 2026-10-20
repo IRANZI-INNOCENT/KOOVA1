@@ -92,6 +92,14 @@ class Lead(models.Model):
         default=True,
     )
 
+    next_follow_up_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+    follow_up_draft = models.TextField(blank=True)
+    last_followed_up_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -9,6 +9,7 @@ class LeadSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "business",
+            "product",
             "customer_name",
             "customer_id",
             "conversation_id",
@@ -17,6 +18,9 @@ class LeadSerializer(serializers.ModelSerializer):
             "notes",
             "status",
             "created_by_ai",
+            "next_follow_up_at",
+            "follow_up_draft",
+            "last_followed_up_at",
             "created_at",
             "updated_at",
         ]
@@ -24,6 +28,8 @@ class LeadSerializer(serializers.ModelSerializer):
             "id",
             "business",
             "created_by_ai",
+            "follow_up_draft",
+            "last_followed_up_at",
             "created_at",
             "updated_at",
         ]

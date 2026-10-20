@@ -65,7 +65,13 @@ def performance_snapshot(business) -> dict:
         "orders": {
             "total": orders.count(),
             "new": orders.filter(status=Order.Status.NEW).count(),
-            "fulfilled": orders.filter(status=Order.Status.FULFILLED).count(),
+            "packing": orders.filter(status=Order.Status.PACKING).count(),
+            "out_for_delivery": orders.filter(
+                status=Order.Status.OUT_FOR_DELIVERY,
+            ).count(),
+            "delivered": orders.filter(status=Order.Status.DELIVERED).count(),
+            # Back-compat for older clients
+            "fulfilled": orders.filter(status=Order.Status.DELIVERED).count(),
         },
         "messages": {
             "inbound": messages.filter(direction=SocialMessage.Direction.INBOUND).count(),

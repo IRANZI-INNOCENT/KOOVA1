@@ -21,6 +21,9 @@ _SYSTEM = (
     "If stock or price is missing, say you will confirm with the shop. "
     "Write a short reply in the customer's language, ready to post as a comment or chat message. "
     "Return JSON with keys intent, draft_reply, create_lead, confidence, needs_review, product_name. "
+    "Use only prices and stock from BUSINESS CONTEXT. Never invent stock. "
+    "If stock is 0, say it is out of stock and suggest another listed product when possible. "
+    "When a product matches, include its product_url or store_url in the draft if provided. "
     'intent is one of "buying", "question", "complaint", "compliment", "spam", "other". '
     "confidence is a number from 0 to 1. "
     "needs_review is true for complaints, refunds, discounts, legal issues, abuse, "
@@ -256,6 +259,9 @@ def _attach_lead(message: SocialMessage, product_name: str = "") -> None:
         status=Lead.Status.NEW,
         created_by_ai=True,
     )
+    from apps.leads.services.followups import schedule_initial_follow_up
+
+    schedule_initial_follow_up(lead)
     message.lead = lead
     message.save(update_fields=["lead"])
     try:
@@ -264,7 +270,7 @@ def _attach_lead(message: SocialMessage, product_name: str = "") -> None:
         send_new_lead(message.business, lead)
     except Exception:
         pass
-    if product is not None and product.stock is None:
+    if product is not None and product.stock is not None and product.stock <= 0:
         message.needs_review = True
         message.save(update_fields=["needs_review"])
 
@@ -305,23 +311,47 @@ def _confidence(value):
 
 
 def _business_context(business) -> dict:
+    from django.conf import settings
+
     from apps.business_brain.models import BusinessBrand
-    from apps.commerce.models import Product
+    from apps.commerce.models import CommercePage, Product
 
     brand = BusinessBrand.objects.filter(business=business).first()
-    products = [
-        {"name": product.name, "price": str(product.price), "currency": product.currency}
-        for product in Product.objects.filter(
-            business=business,
-            status=Product.Status.ACTIVE,
-        ).order_by("-updated_at")[:6]
-    ]
+    page = CommercePage.objects.filter(business=business).first()
+    site = (getattr(settings, "FRONTEND_URL", "") or "").rstrip("/")
+    store_url = ""
+    if page and page.slug and page.is_published and site:
+        store_url = f"{site}/store/{page.slug}"
+
+    products = []
+    for product in Product.objects.filter(
+        business=business,
+        status=Product.Status.ACTIVE,
+    ).order_by("-updated_at")[:6]:
+        product_url = ""
+        if store_url and product.slug:
+            product_url = f"{store_url}/{product.slug}"
+        stock_label = "untracked"
+        if product.stock is not None:
+            stock_label = "out_of_stock" if product.stock <= 0 else str(product.stock)
+        products.append(
+            {
+                "name": product.name,
+                "price": str(product.price) if product.price is not None else None,
+                "currency": product.currency,
+                "stock": product.stock,
+                "stock_label": stock_label,
+                "short_description": (product.short_description or "")[:160],
+                "product_url": product_url,
+            }
+        )
     return {
         "name": business.name,
         "description": business.description,
         "location": business.location,
         "voice": getattr(brand, "voice", "") or "",
         "tone": getattr(brand, "tone", "") or "",
+        "store_url": store_url,
         "products": products,
     }
 

@@ -18,6 +18,7 @@ from apps.businesses.models import Business
 
 from .models import (
     COMMERCE_PAGE_BANNER_LIMIT,
+    BusinessExpense,
     CommercePage,
     CommercePageBanner,
     Order,
@@ -26,6 +27,7 @@ from .models import (
 )
 from .permissions import IsBusinessOwner
 from .serializers import (
+    BusinessExpenseSerializer,
     CommercePageBannerSerializer,
     CommercePageSerializer,
     OrderSerializer,
@@ -1234,14 +1236,17 @@ class OrderDetailView(BusinessOwnedAPIView):
     """Update an order status after the owner confirms it."""
 
     def patch(self, request, business_id, order_id):
+        from apps.commerce.services.orders import OrderUpdateError, apply_order_update
+
         business = self.get_business()
         order = get_object_or_404(Order, pk=order_id, business=business)
-        status_value = request.data.get("status")
-        if status_value in Order.Status.values:
-            order.status = status_value
-        if "note" in request.data:
-            order.note = request.data.get("note") or ""
-        order.save()
+        try:
+            order = apply_order_update(order, data=request.data)
+        except OrderUpdateError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response(OrderSerializer(order).data)
 
 
@@ -1277,3 +1282,76 @@ class PublicOrderView(APIView):
             {"id": order.id, "status": order.status},
             status=status.HTTP_201_CREATED,
         )
+
+
+class ExpenseListCreateView(BusinessOwnedAPIView):
+    """List and log business cash-out expenses."""
+
+    def get(self, request, business_id):
+        business = self.get_business()
+        expenses = BusinessExpense.objects.filter(business=business)
+        spent_on = request.query_params.get("spent_on")
+        if spent_on:
+            expenses = expenses.filter(spent_on=spent_on)
+        return Response(BusinessExpenseSerializer(expenses[:100], many=True).data)
+
+    def post(self, request, business_id):
+        from datetime import date
+        from decimal import Decimal, InvalidOperation
+
+        business = self.get_business()
+        try:
+            amount = Decimal(str(request.data.get("amount") or "0"))
+        except (InvalidOperation, TypeError, ValueError):
+            return Response(
+                {"detail": "Enter a valid amount."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if amount <= 0:
+            return Response(
+                {"detail": "Amount must be greater than zero."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        category = request.data.get("category") or BusinessExpense.Category.OTHER
+        if category not in BusinessExpense.Category.values:
+            category = BusinessExpense.Category.OTHER
+        spent_on_raw = request.data.get("spent_on") or ""
+        try:
+            spent_on = date.fromisoformat(str(spent_on_raw)[:10]) if spent_on_raw else date.today()
+        except ValueError:
+            spent_on = date.today()
+        expense = BusinessExpense.objects.create(
+            business=business,
+            amount=amount,
+            currency=(request.data.get("currency") or "KES")[:10],
+            category=category,
+            note=(request.data.get("note") or "")[:400],
+            spent_on=spent_on,
+        )
+        return Response(
+            BusinessExpenseSerializer(expense).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class ExpenseDetailView(BusinessOwnedAPIView):
+    def delete(self, request, business_id, expense_id):
+        business = self.get_business()
+        expense = get_object_or_404(BusinessExpense, pk=expense_id, business=business)
+        expense.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class BroadcastPackView(BusinessOwnedAPIView):
+    """Build WhatsApp Status / group drafts from recent products."""
+
+    def post(self, request, business_id):
+        from apps.commerce.services.broadcast import build_broadcast_pack
+
+        business = self.get_business()
+        polish = str(request.data.get("polish") or "").lower() in {
+            "1",
+            "true",
+            "yes",
+        }
+        return Response(build_broadcast_pack(business, polish=polish))

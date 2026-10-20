@@ -110,6 +110,9 @@ class CreateLeadTool(Tool):
                 status=Lead.Status.NEW,
                 created_by_ai=True,
             )
+            from apps.leads.services.followups import schedule_initial_follow_up
+
+            schedule_initial_follow_up(lead)
         except Exception as exc:
             logger.error(
                 "Failed to create lead for business %s: %s",

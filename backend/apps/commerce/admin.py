@@ -1,6 +1,8 @@
 from django.contrib import admin
+from django.utils.html import format_html
 
 from .models import (
+    BusinessExpense,
     CommercePage,
     CommercePageBanner,
     Order,
@@ -8,6 +10,15 @@ from .models import (
     ProductAIAnalysis,
     ProductImage,
 )
+from .storefront_urls import commerce_page_url
+
+
+@admin.register(BusinessExpense)
+class BusinessExpenseAdmin(admin.ModelAdmin):
+    list_display = ("business", "spent_on", "category", "amount", "currency", "note")
+    list_filter = ("category", "spent_on")
+    search_fields = ("note", "business__name")
+    autocomplete_fields = ("business",)
 
 
 class CommercePageBannerInline(admin.TabularInline):
@@ -39,33 +50,44 @@ class AnalysisInline(admin.StackedInline):
 
 @admin.register(CommercePage)
 class CommercePageAdmin(admin.ModelAdmin):
+    """
+    Storefront directory — every business commerce URL in one place.
+    """
+
     list_display = (
         "business",
+        "store_url_link",
         "slug",
         "is_published",
-        "layout_preset",
         "whatsapp",
         "phone",
         "updated_at",
     )
+    list_display_links = ("business", "slug")
     list_filter = ("is_published", "layout_preset", "font_preset")
     list_editable = ("is_published",)
     search_fields = ("business__name", "slug", "title", "whatsapp", "phone")
     autocomplete_fields = ("business",)
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("store_url_link", "created_at", "updated_at")
+    ordering = ("business__name",)
     actions = ("publish_stores", "unpublish_stores")
     inlines = (CommercePageBannerInline,)
     fieldsets = (
+        (
+            "Storefront URL",
+            {
+                "description": "Public link customers use to browse this business.",
+                "fields": ("store_url_link", "slug", "is_published"),
+            },
+        ),
         (
             "Identity",
             {
                 "fields": (
                     "business",
-                    "slug",
                     "title",
                     "tagline",
                     "description",
-                    "is_published",
                 )
             },
         ),
@@ -92,6 +114,28 @@ class CommercePageAdmin(admin.ModelAdmin):
         ),
         ("Dates", {"fields": ("created_at", "updated_at")}),
     )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("business")
+
+    @admin.display(description="Store URL")
+    def store_url_link(self, obj):
+        url = commerce_page_url(obj)
+        if not url:
+            return "—"
+        label = url
+        if not obj.is_published:
+            return format_html(
+                '<a href="{}" target="_blank" rel="noopener noreferrer">{}</a>'
+                ' <span style="color:#888">(draft)</span>',
+                url,
+                label,
+            )
+        return format_html(
+            '<a href="{}" target="_blank" rel="noopener noreferrer">{}</a>',
+            url,
+            label,
+        )
 
     @admin.action(description="Publish selected stores")
     def publish_stores(self, request, queryset):
@@ -215,19 +259,64 @@ class OrderAdmin(admin.ModelAdmin):
         "product__name",
     )
     autocomplete_fields = ("business", "product")
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = (
+        "review_ask_draft",
+        "stock_adjusted",
+        "created_at",
+        "updated_at",
+    )
     date_hierarchy = "created_at"
-    actions = ("mark_confirmed", "mark_fulfilled", "mark_cancelled")
+    actions = (
+        "mark_confirmed",
+        "mark_packing",
+        "mark_delivered",
+        "mark_cancelled",
+    )
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "business",
+                    "product",
+                    "customer_name",
+                    "phone",
+                    "quantity",
+                    "status",
+                    "source",
+                    "note",
+                )
+            },
+        ),
+        (
+            "Delivery",
+            {
+                "fields": (
+                    "customer_address",
+                    "delivery_note",
+                    "rider_name",
+                    "review_ask_draft",
+                    "stock_adjusted",
+                )
+            },
+        ),
+        ("Dates", {"fields": ("created_at", "updated_at")}),
+    )
 
     @admin.action(description="Mark selected orders confirmed")
     def mark_confirmed(self, request, queryset):
         updated = queryset.update(status=Order.Status.CONFIRMED)
         self.message_user(request, f"Confirmed {updated} order(s).")
 
-    @admin.action(description="Mark selected orders fulfilled")
-    def mark_fulfilled(self, request, queryset):
-        updated = queryset.update(status=Order.Status.FULFILLED)
-        self.message_user(request, f"Fulfilled {updated} order(s).")
+    @admin.action(description="Mark selected orders packing")
+    def mark_packing(self, request, queryset):
+        updated = queryset.update(status=Order.Status.PACKING)
+        self.message_user(request, f"Marked {updated} order(s) packing.")
+
+    @admin.action(description="Mark selected orders delivered")
+    def mark_delivered(self, request, queryset):
+        updated = queryset.update(status=Order.Status.DELIVERED)
+        self.message_user(request, f"Delivered {updated} order(s).")
 
     @admin.action(description="Cancel selected orders")
     def mark_cancelled(self, request, queryset):

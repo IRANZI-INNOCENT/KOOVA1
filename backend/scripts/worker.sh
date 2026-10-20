@@ -9,5 +9,6 @@ while true; do
   python manage.py run_linkedin_topic_autopilot
   python manage.py pull_comments
   python manage.py run_autopilot
+  python manage.py refresh_lead_followups
   sleep 60
 done

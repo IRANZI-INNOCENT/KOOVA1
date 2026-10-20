@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.db.models import Count
+from django.utils.html import format_html
 
 from apps.business_brain.models import (
     BusinessAudience,
@@ -10,6 +11,7 @@ from apps.business_brain.models import (
     BusinessProfile,
 )
 from apps.commerce.models import CommercePage
+from apps.commerce.storefront_urls import business_store_url, commerce_page_url
 
 from .models import Business
 
@@ -58,7 +60,28 @@ class StoreInline(admin.StackedInline):
     max_num = 1
     can_delete = False
     classes = ["collapse"]
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("store_url_link", "created_at", "updated_at")
+    fields = (
+        "store_url_link",
+        "slug",
+        "title",
+        "is_published",
+        "whatsapp",
+        "phone",
+        "created_at",
+        "updated_at",
+    )
+
+    @admin.display(description="Store URL")
+    def store_url_link(self, obj):
+        url = commerce_page_url(obj) if obj and obj.pk else ""
+        if not url:
+            return "—"
+        return format_html(
+            '<a href="{}" target="_blank" rel="noopener noreferrer">{}</a>',
+            url,
+            url,
+        )
 
 
 @admin.register(Business)
@@ -66,10 +89,11 @@ class BusinessAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "owner",
+        "store_url_link",
+        "store_live",
         "industry",
         "location",
         "phone",
-        "store_live",
         "product_count",
         "order_count",
         "created_at",
@@ -81,11 +105,36 @@ class BusinessAdmin(admin.ModelAdmin):
         "phone",
         "location",
         "owner__email",
+        "commerce_page__slug",
     )
     autocomplete_fields = ("owner",)
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("store_url_link", "created_at", "updated_at")
     save_on_top = True
     change_form_template = "admin/businesses/business/change_form.html"
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "name",
+                    "owner",
+                    "description",
+                    "industry",
+                    "location",
+                    "email",
+                    "phone",
+                )
+            },
+        ),
+        (
+            "Commerce storefront",
+            {
+                "description": "Public URL for this business store page.",
+                "fields": ("store_url_link",),
+            },
+        ),
+        ("Dates", {"fields": ("created_at", "updated_at")}),
+    )
     inlines = [
         StoreInline,
         ProfileInline,
@@ -114,6 +163,28 @@ class BusinessAdmin(admin.ModelAdmin):
         except CommercePage.DoesNotExist:
             return False
         return page.is_published
+
+    @admin.display(description="Store URL")
+    def store_url_link(self, obj):
+        url = business_store_url(obj)
+        if not url:
+            return "—"
+        try:
+            published = obj.commerce_page.is_published
+        except CommercePage.DoesNotExist:
+            published = False
+        if not published:
+            return format_html(
+                '<a href="{}" target="_blank" rel="noopener noreferrer">{}</a>'
+                ' <span style="color:#888">(draft)</span>',
+                url,
+                url,
+            )
+        return format_html(
+            '<a href="{}" target="_blank" rel="noopener noreferrer">{}</a>',
+            url,
+            url,
+        )
 
     @admin.display(description="Products", ordering="_products")
     def product_count(self, obj):

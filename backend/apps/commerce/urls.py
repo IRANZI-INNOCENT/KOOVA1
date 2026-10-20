@@ -6,6 +6,9 @@ from .views import (
     CommercePageBannerReorderView,
     CommercePagePublishView,
     CommercePageView,
+    BroadcastPackView,
+    ExpenseDetailView,
+    ExpenseListCreateView,
     OrderDetailView,
     OrderListView,
     ProductDetailView,
@@ -116,6 +119,24 @@ urlpatterns = [
         "<int:business_id>/orders/<int:order_id>/",
         OrderDetailView.as_view(),
         name="order-detail",
+    ),
+
+    path(
+        "<int:business_id>/expenses/",
+        ExpenseListCreateView.as_view(),
+        name="expense-list-create",
+    ),
+
+    path(
+        "<int:business_id>/expenses/<int:expense_id>/",
+        ExpenseDetailView.as_view(),
+        name="expense-detail",
+    ),
+
+    path(
+        "<int:business_id>/broadcast-pack/",
+        BroadcastPackView.as_view(),
+        name="broadcast-pack",
     ),
 
     path(

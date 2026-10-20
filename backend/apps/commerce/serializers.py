@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from .models import (
     COMMERCE_PAGE_BANNER_LIMIT,
+    BusinessExpense,
     CommercePage,
     CommercePageBanner,
     Order,
@@ -523,6 +524,22 @@ class CommercePageSerializer(serializers.ModelSerializer):
         return cleaned
 
 
+class BusinessExpenseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BusinessExpense
+        fields = [
+            "id",
+            "business",
+            "amount",
+            "currency",
+            "category",
+            "note",
+            "spent_on",
+            "created_at",
+        ]
+        read_only_fields = ["id", "business", "created_at"]
+
+
 class OrderSerializer(serializers.ModelSerializer):
     product_name = serializers.SerializerMethodField()
 
@@ -539,9 +556,14 @@ class OrderSerializer(serializers.ModelSerializer):
             "customer_name",
             "phone",
             "note",
+            "customer_address",
+            "delivery_note",
+            "rider_name",
+            "review_ask_draft",
             "quantity",
             "status",
             "source",
+            "stock_adjusted",
             "created_at",
             "updated_at",
         ]
@@ -549,6 +571,8 @@ class OrderSerializer(serializers.ModelSerializer):
             "id",
             "business",
             "source",
+            "stock_adjusted",
+            "review_ask_draft",
             "created_at",
             "updated_at",
         ]

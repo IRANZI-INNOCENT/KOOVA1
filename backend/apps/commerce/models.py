@@ -154,6 +154,8 @@ class CommercePage(models.Model):
 
     class Meta:
         ordering = ["-updated_at"]
+        verbose_name = "commerce storefront"
+        verbose_name_plural = "commerce storefronts"
 
     def save(self, *args, **kwargs):
         """
@@ -599,7 +601,9 @@ class Order(models.Model):
     class Status(models.TextChoices):
         NEW = "new", "New"
         CONFIRMED = "confirmed", "Confirmed"
-        FULFILLED = "fulfilled", "Fulfilled"
+        PACKING = "packing", "Packing"
+        OUT_FOR_DELIVERY = "out_for_delivery", "Out for delivery"
+        DELIVERED = "delivered", "Delivered"
         CANCELLED = "cancelled", "Cancelled"
 
     class Source(models.TextChoices):
@@ -622,6 +626,10 @@ class Order(models.Model):
     customer_name = models.CharField(max_length=200, blank=True)
     phone = models.CharField(max_length=30, blank=True)
     note = models.TextField(blank=True)
+    customer_address = models.CharField(max_length=400, blank=True)
+    delivery_note = models.CharField(max_length=400, blank=True)
+    rider_name = models.CharField(max_length=120, blank=True)
+    review_ask_draft = models.TextField(blank=True)
     quantity = models.PositiveIntegerField(default=1)
     status = models.CharField(
         max_length=20,
@@ -633,6 +641,10 @@ class Order(models.Model):
         choices=Source.choices,
         default=Source.STORE,
     )
+    stock_adjusted = models.BooleanField(
+        default=False,
+        help_text="True after stock was decremented for this order.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -642,3 +654,36 @@ class Order(models.Model):
     def __str__(self):
         product_name = self.product.name if self.product_id else "Order"
         return f"{product_name} — {self.get_status_display()}"
+
+
+class BusinessExpense(models.Model):
+    """Daily cash-out the owner logs (riders, packaging, restock, ads)."""
+
+    class Category(models.TextChoices):
+        RIDER = "rider", "Rider"
+        PACKAGING = "packaging", "Packaging"
+        RESTOCK = "restock", "Restock"
+        ADS = "ads", "Ads"
+        OTHER = "other", "Other"
+
+    business = models.ForeignKey(
+        Business,
+        on_delete=models.CASCADE,
+        related_name="expenses",
+    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    currency = models.CharField(max_length=10, default="KES")
+    category = models.CharField(
+        max_length=20,
+        choices=Category.choices,
+        default=Category.OTHER,
+    )
+    note = models.CharField(max_length=400, blank=True)
+    spent_on = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-spent_on", "-created_at"]
+
+    def __str__(self):
+        return f"{self.category} {self.currency} {self.amount}"
