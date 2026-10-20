@@ -6,7 +6,10 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase
 from PIL import Image
 
-from apps.commerce.services.image_optimize import optimize_upload
+from apps.commerce.services.image_optimize import (
+    compress_bytes_for_vision,
+    optimize_upload,
+)
 
 
 def _png_bytes(width=800, height=600, color=(20, 120, 80)) -> bytes:
@@ -31,3 +34,10 @@ class ImageOptimizeTests(SimpleTestCase):
         )
         result = optimize_upload(upload, max_side=512)
         self.assertIs(result, upload)
+
+    def test_compress_bytes_for_vision_shrinks_large_png(self):
+        raw = _png_bytes(2400, 1800)
+        name, data = compress_bytes_for_vision(raw, "product.png")
+        self.assertTrue(name.lower().endswith(".jpg"))
+        self.assertLess(len(data), len(raw))
+        self.assertGreater(len(data), 0)

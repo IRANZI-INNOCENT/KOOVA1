@@ -4,6 +4,34 @@ from django.db import models
 from apps.businesses.models import Business
 
 
+class AiUsageEvent(models.Model):
+    """One OpenRouter chat/completion for cost visibility."""
+
+    business = models.ForeignKey(
+        Business,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ai_usage_events",
+    )
+    feature = models.CharField(max_length=64, db_index=True, default="unknown")
+    model_name = models.CharField(max_length=120, blank=True)
+    prompt_tokens = models.PositiveIntegerField(default=0)
+    completion_tokens = models.PositiveIntegerField(default=0)
+    total_tokens = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["feature", "-created_at"]),
+            models.Index(fields=["business", "-created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.feature} · {self.total_tokens} tokens"
+
+
 class KovaExchange(models.Model):
     """
     One Ask Kova turn.

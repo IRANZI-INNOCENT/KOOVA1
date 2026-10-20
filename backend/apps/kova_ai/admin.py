@@ -1,6 +1,35 @@
 from django.contrib import admin
 
-from .models import KovaExchange
+from .models import AiUsageEvent, KovaExchange
+
+
+@admin.register(AiUsageEvent)
+class AiUsageEventAdmin(admin.ModelAdmin):
+    list_display = (
+        "created_at",
+        "feature",
+        "business",
+        "model_name",
+        "prompt_tokens",
+        "completion_tokens",
+        "total_tokens",
+    )
+    list_filter = ("feature", "created_at")
+    search_fields = ("feature", "model_name", "business__name")
+    autocomplete_fields = ("business",)
+    readonly_fields = (
+        "business",
+        "feature",
+        "model_name",
+        "prompt_tokens",
+        "completion_tokens",
+        "total_tokens",
+        "created_at",
+    )
+    date_hierarchy = "created_at"
+
+    def has_add_permission(self, request):
+        return False
 
 
 @admin.register(KovaExchange)

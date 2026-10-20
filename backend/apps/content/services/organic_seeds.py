@@ -113,14 +113,20 @@ def _normalize_seeds(raw: list, business: Business | None = None) -> list[dict]:
     return out[:8]
 
 
-def pick_autopilot_organic_seed(business: Business) -> dict:
+def pick_autopilot_organic_seed(
+    business: Business,
+    seeds: list[dict] | None = None,
+) -> dict:
     """
     One seed for today's autopilot shift (rotates so angles do not repeat daily).
+
+    Pass ``seeds`` from a prior ``generate_organic_seeds`` call so Autopilot
+    does not pay for a second OpenRouter round-trip.
     """
     from datetime import date
 
-    seeds = generate_organic_seeds(business)
-    if not seeds:
+    pool = seeds if seeds is not None else generate_organic_seeds(business)
+    if not pool:
         return {
             "id": "fallback",
             "title": "Quick tip",
@@ -128,8 +134,8 @@ def pick_autopilot_organic_seed(business: Business) -> dict:
             "theme_key": "tip",
             "theme_label": "Quick tip",
         }
-    idx = date.today().toordinal() % len(seeds)
-    return seeds[idx]
+    idx = date.today().toordinal() % len(pool)
+    return pool[idx]
 
 
 def generate_organic_seeds(business: Business) -> list[dict]:
@@ -170,6 +176,8 @@ def generate_organic_seeds(business: Business) -> list[dict]:
             temperature=0.65,
             max_tokens=1200,
             response_format={"type": "json_object"},
+            feature="organic_seeds",
+            business_id=business.id,
         )
         raw = response["choices"][0]["message"]["content"]
         if not isinstance(raw, str):

@@ -115,6 +115,8 @@ class OpenRouterService:
         ) = None,
         plugins: list[dict[str, Any]] | None = None,
         reasoning: dict[str, Any] | None = None,
+        feature: str | None = None,
+        business_id: int | None = None,
     ) -> dict[str, Any]:
         """
         Send a chat completion request to OpenRouter.
@@ -132,6 +134,8 @@ class OpenRouterService:
             max_tokens: Maximum generated tokens.
             response_format: Optional structured-output configuration.
             plugins: Optional OpenRouter plugins, including web search.
+            feature: Optional usage label (overrides track_ai_usage scope).
+            business_id: Optional business FK for usage attribution.
 
         Returns:
             Parsed OpenRouter response.
@@ -245,6 +249,15 @@ class OpenRouterService:
             raise OpenRouterError(
                 "OpenRouter returned an invalid response object."
             )
+
+        from apps.kova_ai.services.usage import record_openrouter_usage
+
+        record_openrouter_usage(
+            response=data,
+            model=self.model,
+            feature=feature,
+            business_id=business_id,
+        )
 
         return data
 

@@ -31,7 +31,8 @@ from apps.social.services.command import _quiet_products, _waiting_messages
 from apps.social.services.inbox import draft_reply, send_reply
 from apps.social.services.publish import dispatch_due, refresh_due_metrics
 
-HOLD_FOR = timedelta(minutes=20)
+# Keep shifts useful without burning OpenRouter every 20 minutes.
+HOLD_FOR = timedelta(hours=2)
 
 
 def latest_shift(business: Business) -> AutopilotShift | None:
@@ -449,26 +450,29 @@ def run_shift(business: Business, *, force: bool = False) -> AutopilotShift:
     ):
         return current
 
+    from apps.kova_ai.services.usage import track_ai_usage
+
     shift = AutopilotShift.objects.create(business=business)
     try:
-        briefing = _briefing(business)
-        shift.briefing = briefing
-        shift.save(update_fields=["briefing"])
-        _event(shift, "Read the company", briefing)
+        with track_ai_usage("autopilot", business.id):
+            briefing = _briefing(business)
+            shift.briefing = briefing
+            shift.save(update_fields=["briefing"])
+            _event(shift, "Read the company", briefing)
 
-        plan = _plan(business, briefing)
-        shift.plan = plan.get("focus") or "Work from the products, the inbox, and today's report."
-        shift.save(update_fields=["plan"])
-        _event(shift, "Planned the day", shift.plan)
+            plan = _plan(business, briefing)
+            shift.plan = plan.get("focus") or "Work from the products, the inbox, and today's report."
+            shift.save(update_fields=["plan"])
+            _event(shift, "Planned the day", shift.plan)
 
-        _polish(shift, business, plan.get("polish") or [])
-        _publish(shift, business, plan.get("posts") or [])
-        _publish_organic(shift, business, plan.get("organic_posts") or [])
-        _reply(shift, business)
-        _report(shift, business)
-        dispatch_due(business.id)
-        refresh_due_metrics(business.id)
-        shift.status = AutopilotShift.Status.FINISHED
+            _polish(shift, business, plan.get("polish") or [])
+            _publish(shift, business, plan.get("posts") or [])
+            _publish_organic(shift, business, plan.get("organic_posts") or [])
+            _reply(shift, business)
+            _report(shift, business)
+            dispatch_due(business.id)
+            refresh_due_metrics(business.id)
+            shift.status = AutopilotShift.Status.FINISHED
     except Exception as exc:
         shift.status = AutopilotShift.Status.FAILED
         _event(shift, "The shift stopped", str(exc)[:500], failed=True)
@@ -708,7 +712,7 @@ def _publish_organic(shift: AutopilotShift, business: Business, items: list) -> 
         break
 
     if not theme_key:
-        picked = pick_autopilot_organic_seed(business)
+        picked = pick_autopilot_organic_seed(business, seeds=seeds)
         theme_key = picked["theme_key"]
         note = picked["brief"]
         seed_title = picked.get("title") or picked.get("theme_label") or theme_key

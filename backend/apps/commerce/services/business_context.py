@@ -81,6 +81,7 @@ class CommerceBusinessContextService:
             commerce_page,
         )
 
+        # Keep vision prompts small — name/category/price are enough for context.
         context["existing_products"] = [
             {
                 "name": product.name,
@@ -91,11 +92,11 @@ class CommerceBusinessContextService:
                     else None
                 ),
                 "currency": product.currency,
-                "description": product.description,
+                "description": (product.description or "")[:160],
             }
             for product in Product.objects.filter(
                 business=business,
-            )[:20]
+            ).order_by("-updated_at")[:8]
         ]
 
         return context

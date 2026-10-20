@@ -23,24 +23,27 @@ logger = logging.getLogger(__name__)
 def polish_product(product: Product) -> Product:
     """Rewrite visitor-facing fields and return the saved product."""
 
-    vision = ProductVisionService(
-        model=getattr(settings, "OPENROUTER_VISION_MODEL", "") or None,
-    )
-    result = vision.polish(
-        images=_image_payload(product),
-        listing=_listing(product),
-        business_context=CommerceBusinessContextService.build(product.business),
-    )
+    from apps.kova_ai.services.usage import track_ai_usage
 
-    _apply(product, result)
-    ProductAIAnalysis.objects.create(
-        product=product,
-        model=getattr(settings, "OPENROUTER_VISION_MODEL", "") or "openrouter",
-        result=result,
-        confidence=_confidence_percent(result.get("confidence")),
-    )
-    product.refresh_from_db()
-    return product
+    with track_ai_usage("product_polish", product.business_id):
+        vision = ProductVisionService(
+            model=getattr(settings, "OPENROUTER_VISION_MODEL", "") or None,
+        )
+        result = vision.polish(
+            images=_image_payload(product),
+            listing=_listing(product),
+            business_context=CommerceBusinessContextService.build(product.business),
+        )
+
+        _apply(product, result)
+        ProductAIAnalysis.objects.create(
+            product=product,
+            model=getattr(settings, "OPENROUTER_VISION_MODEL", "") or "openrouter",
+            result=result,
+            confidence=_confidence_percent(result.get("confidence")),
+        )
+        product.refresh_from_db()
+        return product
 
 
 def _image_payload(product: Product) -> list[tuple[str, bytes]]:

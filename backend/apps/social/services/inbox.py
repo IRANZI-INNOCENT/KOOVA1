@@ -53,6 +53,8 @@ def understand_customer(business, body: str, *, kind: str, channel: str) -> dict
         temperature=0.4,
         max_tokens=500,
         response_format={"type": "json_object"},
+        feature="inbox",
+        business_id=getattr(business, "id", None),
     )
     try:
         raw = response["choices"][0]["message"]["content"]

@@ -19,6 +19,7 @@ import logging
 import re
 from typing import Any
 
+from apps.commerce.services.image_optimize import compress_bytes_for_vision
 from apps.kova_ai.services.openrouter import (
     OpenRouterError,
     OpenRouterService,
@@ -74,6 +75,7 @@ class ProductVisionService:
             },
         ]
 
+        payload: dict[str, Any] | None = None
         try:
             payload = self._complete(messages, max_tokens=4000)
             result = self._read_result(payload)
@@ -85,8 +87,24 @@ class ProductVisionService:
             KeyError,
             json.JSONDecodeError,
         ) as first_error:
+            # Full multimodal retries are expensive — only retry when the
+            # model was cut off mid-JSON.
+            finish = ""
+            if isinstance(payload, dict):
+                choice = (payload.get("choices") or [{}])[0]
+                if isinstance(choice, dict):
+                    finish = str(choice.get("finish_reason") or "")
+            if finish != "length":
+                logger.warning(
+                    "Product analysis JSON could not be read (%s). %s",
+                    first_error,
+                    self._response_hint(payload),
+                )
+                raise ProductVisionError(
+                    "Kova received an invalid product analysis response."
+                ) from first_error
             logger.warning(
-                "Product analysis JSON could not be read (%s). Retrying. %s",
+                "Product analysis truncated (%s). Retrying. %s",
                 first_error,
                 self._response_hint(payload),
             )
@@ -225,13 +243,17 @@ Return exactly this structure:
         for filename, image_bytes in images:
             if not image_bytes:
                 continue
-            encoded = base64.b64encode(image_bytes).decode("utf-8")
+            safe_name, compact = compress_bytes_for_vision(
+                image_bytes,
+                filename,
+            )
+            encoded = base64.b64encode(compact).decode("utf-8")
             content.append(
                 {
                     "type": "image_url",
                     "image_url": {
                         "url": (
-                            f"data:{self._guess_mime_type(filename)};"
+                            f"data:{self._guess_mime_type(safe_name)};"
                             f"base64,{encoded}"
                         )
                     },
@@ -322,13 +344,12 @@ Also put those colors in visual_attributes.color.
             if not image_bytes:
                 continue
 
-            encoded = base64.b64encode(
-                image_bytes
-            ).decode("utf-8")
-
-            mime_type = self._guess_mime_type(
-                filename
+            safe_name, compact = compress_bytes_for_vision(
+                image_bytes,
+                filename,
             )
+            encoded = base64.b64encode(compact).decode("utf-8")
+            mime_type = self._guess_mime_type(safe_name)
 
             content.append(
                 {
@@ -483,6 +504,7 @@ Also put those colors in visual_attributes.color.
             max_tokens=max_tokens,
             response_format={"type": "json_object"},
             reasoning={"effort": "low"},
+            feature="product_vision",
         )
 
     def _read_result(self, payload: dict[str, Any]) -> dict[str, Any]:

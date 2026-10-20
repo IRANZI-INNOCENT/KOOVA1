@@ -140,6 +140,12 @@ class KovaAgent:
                 parallel_tool_calls=False,
                 temperature=0.2,
                 max_tokens=4096,
+                feature="ask_kova",
+                business_id=(
+                    context.business.get("id")
+                    if isinstance(context.business, dict)
+                    else None
+                ),
             )
 
             message = self._extract_message(response)

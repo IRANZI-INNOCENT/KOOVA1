@@ -83,20 +83,23 @@ class SnapToSellService:
 
         self._validate_uploads(uploads)
 
-        business_context = CommerceBusinessContextService.build(
-            business,
-        )
+        from apps.kova_ai.services.usage import track_ai_usage
 
-        image_payload: list[tuple[str, bytes]] = []
-        for upload in uploads:
-            image_payload.append((upload.name, upload.read()))
-            upload.seek(0)
+        with track_ai_usage("snap_to_sell", business.id):
+            business_context = CommerceBusinessContextService.build(
+                business,
+            )
 
-        analysis = self.vision.analyze(
-            images=image_payload,
-            owner_facts=owner_facts,
-            business_context=business_context,
-        )
+            image_payload: list[tuple[str, bytes]] = []
+            for upload in uploads:
+                image_payload.append((upload.name, upload.read()))
+                upload.seek(0)
+
+            analysis = self.vision.analyze(
+                images=image_payload,
+                owner_facts=owner_facts,
+                business_context=business_context,
+            )
 
         if not isinstance(analysis, dict):
             raise ProductVisionError(
@@ -181,25 +184,28 @@ class SnapToSellService:
             content_type: str,
         ) -> tuple[int, Product | None, dict[str, Any] | None]:
             close_old_connections()
-            try:
-                item_owner_facts = {
-                    **per_image_facts,
-                    "price": (
-                        per_image_prices[index]
-                        if per_image_prices is not None
-                        else owner_facts["price"]
-                    ),
-                }
+            from apps.kova_ai.services.usage import track_ai_usage
 
-                product = self._create_from_image_bytes(
-                    business=business,
-                    filename=filename,
-                    content=content,
-                    content_type=content_type,
-                    owner_facts=item_owner_facts,
-                    business_context=business_context,
-                )
-                return index, product, None
+            try:
+                with track_ai_usage("snap_to_sell", business.id):
+                    item_owner_facts = {
+                        **per_image_facts,
+                        "price": (
+                            per_image_prices[index]
+                            if per_image_prices is not None
+                            else owner_facts["price"]
+                        ),
+                    }
+
+                    product = self._create_from_image_bytes(
+                        business=business,
+                        filename=filename,
+                        content=content,
+                        content_type=content_type,
+                        owner_facts=item_owner_facts,
+                        business_context=business_context,
+                    )
+                    return index, product, None
             except ProductVisionError as exc:
                 return index, None, {
                     "index": index,
