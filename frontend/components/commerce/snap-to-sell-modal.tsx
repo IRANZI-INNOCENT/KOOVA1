@@ -665,17 +665,14 @@ export default function SnapToSellModal({
     return (
       <div className="flex shrink-0 items-start justify-between gap-3 border-b border-kova-border bg-white px-4 py-3 sm:px-5">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-kova-orange">
-            Snap to Sell
-          </p>
           <h1
             id="snap-to-sell-title"
-            className="mt-0.5 text-lg font-semibold tracking-tight text-kova-dark sm:text-xl"
+            className="text-lg font-semibold tracking-tight text-kova-dark sm:text-xl"
           >
-            Add a product
+            Snap product
           </h1>
-          <p className="mt-0.5 text-xs leading-5 text-gray-500 sm:text-sm">
-            Photo → set price → Kova drafts the listing.
+          <p className="mt-0.5 text-xs text-gray-500 sm:text-sm">
+            Photo, price, then Kova drafts the listing.
           </p>
         </div>
         <button
@@ -725,31 +722,25 @@ export default function SnapToSellModal({
             <button
               type="button"
               onClick={openCamera}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-kova-orange/45 bg-kova-orange/15 px-3 py-2.5 text-sm font-semibold text-kova-dark transition hover:border-kova-orange hover:bg-kova-orange/25 sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-kova-border bg-white px-3 py-2.5 text-sm font-semibold text-kova-dark transition hover:border-kova-dark sm:w-auto"
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-kova-orange text-kova-dark">
-                <CameraIcon />
-              </span>
+              <CameraIcon />
               Take photo
             </button>
             <button
               type="button"
               onClick={openFilePicker}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-kova-orange/30 bg-kova-orange/10 px-3 py-2.5 text-sm font-semibold text-kova-dark transition hover:border-kova-orange/50 hover:bg-kova-orange/15 sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-kova-border bg-white px-3 py-2.5 text-sm font-semibold text-kova-dark transition hover:border-kova-dark sm:w-auto"
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-kova-orange/30 text-kova-dark">
-                <GalleryIcon />
-              </span>
+              <GalleryIcon />
               From device
             </button>
             <button
               type="button"
               onClick={openManualMode}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-kova-orange/25 bg-white px-3 py-2.5 text-sm font-semibold text-kova-dark transition hover:border-kova-orange/40 hover:bg-kova-orange/10 sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-kova-border bg-white px-3 py-2.5 text-sm font-semibold text-kova-dark transition hover:border-kova-dark sm:w-auto"
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-kova-orange/20 text-kova-dark">
-                <PencilIcon />
-              </span>
+              <PencilIcon />
               Type it in
             </button>
           </div>
@@ -780,7 +771,7 @@ export default function SnapToSellModal({
                     </button>
 
                     {index === 0 && (
-                      <span className="absolute bottom-2 left-2 bg-white px-2 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#176B4D]">
+                      <span className="absolute bottom-2 left-2 bg-white px-2 py-1 text-xs font-medium text-gray-500">
                         Primary
                       </span>
                     )}
@@ -1066,7 +1057,7 @@ export default function SnapToSellModal({
                 <div className="min-w-0 flex-1">
                   <label
                     htmlFor={`photo-price-${index}`}
-                    className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-gray-500"
+                    className="mb-1 block text-xs font-medium text-gray-500"
                   >
                     Photo {index + 1} price
                   </label>
@@ -1175,15 +1166,11 @@ export default function SnapToSellModal({
             : "Kova is looking at your photos together with your Business Brain to understand the product and prepare its selling information."}
         </p>
 
-        <div className="mt-8 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-[#176B4D]">
+        <div className="mt-8 flex items-center gap-2 text-xs font-medium text-gray-500">
           <span>Understanding</span>
-          <span className="text-gray-300">
-            →
-          </span>
+          <span className="text-gray-300">·</span>
           <span>Preparing</span>
-          <span className="text-gray-300">
-            →
-          </span>
+          <span className="text-gray-300">·</span>
           <span>Review</span>
         </div>
       </div>
@@ -1211,7 +1198,7 @@ export default function SnapToSellModal({
             ← Back
           </button>
 
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#176B4D]">
+          <p className="text-xs font-medium text-gray-500">
             Add manually
           </p>
 
@@ -1231,7 +1218,7 @@ export default function SnapToSellModal({
 
         <section className="border border-[#E5E7E5] bg-white">
           <div className="border-b border-[#E5E7E5] px-5 py-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#176B4D]">
+            <p className="text-xs font-medium text-gray-500">
               Product image
             </p>
 
@@ -1410,7 +1397,7 @@ export default function SnapToSellModal({
 
         <section className="border border-[#E5E7E5] bg-white">
           <div className="border-b border-[#E5E7E5] px-5 py-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#176B4D]">
+            <p className="text-xs font-medium text-gray-500">
               Product information
             </p>
 
@@ -1679,7 +1666,7 @@ export default function SnapToSellModal({
     return (
       <div className="space-y-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#176B4D]">
+          <p className="text-xs font-medium text-gray-500">
             Batch complete
           </p>
 
@@ -1761,7 +1748,7 @@ export default function SnapToSellModal({
 
     return (
       <div className="flex flex-col items-center py-6 text-center">
-        <p className="text-xs font-bold uppercase tracking-wide text-kova-green">
+        <p className="text-xs font-medium text-kova-green">
           Saved
         </p>
         <h2 className="mt-2 text-lg font-semibold text-kova-dark">
@@ -1824,7 +1811,7 @@ export default function SnapToSellModal({
             ← Back
           </button>
 
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#176B4D]">
+          <p className="text-xs font-medium text-gray-500">
             Product draft
           </p>
 
@@ -1841,7 +1828,7 @@ export default function SnapToSellModal({
 
         {product.ai_summary && (
           <div className="border border-[#E5E7E5] bg-[#FAFAF8] px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-400">
+            <p className="text-xs font-medium text-gray-400">
               Kova's understanding
             </p>
 
@@ -1879,7 +1866,7 @@ export default function SnapToSellModal({
 
         <section className="border border-[#E5E7E5] bg-white">
           <div className="border-b border-[#E5E7E5] px-5 py-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#176B4D]">
+            <p className="text-xs font-medium text-gray-500">
               Product information
             </p>
 

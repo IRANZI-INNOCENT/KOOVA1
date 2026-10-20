@@ -92,7 +92,7 @@ function TextareaField({
 
 interface FormSectionProps {
   title: string;
-  description: string;
+  description?: string;
   children: React.ReactNode;
 }
 
@@ -102,18 +102,12 @@ function FormSection({
   children,
 }: FormSectionProps) {
   return (
-    <section className="border border-kova-border bg-white p-6 sm:p-8">
-      <h2 className="text-lg font-semibold text-kova-dark">
-        {title}
-      </h2>
-
-      <p className="mt-1 text-sm leading-6 text-gray-500">
-        {description}
-      </p>
-
-      <div className="mt-6 space-y-6">
-        {children}
-      </div>
+    <section className="border border-kova-border bg-white p-5 sm:p-6">
+      <h2 className="text-sm font-semibold text-kova-dark">{title}</h2>
+      {description ? (
+        <p className="mt-0.5 text-xs text-gray-500">{description}</p>
+      ) : null}
+      <div className="mt-5 space-y-5">{children}</div>
     </section>
   );
 }
@@ -301,19 +295,11 @@ export default function BusinessGoalsPage() {
           <div className="p-6 sm:p-8">
         <div className="mx-auto max-w-3xl">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-kova-green">
-              Business Brain
-            </p>
-
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-kova-dark sm:text-4xl">
-              Define your business goals
+            <h1 className="text-2xl font-semibold tracking-tight text-kova-dark">
+              Goals
             </h1>
-
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
-              Tell Kova what your business is trying to
-              achieve, where you want to grow, and how you
-              measure success. This helps Kova make better
-              decisions for your business.
+            <p className="mt-1.5 text-sm text-gray-500">
+              What success looks like for this business.
             </p>
           </div>
 
@@ -334,10 +320,7 @@ export default function BusinessGoalsPage() {
             onSubmit={handleSubmit}
             className="mt-10 space-y-8"
           >
-            <FormSection
-              title="Business direction"
-              description="Start with the outcomes that matter most to your business."
-            >
+            <FormSection title="Direction">
               <TextareaField
                 label="Primary goal"
                 value={form.primary_goal}
@@ -361,10 +344,7 @@ export default function BusinessGoalsPage() {
               />
             </FormSection>
 
-            <FormSection
-              title="Growth priorities"
-              description="Tell Kova where the business should focus its growth efforts."
-            >
+            <FormSection title="Growth">
               <TextareaField
                 label="Growth priorities"
                 value={form.growth_priorities}
@@ -377,10 +357,7 @@ export default function BusinessGoalsPage() {
               />
             </FormSection>
 
-            <FormSection
-              title="Measuring success"
-              description="Describe how you will know whether the business is moving in the right direction."
-            >
+            <FormSection title="Success metrics">
               <TextareaField
                 label="Success metrics"
                 value={form.success_metrics}
@@ -393,10 +370,7 @@ export default function BusinessGoalsPage() {
               />
             </FormSection>
 
-            <FormSection
-              title="Challenges and timeline"
-              description="Help Kova understand what may prevent the business from reaching its goals."
-            >
+            <FormSection title="Challenges & timeline">
               <TextareaField
                 label="Current challenges"
                 value={form.current_challenges}

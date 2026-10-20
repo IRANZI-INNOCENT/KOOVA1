@@ -82,18 +82,14 @@ export function PendingMetaPagesPanel({
   );
 
   return (
-    <section className="rounded-lg border border-kova-orange/40 bg-kova-orange/5 p-5 space-y-4">
+    <section className="space-y-4 rounded-lg border border-kova-orange/40 bg-kova-orange/5 p-5">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-kova-orange">
-          Needs a business brain
-        </p>
-        <h2 className="mt-1 text-base font-semibold text-kova-dark">
-          Extra Facebook Pages stay inactive until assigned
+        <h2 className="text-sm font-semibold text-kova-dark">
+          Extra Facebook Pages
         </h2>
-        <p className="mt-2 text-sm leading-6 text-gray-600">
-          Each company needs its own brain (profile, brand, products). Your
-          first Page stays on the brain you are viewing now. Connect each
-          additional Page to a new or empty brain before Kova can post for it.
+        <p className="mt-1 text-sm text-gray-600">
+          Assign each extra Page to its own business before Kova can post for
+          it. Your first Page stays on the business you are viewing now.
         </p>
       </div>
 

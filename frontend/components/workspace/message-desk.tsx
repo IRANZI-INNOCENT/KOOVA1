@@ -63,8 +63,9 @@ export function MessageDesk({
   intro,
 }: {
   channels?: string[];
-  title: string;
-  intro: string;
+  /** When omitted, skip the page-style header (parent already titled the screen). */
+  title?: string;
+  intro?: string;
 }) {
   const { accessToken, isAuthenticated } = useAuth();
   const [businessId, setBusinessId] = useState<number | null>(null);
@@ -198,13 +199,16 @@ export function MessageDesk({
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
-      <header>
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
-          Customers
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold text-kova-dark">{title}</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">{intro}</p>
-      </header>
+      {title ? (
+        <header>
+          <h2 className="text-lg font-semibold text-kova-dark">{title}</h2>
+          {intro ? (
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
+              {intro}
+            </p>
+          ) : null}
+        </header>
+      ) : null}
 
       {error && (
         <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -213,7 +217,7 @@ export function MessageDesk({
       )}
 
       <div
-        className="flex gap-2 border-b border-kova-border pb-3"
+        className="flex gap-1 border-b border-kova-border"
         role="tablist"
         aria-label="Inbox filters"
       >
@@ -224,22 +228,18 @@ export function MessageDesk({
             role="tab"
             aria-selected={filter === value}
             onClick={() => setFilter(value)}
-            className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-xs font-bold transition-colors ${
+            className={`inline-flex h-9 items-center gap-2 border-b-2 px-3 text-xs font-semibold transition-colors ${
               filter === value
-                ? "bg-kova-green text-white"
-                : "bg-white text-gray-600 ring-1 ring-kova-border hover:text-kova-dark"
+                ? "border-kova-dark text-kova-dark"
+                : "border-transparent text-gray-500 hover:text-kova-dark"
             }`}
           >
             {label}
-            {unread > 0 && (
-              <span
-                className={`min-w-[1.25rem] rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none ${
-                  filter === value ? "bg-white/20 text-white" : "bg-kova-green text-white"
-                }`}
-              >
+            {unread > 0 ? (
+              <span className="text-xs font-medium text-gray-500">
                 {unread}
               </span>
-            )}
+            ) : null}
           </button>
         ))}
       </div>
@@ -248,8 +248,8 @@ export function MessageDesk({
         {shown.length === 0 && (
           <p className="py-10 text-center text-sm leading-6 text-gray-500">
             {filter === "all"
-              ? "No comments or messages yet. New ones from your channels appear here, newest first."
-              : `No ${filter === "comment" ? "comments" : "messages"} in this view.`}
+              ? "No messages yet."
+              : `No ${filter === "comment" ? "comments" : "messages"} yet.`}
           </p>
         )}
         {shown.map((message) => {
@@ -276,33 +276,37 @@ export function MessageDesk({
           return (
             <article
               key={message.id}
-              className={`rounded-lg border bg-white p-4 transition-colors ${
-                unread
-                  ? "border-kova-green/40 ring-1 ring-kova-green/10"
-                  : "border-kova-border"
+              className={`border bg-white p-4 ${
+                unread ? "border-kova-dark" : "border-kova-border"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    {unread && (
+                    {unread ? (
                       <span
-                        className="h-2 w-2 shrink-0 rounded-full bg-kova-green"
+                        className="h-1.5 w-1.5 shrink-0 rounded-sm bg-kova-dark"
                         title="Needs a reply"
                       />
-                    )}
+                    ) : null}
                     <p className="text-sm font-semibold text-kova-dark">
                       {message.customer_name || "Customer"}
                     </p>
-                    <span className="text-xs text-gray-400">{formatWhen(message.created_at)}</span>
-                    {sent && (
-                      <span className="text-xs font-medium text-kova-green">Replied</span>
-                    )}
-                    {!sent && hasSavedReply && (
-                      <span className="text-xs font-medium text-gray-500">Reply saved</span>
-                    )}
+                    <span className="text-xs text-gray-400">
+                      {formatWhen(message.created_at)}
+                    </span>
+                    {sent ? (
+                      <span className="text-xs font-medium text-kova-green">
+                        Replied
+                      </span>
+                    ) : null}
+                    {!sent && hasSavedReply ? (
+                      <span className="text-xs font-medium text-gray-500">
+                        Reply saved
+                      </span>
+                    ) : null}
                   </div>
-                  <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
+                  <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
                     <PlatformBrandIcon
                       platform={channelToPlatformBrand(message.channel)}
                       size={14}
@@ -441,7 +445,7 @@ function OutboundCard({
         <span className="text-xs text-gray-400">{formatWhen(message.created_at)}</span>
         <span className="text-xs text-gray-500">{deliveryLabel(message.delivery_status)}</span>
       </div>
-      <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
+      <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
         <PlatformBrandIcon
           platform={channelToPlatformBrand(message.channel)}
           size={14}

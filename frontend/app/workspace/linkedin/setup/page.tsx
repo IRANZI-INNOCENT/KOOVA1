@@ -129,8 +129,7 @@ export default function LinkedInSetupPage() {
       <div className={WORKSPACE_PAGE}>
         <div className="mx-auto max-w-lg space-y-4">
           <PageHeader
-            eyebrow="LinkedIn setup"
-            title="We could not load this page"
+            title="Could not load"
             description={loadError || "Something went wrong."}
           />
           <Button type="button" onClick={() => void loadProfile()}>
@@ -148,9 +147,8 @@ export default function LinkedInSetupPage() {
     <div className={WORKSPACE_PAGE}>
       <div className="mx-auto max-w-lg">
         <PageHeader
-          eyebrow="LinkedIn setup"
-          title="Tell Kova who you are on LinkedIn"
-          description="About a minute — headline, role, and one content pillar so Kova can draft in your voice."
+          title="LinkedIn profile"
+          description="Headline, role, and one content pillar."
         />
 
         {error && (

@@ -158,48 +158,68 @@ export default function LoginPage() {
         />
 
 
-        <div className="relative">
+        <div>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <label
+              htmlFor="password"
+              className="text-sm font-medium text-kova-dark"
+            >
+              Password
+              <span
+                className="ml-1 text-kova-green"
+                aria-hidden="true"
+              >
+                *
+              </span>
+            </label>
+            <Link
+              href="/forgot-password"
+              className="text-sm font-semibold text-kova-green transition-colors hover:text-[#12583f]"
+            >
+              Forgot password?
+            </Link>
+          </div>
 
-          <Input
-            id="password"
-            name="password"
-            type={
-              showPassword
-                ? "text"
-                : "password"
-            }
-            label="Password"
-            value={password}
-            onChange={(event) =>
-              setPassword(event.target.value)
-            }
-            placeholder="Enter your password"
-            autoComplete="current-password"
-            required
-            disabled={loading}
-            className="pr-20"
-          />
+          <div className="relative">
+            <Input
+              id="password"
+              name="password"
+              type={
+                showPassword
+                  ? "text"
+                  : "password"
+              }
+              value={password}
+              onChange={(event) =>
+                setPassword(event.target.value)
+              }
+              placeholder="Enter your password"
+              autoComplete="current-password"
+              required
+              disabled={loading}
+              className="pr-20"
+            />
 
-          <button
-            type="button"
-            onClick={() =>
-              setShowPassword(
-                (current) => !current,
-              )
-            }
-            disabled={loading}
-            className="absolute right-3 top-[38px] px-2 py-1 text-xs font-semibold text-gray-500 transition-colors hover:text-kova-green disabled:cursor-not-allowed"
-            aria-label={
-              showPassword
-                ? "Hide password"
-                : "Show password"
-            }
-          >
-            {showPassword
-              ? "Hide"
-              : "Show"}
-          </button>
-
+            <button
+              type="button"
+              onClick={() =>
+                setShowPassword(
+                  (current) => !current,
+                )
+              }
+              disabled={loading}
+              className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 text-xs font-semibold text-gray-500 transition-colors hover:text-kova-green disabled:cursor-not-allowed"
+              aria-label={
+                showPassword
+                  ? "Hide password"
+                  : "Show password"
+              }
+            >
+              {showPassword
+                ? "Hide"
+                : "Show"}
+            </button>
+          </div>
         </div>
 
 

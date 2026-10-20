@@ -1,15 +1,13 @@
 "use client";
 
-import { MessageDesk } from "@/components/workspace/message-desk";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-export default function EngagementPage() {
-  return (
-    <div className="p-4 sm:p-8">
-      <MessageDesk
-        channels={["instagram", "facebook"]}
-        title="Comments and messages"
-        intro="Instagram and Facebook comments and direct messages. Kova drafts the reply, and Send posts it back on the connected account."
-      />
-    </div>
-  );
+/** Replies live in Inbox — one message desk. */
+export default function SocialEngagementRedirectPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/workspace/inbox");
+  }, [router]);
+  return null;
 }

@@ -26,11 +26,11 @@ export default function SnapToSellPage() {
   } = useWorkspace();
 
   function handleCreated() {
-    router.push("/workspace/commerce");
+    router.push("/workspace/commerce/products");
   }
 
   function handleClose() {
-    router.push("/workspace/commerce");
+    router.push("/workspace/commerce/products");
   }
 
   if (
@@ -48,10 +48,10 @@ export default function SnapToSellPage() {
         </p>
         <button
           type="button"
-          onClick={() => router.push("/workspace/commerce")}
+          onClick={() => router.push("/workspace/commerce/products")}
           className="mt-4 text-sm font-semibold text-kova-green hover:underline"
         >
-          Back to Commerce →
+          Back to Products
         </button>
       </div>
     );

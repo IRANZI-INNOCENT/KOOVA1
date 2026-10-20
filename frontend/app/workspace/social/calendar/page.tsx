@@ -89,13 +89,9 @@ export default function CalendarPage() {
     <div className="p-4 sm:p-8">
       <div className="mx-auto max-w-3xl space-y-6">
         <header>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
-            Calendar
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold text-kova-dark">Schedule and publish</h1>
-          <p className="mt-2 text-sm leading-6 text-gray-500">
-            Posts wait here until their time, then Kova sends them to the connected account.
-            A failed send can be tried again.
+          <h1 className="text-2xl font-semibold text-kova-dark">Calendar</h1>
+          <p className="mt-1.5 text-sm leading-6 text-gray-500">
+            Schedule posts. Retry if a send fails.
           </p>
         </header>
         {error && (
@@ -105,7 +101,7 @@ export default function CalendarPage() {
         )}
         <form onSubmit={schedule} className="grid gap-3 rounded-lg border border-kova-border bg-white p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
           <label className="text-sm">
-            <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-400">Post</span>
+            <span className="mb-1 block text-xs font-medium text-gray-500">Post</span>
             <select
               value={contentId}
               onChange={(event) => setContentId(event.target.value)}
@@ -120,7 +116,7 @@ export default function CalendarPage() {
             </select>
           </label>
           <label className="text-sm">
-            <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-400">Send at</span>
+            <span className="mb-1 block text-xs font-medium text-gray-500">Send at</span>
             <input
               type="datetime-local"
               value={when}
@@ -137,20 +133,20 @@ export default function CalendarPage() {
         </form>
         <div className="space-y-3">
           {posts.length === 0 && (
-            <p className="rounded-lg border border-dashed border-kova-orange/40 bg-kova-orange/5 px-4 py-8 text-center text-sm text-gray-500">
-              Approved posts you schedule, and posts you publish from Content Studio, appear here.
+            <p className="border border-kova-border bg-white px-4 py-6 text-sm text-gray-500">
+              Scheduled and published posts appear here.
             </p>
           )}
           {posts.map((post) => (
-            <article key={post.id} className="rounded-lg border border-kova-border bg-white p-4">
+            <article key={post.id} className="border border-kova-border bg-white p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-kova-orange">
+                  <p className="text-xs font-medium text-gray-500">
                     {post.platform} · {post.account_name || "Account"}
                   </p>
                   <p className="mt-1 text-sm leading-6 text-kova-dark">{post.caption}</p>
                 </div>
-                <span className="shrink-0 rounded-md bg-kova-background px-2 py-1 text-xs font-bold text-kova-dark">
+                <span className="shrink-0 text-xs font-medium text-kova-dark">
                   {post.publishing_status}
                 </span>
               </div>

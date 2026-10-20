@@ -30,10 +30,10 @@ export function PlatformAvatar({
           src={imageUrl}
           alt={alt}
           referrerPolicy="no-referrer"
-          className={`${dim.img} rounded-full object-cover ring-2 ring-kova-orange/25`}
+          className={`${dim.img} rounded-full object-cover`}
         />
         <span
-          className="absolute -bottom-0.5 -right-0.5 overflow-hidden rounded-full ring-2 ring-white"
+          className="absolute -bottom-0.5 -right-0.5 overflow-hidden rounded-full border border-white bg-white"
           title={platform}
         >
           <PlatformBrandIcon platform={platform} size={dim.badge} />
@@ -44,7 +44,7 @@ export function PlatformAvatar({
 
   return (
     <div
-      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white ring-2 ring-kova-orange/20 ${dim.box}`}
+      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-kova-border bg-white ${dim.box}`}
       title={name || platform}
     >
       <PlatformBrandIcon platform={platform} size={dim.badge + 6} />

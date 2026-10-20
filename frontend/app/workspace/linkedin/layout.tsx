@@ -27,7 +27,7 @@ export default function LinkedInLayout({ children }: { children: ReactNode }) {
       <div className="flex min-h-0 flex-1 flex-col">
         {!isSetup && (
           <div className="border-b border-kova-border bg-white px-4 pt-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-kova-muted">
+            <p className="text-xs font-medium text-kova-muted">
               LinkedIn
             </p>
             <nav className="-mb-px mt-2 flex gap-1 overflow-x-auto pb-0">

@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 
 import {
   InboxNavIcon,
-  PlatformBrandIcon,
   SocialNavIcon,
 } from "@/components/social/platform-brand";
 import {
@@ -18,6 +17,7 @@ interface NavigationItem {
   label: string;
   href: string;
   icon: React.ReactNode;
+  exact?: boolean;
 }
 
 function Icon({ d, ...props }: { d: string } & React.SVGProps<SVGSVGElement>) {
@@ -28,7 +28,6 @@ function Icon({ d, ...props }: { d: string } & React.SVGProps<SVGSVGElement>) {
   );
 }
 
-/** Colorful nav marks (same visual weight as platform logos). */
 function NavEmoji({
   symbol,
   label,
@@ -47,10 +46,12 @@ function NavEmoji({
   );
 }
 
+/** Primary IA: Home · Post · Inbox · Shop · Settings */
 const navigationItems: NavigationItem[] = [
   {
-    label: "Overview",
+    label: "Home",
     href: "/workspace",
+    exact: true,
     icon: (
       <NavIconSlot>
         <OverviewNavIcon />
@@ -58,29 +59,11 @@ const navigationItems: NavigationItem[] = [
     ),
   },
   {
-    label: "Social",
+    label: "Post",
     href: "/workspace/social",
     icon: (
       <NavIconSlot>
         <SocialNavIcon size={15} />
-      </NavIconSlot>
-    ),
-  },
-  {
-    label: "LinkedIn",
-    href: "/workspace/linkedin",
-    icon: (
-      <NavIconSlot>
-        <PlatformBrandIcon platform="linkedin" size={18} />
-      </NavIconSlot>
-    ),
-  },
-  {
-    label: "Commerce",
-    href: "/workspace/commerce",
-    icon: (
-      <NavIconSlot>
-        <NavEmoji symbol="🛍️" label="Commerce" />
       </NavIconSlot>
     ),
   },
@@ -94,11 +77,11 @@ const navigationItems: NavigationItem[] = [
     ),
   },
   {
-    label: "Leads",
-    href: "/workspace/leads",
+    label: "Shop",
+    href: "/workspace/commerce",
     icon: (
       <NavIconSlot>
-        <NavEmoji symbol="🎯" label="Leads" />
+        <NavEmoji symbol="🛍️" label="Shop" />
       </NavIconSlot>
     ),
   },
@@ -126,11 +109,11 @@ export function Sidebar({
   const pathname = usePathname();
 
   function isActive(item: NavigationItem): boolean {
-    if (item.href === "/workspace") return pathname === "/workspace";
+    if (item.exact || item.href === "/workspace") {
+      return pathname === "/workspace";
+    }
     return pathname.startsWith(item.href);
   }
-
-  const isKovaActive = pathname.startsWith("/workspace/kova");
 
   return (
     <aside className={`hidden h-full shrink-0 flex-col overflow-hidden bg-kova-green transition-[width] lg:flex ${collapsed ? "w-16" : "w-48"}`}>
@@ -153,33 +136,9 @@ export function Sidebar({
         )}
       </div>
 
-      <div className="px-2 pt-4">
-        <Link
-          href="/workspace/kova"
-          title="Talk to Kova"
-          className={`flex items-center gap-3 rounded-md px-2.5 py-2.5 text-sm font-semibold transition-colors ${
-            collapsed ? "justify-center" : ""
-          } ${
-            isKovaActive
-              ? "bg-white text-kova-green"
-              : "bg-white/10 text-white hover:bg-white/15"
-          }`}
-        >
-          <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs font-bold ${
-            isKovaActive ? "bg-kova-green text-white" : "bg-kova-orange text-kova-dark"
-          }`}>
-            K
-          </span>
-          {!collapsed && "Talk to Kova"}
-        </Link>
-      </div>
-
-      {/* Primary navigation */}
       <nav aria-label="Workspace navigation" className="min-h-0 flex-1 overflow-y-auto px-2 pt-6">
         {!collapsed && (
-          <p className="px-3 text-xs font-semibold uppercase tracking-[0.16em] text-kova-orange">
-            Workspace
-          </p>
+          <p className="px-3 text-xs font-medium text-white/50">Workspace</p>
         )}
         <div className="mt-2 space-y-0.5">
           {navigationItems.map((item) => {
@@ -198,11 +157,7 @@ export function Sidebar({
                     : "text-white/85 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                <span
-                  className={
-                    active ? "text-kova-dark" : "text-white/90"
-                  }
-                >
+                <span className={active ? "text-kova-dark" : "text-white/90"}>
                   {item.icon}
                 </span>
                 {!collapsed && item.label}
@@ -211,12 +166,9 @@ export function Sidebar({
           })}
         </div>
 
-        {/* Secondary navigation */}
         <div className="mt-8">
           {!collapsed && (
-            <p className="px-3 text-xs font-semibold uppercase tracking-[0.16em] text-kova-orange">
-              Account
-            </p>
+            <p className="px-3 text-xs font-medium text-white/50">Account</p>
           )}
           <div className="mt-2 space-y-0.5">
             {secondaryNavigationItems.map((item) => {
@@ -235,11 +187,7 @@ export function Sidebar({
                       : "text-white/85 hover:bg-white/10 hover:text-white"
                   }`}
                 >
-                  <span
-                    className={
-                      active ? "text-kova-dark" : "text-white/90"
-                    }
-                  >
+                  <span className={active ? "text-kova-dark" : "text-white/90"}>
                     {item.icon}
                   </span>
                   {!collapsed && item.label}

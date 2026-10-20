@@ -27,9 +27,9 @@ const STATUS_LABELS: Record<Product["status"], string> = {
 };
 
 const STATUS_COLORS: Record<Product["status"], string> = {
-  draft: "bg-gray-100 text-gray-600",
-  active: "bg-kova-green/10 text-kova-green",
-  archived: "bg-gray-100 text-gray-400",
+  draft: "text-gray-500",
+  active: "text-kova-green",
+  archived: "text-gray-400",
 };
 
 export default function ProductDetailPage() {
@@ -185,31 +185,31 @@ export default function ProductDetailPage() {
           {/* Back */}
           <Link
             href="/workspace/commerce/products"
-            className="text-sm font-semibold text-kova-orange hover:underline"
+            className="text-sm font-semibold text-kova-green hover:underline"
           >
-            ← Products
+            Products
           </Link>
 
           {/* ──── Header ──── */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <h1 className="min-w-0 break-words text-2xl font-semibold text-kova-dark sm:text-3xl">
                   {product.name}
                 </h1>
                 <span
-                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${STATUS_COLORS[product.status]}`}
+                  className={`text-xs font-medium ${STATUS_COLORS[product.status]}`}
                 >
                   {STATUS_LABELS[product.status]}
                 </span>
-                {contentPlan && contentPlan.scheduled > 0 && (
-                  <span className="rounded-full bg-kova-green/10 px-2.5 py-0.5 text-xs font-semibold text-kova-green">
+                {contentPlan && contentPlan.scheduled > 0 ? (
+                  <span className="text-xs font-medium text-kova-green">
                     Scheduled
                     {contentPlan.next_at
                       ? ` · ${new Date(contentPlan.next_at).toLocaleString()}`
                       : ""}
                   </span>
-                )}
+                ) : null}
               </div>
               <p className="mt-1 text-sm text-gray-500">
                 {product.ai_generated ? "Created by Kova AI · " : ""}
@@ -305,9 +305,9 @@ export default function ProductDetailPage() {
                   {product.images.slice(0, 4).map((img) => (
                     <div
                       key={img.id}
-                      className={`aspect-square overflow-hidden rounded-lg border bg-white ${
+                      className={`aspect-square overflow-hidden rounded-md border bg-white ${
                         img.is_primary
-                          ? "border-kova-orange ring-1 ring-kova-orange/30"
+                          ? "border-kova-dark"
                           : "border-kova-border"
                       }`}
                     >
@@ -323,86 +323,58 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              {/* Kova Intelligence */}
-              <div className="rounded-lg border border-kova-border bg-white p-5">
-                <p className="text-xs font-bold uppercase tracking-wide text-kova-orange">
-                  Kova Intelligence
+              <div className="border border-kova-border bg-white p-5">
+                <p className="text-sm font-semibold text-kova-dark">
+                  From Kova
                 </p>
 
-                {product.ai_summary && (
-                  <p className="mt-3 text-sm leading-6 text-gray-600">
+                {product.ai_summary ? (
+                  <p className="mt-2 text-sm leading-6 text-gray-600">
                     {product.ai_summary}
                   </p>
-                )}
+                ) : null}
 
-                {product.ai_confidence && (
-                  <div className="mt-3">
-                    <p className="text-xs text-gray-400">AI Confidence</p>
-                    <div className="mt-1 flex items-center gap-2">
-                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
-                        <div
-                          className="h-full rounded-full bg-kova-orange"
-                          style={{
-                            width: `${Number(product.ai_confidence) * 100}%`,
-                          }}
-                        />
-                      </div>
-                      <span className="text-xs font-bold text-kova-dark">
-                        {Math.round(Number(product.ai_confidence) * 100)}%
-                      </span>
-                    </div>
-                  </div>
-                )}
+                {product.ai_confidence ? (
+                  <p className="mt-2 text-xs text-gray-500">
+                    Confidence{" "}
+                    {Math.round(Number(product.ai_confidence) * 100)}%
+                  </p>
+                ) : null}
 
-                {product.selling_points.length > 0 && (
+                {product.selling_points.length > 0 ? (
                   <div className="mt-4 border-t border-kova-border pt-4">
-                    <p className="text-xs font-bold uppercase tracking-wide text-gray-400">
-                      Selling Points
+                    <p className="text-xs font-medium text-gray-500">
+                      Selling points
                     </p>
-                    <ul className="mt-2 space-y-1.5">
+                    <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-gray-600">
                       {product.selling_points.map((point, i) => (
-                        <li
-                          key={i}
-                          className="flex items-start gap-2 text-sm text-gray-600"
-                        >
-                          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-kova-orange" />
-                          {point}
-                        </li>
+                        <li key={i}>{point}</li>
                       ))}
                     </ul>
                   </div>
-                )}
+                ) : null}
 
-                {product.keywords.length > 0 && (
+                {product.keywords.length > 0 ? (
                   <div className="mt-4 border-t border-kova-border pt-4">
-                    <p className="text-xs font-bold uppercase tracking-wide text-gray-400">
-                      Keywords
+                    <p className="text-xs font-medium text-gray-500">Keywords</p>
+                    <p className="mt-1 text-sm text-gray-600">
+                      {product.keywords.join(" · ")}
                     </p>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {product.keywords.map((kw) => (
-                        <span
-                          key={kw}
-                          className="rounded-full bg-kova-orange/10 px-2 py-0.5 text-xs font-medium text-kova-orange"
-                        >
-                          {kw}
-                        </span>
-                      ))}
-                    </div>
                   </div>
-                )}
+                ) : null}
 
-                {product.uncertain_attributes.length > 0 && (
+                {product.uncertain_attributes.length > 0 ? (
                   <div className="mt-4 border-t border-kova-border pt-4">
-                    <p className="text-xs font-bold uppercase tracking-wide text-amber-700">
-                      Needs Confirmation
+                    <p className="text-xs font-medium text-amber-800">
+                      Needs confirmation
                     </p>
-                    <ul className="mt-2 list-disc pl-5 text-sm text-amber-900">
+                    <ul className="mt-2 list-disc pl-4 text-sm text-amber-900">
                       {product.uncertain_attributes.map((item) => (
                         <li key={item}>{item}</li>
                       ))}
                     </ul>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
 

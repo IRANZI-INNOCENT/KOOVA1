@@ -6,7 +6,6 @@ import Link from "next/link";
 
 import { MetricStrip } from "@/components/ui/metric-strip";
 import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
-import { QuickLinks } from "@/components/ui/quick-links";
 import { KovaStepsGuide } from "@/components/workspace/kova-steps-guide";
 import { PageSkeleton } from "@/components/workspace/page-skeleton";
 import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
@@ -15,6 +14,7 @@ import {
   buildOverviewActions,
 } from "@/components/workspace/overview-daily-panel";
 import { ApiError } from "@/lib/api";
+import { getLatestBrief, type MorningBrief } from "@/lib/brief";
 import { getSocialOverview } from "@/lib/social";
 import {
   getConnectedChannels,
@@ -61,13 +61,10 @@ export default function OverviewPage() {
   const [copied, setCopied] = useState(false);
   const [socialConnected, setSocialConnected] = useState(false);
   const [pendingSocialActions, setPendingSocialActions] = useState(0);
+  const [brief, setBrief] = useState<MorningBrief | null>(null);
 
   useEffect(() => {
-    if (
-      workspaceLoading ||
-      !businessId ||
-      !accessToken
-    ) {
+    if (workspaceLoading || !businessId || !accessToken) {
       return;
     }
 
@@ -80,26 +77,21 @@ export default function OverviewPage() {
         setLoading(true);
         setError("");
 
-        const [prods, page, contentList, leadList, plans, channels, social] =
+        const [prods, page, contentList, leadList, plans, channels, social, dailyBrief] =
           await Promise.all([
             getProducts(bizId, token),
             getCommercePage(bizId, token),
-            getContents(bizId, token).catch(
-              () => [] as Content[],
-            ),
-            getLeads(bizId, token).catch(
-              () => [] as Lead[],
-            ),
+            getContents(bizId, token).catch(() => [] as Content[]),
+            getLeads(bizId, token).catch(() => [] as Lead[]),
             getProductContentPlans(bizId, token).catch(
               () => [] as ProductContentPlan[],
             ),
             getConnectedChannels(bizId, token).catch(() => null),
             getSocialOverview(bizId, token).catch(() => null),
+            getLatestBrief(bizId, token).catch(() => null),
           ]);
 
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
 
         setProducts(prods);
         setCommercePage(page);
@@ -110,10 +102,11 @@ export default function OverviewPage() {
         );
         setSocialConnected(!!channels?.connected);
         setPendingSocialActions(social?.pending_actions ?? 0);
+        setBrief(
+          dailyBrief && dailyBrief.status === "ready" ? dailyBrief : null,
+        );
       } catch (err) {
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
 
         if (err instanceof ApiError && err.status === 404) {
           router.replace("/workspace/setup");
@@ -132,9 +125,7 @@ export default function OverviewPage() {
             : "Could not load your workspace.",
         );
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
@@ -143,12 +134,7 @@ export default function OverviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [
-    workspaceLoading,
-    businessId,
-    accessToken,
-    router,
-  ]);
+  }, [workspaceLoading, businessId, accessToken, router]);
 
   function copyStoreLink() {
     if (!commercePage?.slug) return;
@@ -172,7 +158,6 @@ export default function OverviewPage() {
   }
 
   const activeProducts = products.filter((p) => p.status === "active");
-  const draftProducts = products.filter((p) => p.status === "draft");
   const newLeads = leads.filter((l) => l.status === "new");
   const draftContent = contents.filter((c) => c.status === "draft");
   const approvedContent = contents.filter((c) => c.status === "approved");
@@ -190,6 +175,8 @@ export default function OverviewPage() {
   const storeUrl = commercePage?.slug
     ? `/store/${commercePage.slug}`
     : null;
+  const showSetup =
+    !socialConnected || products.length === 0 || publishedContent.length === 0;
 
   return (
     <WorkspacePageFrame
@@ -199,92 +186,106 @@ export default function OverviewPage() {
       <div className={WORKSPACE_PAGE}>
         <div className="space-y-6">
           <PageHeader
-            eyebrow="Overview"
-            title={business?.name || "Your business"}
-            description={
+            title={
               user?.first_name
-                ? `Welcome back, ${formatName(user.first_name)}. Kova works in three simple steps — connect, add products, create posts.`
-                : "Kova works in three simple steps — connect, add products, create posts."
+                ? `Hi ${formatName(user.first_name)}`
+                : business?.name || "Today"
             }
+            description={business?.name && user?.first_name ? business.name : undefined}
             actions={
-              storeIsLive && storeUrl ? (
-                <div className="flex gap-2">
-                  <a
-                    href={storeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex h-10 items-center rounded-lg bg-kova-green px-4 text-sm font-bold text-white transition hover:bg-[#12563d]"
-                  >
-                    View store
-                  </a>
-                  <button
-                    type="button"
-                    onClick={copyStoreLink}
-                    className="inline-flex h-10 items-center gap-2 rounded-lg border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark transition hover:border-kova-orange/50"
-                  >
-                    {copied ? "Copied" : "Share link"}
-                  </button>
-                </div>
-              ) : undefined
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href="/workspace/kova"
+                  className="inline-flex h-10 items-center rounded-lg bg-kova-orange px-4 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e]"
+                >
+                  Talk to Kova
+                </Link>
+                {storeIsLive && storeUrl ? (
+                  <>
+                    <a
+                      href={storeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-10 items-center rounded-lg border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark transition hover:border-kova-orange/50"
+                    >
+                      View store
+                    </a>
+                    <button
+                      type="button"
+                      onClick={copyStoreLink}
+                      className="inline-flex h-10 items-center rounded-lg border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark transition hover:border-kova-orange/50"
+                    >
+                      {copied ? "Copied" : "Share"}
+                    </button>
+                  </>
+                ) : null}
+              </div>
             }
           />
 
-          <KovaStepsGuide
-            title="Your first day"
-            steps={[
-              {
-                letter: "A",
-                title: "Connect social",
-                description: "Facebook or Instagram — one-time setup.",
-                href: "/workspace/social/channels",
-                done: socialConnected,
-              },
-              {
-                letter: "B",
-                title: "Add a product",
-                description: "Snap a photo or enter details manually.",
-                href:
-                  products.length > 0
-                    ? "/workspace/commerce/products"
-                    : "/workspace/commerce/snap-to-sell",
-                done: products.length > 0,
-              },
-              {
-                letter: "C",
-                title: "Create your first post",
-                description: "Product, tips, or a short video.",
-                href: "/workspace/social/studio",
-                done: publishedContent.length > 0,
-              },
-            ]}
-          />
+          {showSetup ? (
+            <KovaStepsGuide
+              title="Get started"
+              steps={[
+                {
+                  letter: "1",
+                  title: "Connect",
+                  description: "Facebook or Instagram",
+                  href: "/workspace/social/channels",
+                  done: socialConnected,
+                },
+                {
+                  letter: "2",
+                  title: "Add a product",
+                  description: "Snap a photo or enter details",
+                  href:
+                    products.length > 0
+                      ? "/workspace/commerce/products"
+                      : "/workspace/commerce/snap-to-sell",
+                  done: products.length > 0,
+                },
+                {
+                  letter: "3",
+                  title: "Create a post",
+                  description: "Product, tip, or short video",
+                  href: "/workspace/social/studio",
+                  done: publishedContent.length > 0,
+                },
+              ]}
+            />
+          ) : null}
 
           <OverviewActionPanel items={actionItems} />
 
-          <div className="h-px bg-kova-border" />
-
-          {/* ──── Store link card (when published) ──── */}
-          {storeIsLive && storeUrl && (
-            <div className="flex items-center gap-3 rounded-lg border border-kova-orange/40 bg-kova-orange/5 px-5 py-4">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-kova-orange/20">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-kova-orange"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" /></svg>
+          {brief ? (
+            <section className="rounded-lg border border-kova-border bg-white px-4 py-3.5 sm:px-5">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="text-sm font-semibold text-kova-dark">
+                  {brief.greeting || "Today’s report"}
+                </h2>
+                <Link
+                  href="/workspace/analytics"
+                  className="text-sm font-semibold text-kova-green hover:underline"
+                >
+                  Reports
+                </Link>
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-kova-dark">Your store is live</p>
-                <p className="truncate text-xs text-gray-500">
-                  {typeof window !== "undefined"
-                    ? `${window.location.origin}${storeUrl}`
-                    : storeUrl}
+              {brief.sections?.pulse?.summary ? (
+                <p className="mt-1.5 text-sm leading-6 text-gray-600">
+                  {brief.sections.pulse.summary}
                 </p>
-              </div>
-              <button
-                type="button"
-                onClick={copyStoreLink}
-                className="inline-flex h-8 shrink-0 items-center rounded-md bg-kova-orange px-3 text-xs font-bold text-kova-dark transition hover:bg-[#f0a46e]"
-              >
-                {copied ? "Copied!" : "Copy link"}
-              </button>
-            </div>
+              ) : null}
+            </section>
+          ) : (
+            <Link
+              href="/workspace/analytics"
+              className="block border border-kova-border bg-white px-4 py-3.5 text-sm transition hover:border-kova-green/40 sm:px-5"
+            >
+              <span className="font-semibold text-kova-dark">Reports</span>
+              <span className="mt-0.5 block text-gray-500">
+                Daily and weekly manager brief
+              </span>
+            </Link>
           )}
 
           <MetricStrip
@@ -292,54 +293,39 @@ export default function OverviewPage() {
               {
                 label: "Products",
                 value: products.length,
-                hint: `${activeProducts.length} active · ${draftProducts.length} draft`,
+                hint: `${activeProducts.length} active`,
                 tone: "green",
               },
               {
                 label: "Leads",
                 value: leads.length,
-                hint: `${newLeads.length} new · ${leads.filter((l) => l.created_by_ai).length} from Kova`,
+                hint: `${newLeads.length} new`,
               },
               {
-                label: "Content",
+                label: "Posts",
                 value: contents.length,
-                hint: `${publishedContent.length} published · ${draftContent.length} draft`,
+                hint: `${publishedContent.length} live · ${draftContent.length} draft`,
                 tone: "orange",
               },
               {
                 label: "Store",
                 value: storeIsLive ? "Live" : "Draft",
-                hint: storeIsLive ? "Customers can shop" : "Publish in Store tab",
                 tone: storeIsLive ? "green" : "default",
               },
             ]}
           />
 
-          <QuickLinks
-            links={[
-              { label: "Talk to Kova", href: "/workspace/kova", accent: "orange" },
-              {
-                label: "Snap a product",
-                href: "/workspace/commerce/snap-to-sell",
-                accent: "orange",
-              },
-              { label: "Social", href: "/workspace/social", accent: "green" },
-              { label: "Settings", href: "/workspace/settings" },
-            ]}
-          />
-
-          {/* ──── Recent products ──── */}
-          {products.length > 0 && (
+          {products.length > 0 ? (
             <section>
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-kova-dark">
-                  Recent products
+                <h2 className="text-base font-semibold text-kova-dark">
+                  Products
                 </h2>
                 <Link
                   href="/workspace/commerce/products"
-                  className="text-sm font-semibold text-kova-orange hover:underline"
+                  className="text-sm font-semibold text-kova-green hover:underline"
                 >
-                  View all →
+                  All
                 </Link>
               </div>
 
@@ -360,7 +346,7 @@ export default function OverviewPage() {
                           <img
                             src={image.url}
                             alt={image.alt_text || product.name}
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                            className="h-full w-full object-cover"
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center text-sm text-gray-400">
@@ -372,45 +358,33 @@ export default function OverviewPage() {
                         <h3 className="line-clamp-2 text-sm font-semibold text-kova-dark">
                           {product.name}
                         </h3>
-                        <p className="mt-1.5 text-sm font-bold text-kova-orange">
+                        <p className="mt-1 text-sm font-bold text-kova-orange">
                           {product.price
                             ? `${product.currency} ${product.price}`
                             : "Price on request"}
                         </p>
-                        {plan && plan.scheduled > 0 && (
-                          <p className="mt-1.5 text-xs font-semibold text-kova-green">
+                        {plan && plan.scheduled > 0 ? (
+                          <p className="mt-1 text-xs font-semibold text-kova-green">
                             Scheduled
-                            {plan.next_at
-                              ? ` · ${new Date(plan.next_at).toLocaleString()}`
-                              : ""}
                           </p>
-                        )}
+                        ) : null}
                       </div>
                     </Link>
                   );
                 })}
               </div>
             </section>
-          )}
-
-          {/* ──── Empty state ──── */}
-          {products.length === 0 && (
-            <section className="rounded-lg border-2 border-dashed border-kova-orange/40 bg-kova-orange/5 p-8 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-kova-orange/20">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-kova-orange"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-              </div>
-              <p className="mt-4 text-lg font-semibold text-kova-dark">
-                No products yet
-              </p>
-              <p className="mt-2 text-sm leading-6 text-gray-500">
-                Use Snap to Sell to photograph your first product, or add one
-                manually.
+          ) : (
+            <section className="border border-kova-border bg-white px-5 py-6">
+              <p className="font-semibold text-kova-dark">No products yet</p>
+              <p className="mt-1 text-sm text-gray-500">
+                Snap a photo to add your first listing.
               </p>
               <Link
                 href="/workspace/commerce/snap-to-sell"
-                className="mt-5 inline-flex h-11 items-center justify-center rounded-lg bg-kova-orange px-6 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e]"
+                className="mt-4 inline-flex h-10 items-center justify-center rounded-md bg-kova-orange px-5 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e]"
               >
-                Add your first product
+                Snap product
               </Link>
             </section>
           )}
@@ -419,4 +393,3 @@ export default function OverviewPage() {
     </WorkspacePageFrame>
   );
 }
-

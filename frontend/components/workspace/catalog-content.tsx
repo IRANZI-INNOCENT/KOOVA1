@@ -185,7 +185,7 @@ export function CatalogContentModal({
       <div className="overflow-y-auto p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-kova-orange">
+            <p className="text-xs font-medium text-gray-500">
               Content
             </p>
             <h2 id="catalog-content-title" className="mt-1 text-lg font-semibold text-kova-dark">
@@ -207,7 +207,7 @@ export function CatalogContentModal({
         </div>
 
         <label className="mt-4 block text-sm">
-          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-400">
+          <span className="mb-1 block text-xs font-medium text-gray-400">
             Platform
           </span>
           <select
@@ -255,7 +255,7 @@ export function CatalogContentModal({
           <ul className="mt-4 space-y-2">
             {pieces.map((piece) => (
               <li key={piece.id} className="rounded-md border border-kova-border px-3 py-2">
-                <p className="text-xs font-bold uppercase tracking-wide text-kova-orange">
+                <p className="text-xs font-medium text-gray-500">
                   {piece.product_name} · {piece.platform} · {piece.content_type}
                   {piece.status === "publishing" ? " · publishing" : ""}
                   {piece.status === "published" ? " · published" : ""}

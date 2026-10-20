@@ -8,7 +8,7 @@ import type {
  */
 interface InputProps
   extends InputHTMLAttributes<HTMLInputElement> {
-  label: string;
+  label?: string;
   error?: string;
   helpText?: string;
 }
@@ -32,21 +32,23 @@ export function Input({
   return (
     <div className="w-full">
 
-      <label
-        htmlFor={id}
-        className="mb-2 block text-sm font-medium text-kova-dark"
-      >
-        {label}
+      {label ? (
+        <label
+          htmlFor={id}
+          className="mb-2 block text-sm font-medium text-kova-dark"
+        >
+          {label}
 
-        {props.required && (
-          <span
-            className="ml-1 text-kova-green"
-            aria-hidden="true"
-          >
-            *
-          </span>
-        )}
-      </label>
+          {props.required && (
+            <span
+              className="ml-1 text-kova-green"
+              aria-hidden="true"
+            >
+              *
+            </span>
+          )}
+        </label>
+      ) : null}
 
 
       <input

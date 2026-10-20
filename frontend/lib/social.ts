@@ -275,6 +275,13 @@ export interface BusinessPolicy {
   max_auto_discount_percent: string;
   require_refund_approval: boolean;
   require_payment_approval: boolean;
+  /** Meta has no hard rule; defaults match common Page guidance (~1–2/day). */
+  facebook_max_posts_per_day: number;
+  facebook_max_posts_per_week: number;
+  /** Common IG feed guidance (~3–5/week). Stories/Reels are separate. */
+  instagram_max_posts_per_day: number;
+  instagram_max_posts_per_week: number;
+  min_hours_between_posts: number;
   automation_paused: boolean;
   automation_pause_reason: string;
   created_at: string;

@@ -130,7 +130,7 @@ function TextareaField({
 
 interface FormSectionProps {
   title: string;
-  description: string;
+  description?: string;
   children: React.ReactNode;
 }
 
@@ -140,18 +140,12 @@ function FormSection({
   children,
 }: FormSectionProps) {
   return (
-    <section className="border border-kova-border bg-white p-6 sm:p-8">
-      <h2 className="text-lg font-semibold text-kova-dark">
-        {title}
-      </h2>
-
-      <p className="mt-1 text-sm leading-6 text-gray-500">
-        {description}
-      </p>
-
-      <div className="mt-6 space-y-6">
-        {children}
-      </div>
+    <section className="border border-kova-border bg-white p-5 sm:p-6">
+      <h2 className="text-sm font-semibold text-kova-dark">{title}</h2>
+      {description ? (
+        <p className="mt-0.5 text-xs text-gray-500">{description}</p>
+      ) : null}
+      <div className="mt-5 space-y-5">{children}</div>
     </section>
   );
 }
@@ -441,19 +435,11 @@ export default function BusinessProfilePage() {
           <div className="p-6 sm:p-8">
         <div className="mx-auto max-w-3xl">
           <header>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-kova-green">
-              Business Brain
-            </p>
-
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-kova-dark sm:text-4xl">
-              Tell Kova about your business
+            <h1 className="text-2xl font-semibold tracking-tight text-kova-dark">
+              Profile
             </h1>
-
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
-              This information helps Kova understand your
-              business, your customers, and what makes you
-              different. You can update it as your business
-              evolves.
+            <p className="mt-1.5 text-sm text-gray-500">
+              What you sell and how the business works.
             </p>
           </header>
 
@@ -474,10 +460,7 @@ export default function BusinessProfilePage() {
             onSubmit={handleSubmit}
             className="mt-10 space-y-8"
           >
-            <FormSection
-              title="Business identity"
-              description="Help Kova understand why your business exists and the value it provides."
-            >
+            <FormSection title="Identity">
               <TextareaField
                 label="Mission"
                 value={form.mission}
@@ -500,10 +483,7 @@ export default function BusinessProfilePage() {
               />
             </FormSection>
 
-            <FormSection
-              title="Customers and market"
-              description="Help Kova understand who your business is trying to reach."
-            >
+            <FormSection title="Market">
               <TextareaField
                 label="Target market"
                 value={form.target_market}
@@ -516,10 +496,7 @@ export default function BusinessProfilePage() {
               />
             </FormSection>
 
-            <FormSection
-              title="Business model"
-              description="Give Kova some context about how the business operates."
-            >
+            <FormSection title="Operations">
               <div className="grid gap-6 sm:grid-cols-2">
                 <Input
                   label="Business model"
@@ -571,10 +548,9 @@ export default function BusinessProfilePage() {
                   placeholder="https://example.com"
                 />
 
-                <p className="mt-2 text-xs leading-5 text-gray-500">
-                  When you add your site, Kova scans it and suggests
-                  updates for mission, customers, business model, and
-                  stage. You review every field before saving.
+                <p className="mt-2 text-xs text-gray-500">
+                  Scan suggests mission, customers, model, and stage — review
+                  before saving.
                 </p>
 
                 <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -609,7 +585,7 @@ export default function BusinessProfilePage() {
                         )
                         .map((key) => (
                           <li key={key}>
-                            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                            <p className="text-xs font-medium text-gray-500">
                               {PROFILE_FIELD_LABELS[key]}
                             </p>
                             <p className="mt-1 text-sm leading-6 text-kova-dark">

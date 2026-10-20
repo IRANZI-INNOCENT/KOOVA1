@@ -25,7 +25,7 @@ export function QuickLinks({ links }: { links: QuickLinkItem[] }) {
           href={link.href}
           className={`font-semibold hover:underline ${accentClass[link.accent ?? "default"]}`}
         >
-          {link.label} →
+          {link.label}
         </Link>
       ))}
     </nav>

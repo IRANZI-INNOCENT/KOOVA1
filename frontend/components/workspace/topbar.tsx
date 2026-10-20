@@ -8,34 +8,41 @@ import { BusinessSwitcher } from "@/components/workspace/business-switcher";
 import { MobileNavMenu } from "@/components/workspace/mobile-nav-menu";
 import { useAuth } from "@/lib/auth-context";
 
-const PAGE_TITLES: Record<string, { section: string; title: string }> = {
-  "/workspace": { section: "Workspace", title: "Overview" },
-  "/workspace/kova": { section: "AI Agent", title: "Kova" },
-  "/workspace/brief": { section: "Daily", title: "Morning Brief" },
-  "/workspace/social": { section: "Workspace", title: "Social" },
-  "/workspace/linkedin": { section: "Workspace", title: "LinkedIn" },
-  "/workspace/linkedin/setup": { section: "LinkedIn", title: "Set up profile" },
-  "/workspace/onboarding": { section: "Account", title: "Get started" },
-  "/workspace/social/channels": { section: "Social", title: "Channels" },
-  "/workspace/social/studio": { section: "Social", title: "Content Studio" },
-  "/workspace/social/calendar": { section: "Social", title: "Calendar" },
-  "/workspace/social/engagement": { section: "Social", title: "Engagement" },
-  "/workspace/social/leads": { section: "Social", title: "Social Leads" },
-  "/workspace/social/performance": { section: "Social", title: "Performance" },
-  "/workspace/commerce": { section: "Commerce", title: "Products" },
-  "/workspace/inbox": { section: "Workspace", title: "Inbox" },
-  "/workspace/leads": { section: "Workspace", title: "Leads" },
-  "/workspace/analytics": { section: "Workspace", title: "Analytics" },
-  "/workspace/settings": { section: "Account", title: "Settings" },
-  "/workspace/setup": { section: "Account", title: "Business details" },
+/** Single label in the topbar — avoid section + title double chrome. */
+const PAGE_TITLES: Record<string, string> = {
+  "/workspace": "Home",
+  "/workspace/kova": "Talk to Kova",
+  "/workspace/brief": "Reports",
+  "/workspace/social": "Post",
+  "/workspace/linkedin": "LinkedIn",
+  "/workspace/linkedin/setup": "LinkedIn setup",
+  "/workspace/onboarding": "Get started",
+  "/workspace/social/channels": "Connect",
+  "/workspace/social/studio": "Create",
+  "/workspace/social/calendar": "Calendar",
+  "/workspace/social/engagement": "Inbox",
+  "/workspace/social/leads": "Leads",
+  "/workspace/social/performance": "Reports",
+  "/workspace/commerce": "Products",
+  "/workspace/commerce/products": "Products",
+  "/workspace/commerce/storefront": "Store",
+  "/workspace/commerce/orders": "Orders",
+  "/workspace/commerce/snap-to-sell": "Snap",
+  "/workspace/inbox": "Inbox",
+  "/workspace/leads": "Leads",
+  "/workspace/analytics": "Reports",
+  "/workspace/settings/email": "Email",
+  "/workspace/settings/business": "Business",
+  "/workspace/settings": "Settings",
+  "/workspace/setup": "Basics",
 };
 
-function getPageInfo(pathname: string) {
+function getPageTitle(pathname: string) {
   if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
-  for (const [path, info] of Object.entries(PAGE_TITLES)) {
-    if (pathname.startsWith(path) && path !== "/workspace") return info;
+  for (const [path, title] of Object.entries(PAGE_TITLES)) {
+    if (pathname.startsWith(path) && path !== "/workspace") return title;
   }
-  return { section: "Workspace", title: "Kova" };
+  return "KCOVA";
 }
 
 export function Topbar() {
@@ -45,7 +52,7 @@ export function Topbar() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const { section, title } = getPageInfo(pathname);
+  const title = getPageTitle(pathname);
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -87,14 +94,9 @@ export function Topbar() {
             </svg>
           </button>
 
-          <div className="min-w-0">
-            <p className="truncate text-xs font-medium uppercase tracking-wider text-kova-orange">
-              {section}
-            </p>
-            <h1 className="truncate text-base font-semibold leading-tight text-white">
-              {title}
-            </h1>
-          </div>
+          <h1 className="min-w-0 truncate text-base font-semibold leading-tight text-white">
+            {title}
+          </h1>
         </div>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
@@ -124,9 +126,7 @@ export function Topbar() {
       {/* Mobile navigation overlay */}
       {mobileMenuOpen && (
         <div className="max-h-[min(75dvh,32rem)] overflow-y-auto border-b border-kova-border bg-white px-4 py-4 lg:hidden">
-          <p className="mb-2 px-3 text-xs font-bold uppercase tracking-wide text-gray-400">
-            Workspace
-          </p>
+          <p className="mb-2 px-3 text-xs font-medium text-gray-400">More</p>
           <MobileNavMenu
             pathname={pathname}
             onNavigate={() => setMobileMenuOpen(false)}

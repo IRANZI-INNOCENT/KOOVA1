@@ -206,22 +206,19 @@ export default function BusinessMarketPage() {
           <div className="p-6 sm:p-8">
         <div className="mx-auto max-w-3xl">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-kova-green">
-              Business Brain
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-kova-dark sm:text-4xl">
-              Market position
+            <h1 className="text-2xl font-semibold tracking-tight text-kova-dark">
+              Market
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
-              Kova searches public pages for who else sells what you sell, near where you sell it.
-              Keep the brief and Kova can use it when writing and replying. Leave it, and it stays here unused.
+            <p className="mt-1.5 max-w-2xl text-sm text-gray-500">
+              Optional research on similar sellers. Keep it for Kova to use, or leave it unused.
             </p>
           </div>
 
           <div className="mt-6 border border-kova-border bg-white p-4">
             {setup.isSetup && (
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-kova-green">
-                Setup {stepIndex + 2} of {SETUP_SECTIONS.length + 1} · {SETUP_LABELS.market}
+              <p className="text-xs text-gray-500">
+                Setup {stepIndex + 2} of {SETUP_SECTIONS.length + 1} ·{" "}
+                {SETUP_LABELS.market}
               </p>
             )}
             <div className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${setup.isSetup ? "mt-3" : ""}`}>

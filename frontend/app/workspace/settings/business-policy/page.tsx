@@ -26,6 +26,12 @@ interface BusinessPolicy {
   require_refund_approval: boolean;
   require_payment_approval: boolean;
 
+  facebook_max_posts_per_day: number;
+  facebook_max_posts_per_week: number;
+  instagram_max_posts_per_day: number;
+  instagram_max_posts_per_week: number;
+  min_hours_between_posts: number;
+
   created_at: string;
   updated_at: string;
 }
@@ -43,6 +49,12 @@ interface PolicyForm {
   max_auto_discount_percent: string;
   require_refund_approval: boolean;
   require_payment_approval: boolean;
+
+  facebook_max_posts_per_day: string;
+  facebook_max_posts_per_week: string;
+  instagram_max_posts_per_day: string;
+  instagram_max_posts_per_week: string;
+  min_hours_between_posts: string;
 }
 
 const initialForm: PolicyForm = {
@@ -58,7 +70,21 @@ const initialForm: PolicyForm = {
   max_auto_discount_percent: "20",
   require_refund_approval: true,
   require_payment_approval: true,
+
+  facebook_max_posts_per_day: "2",
+  facebook_max_posts_per_week: "10",
+  instagram_max_posts_per_day: "1",
+  instagram_max_posts_per_week: "5",
+  min_hours_between_posts: "4",
 };
+
+const CADENCE_FIELDS = [
+  "facebook_max_posts_per_day",
+  "facebook_max_posts_per_week",
+  "instagram_max_posts_per_day",
+  "instagram_max_posts_per_week",
+  "min_hours_between_posts",
+] as const;
 
 function getFieldErrors(details: unknown, field: string): string[] {
   if (!details || typeof details !== "object") {
@@ -80,7 +106,7 @@ function getFieldErrors(details: unknown, field: string): string[] {
 
 interface PolicyToggleProps {
   label: string;
-  description: string;
+  description?: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
 }
@@ -92,13 +118,12 @@ function PolicyToggle({
   onChange,
 }: PolicyToggleProps) {
   return (
-    <div className="flex items-center justify-between gap-6 py-5">
+    <div className="flex items-center justify-between gap-6 py-4">
       <div className="min-w-0">
         <p className="text-sm font-medium text-[#17211D]">{label}</p>
-
-        <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
-          {description}
-        </p>
+        {description ? (
+          <p className="mt-0.5 text-xs text-gray-500">{description}</p>
+        ) : null}
       </div>
 
       <button
@@ -123,7 +148,7 @@ function PolicyToggle({
 
 interface PolicySectionProps {
   title: string;
-  description: string;
+  description?: string;
   children: React.ReactNode;
 }
 
@@ -133,17 +158,67 @@ function PolicySection({
   children,
 }: PolicySectionProps) {
   return (
-    <section className="rounded-xl border border-[#E5E7E5] bg-white">
-      <div className="border-b border-[#E5E7E5] px-6 py-5">
-        <h2 className="text-base font-semibold text-[#17211D]">{title}</h2>
-
-        <p className="mt-1 text-sm leading-6 text-gray-500">
-          {description}
-        </p>
+    <section className="rounded-lg border border-[#E5E7E5] bg-white">
+      <div className="border-b border-[#E5E7E5] px-5 py-3.5">
+        <h2 className="text-sm font-semibold text-[#17211D]">{title}</h2>
+        {description ? (
+          <p className="mt-0.5 text-xs text-gray-500">{description}</p>
+        ) : null}
       </div>
 
-      <div className="divide-y divide-[#E5E7E5] px-6">{children}</div>
+      <div className="divide-y divide-[#E5E7E5] px-5">{children}</div>
     </section>
+  );
+}
+
+interface CadenceNumberProps {
+  id: string;
+  label: string;
+  hint: string;
+  value: string;
+  min: number;
+  max: number;
+  errors?: string[];
+  onChange: (value: string) => void;
+}
+
+function CadenceNumber({
+  id,
+  label,
+  hint,
+  value,
+  min,
+  max,
+  errors,
+  onChange,
+}: CadenceNumberProps) {
+  return (
+    <div>
+      <label
+        htmlFor={id}
+        className="block text-sm font-medium text-[#17211D]"
+      >
+        {label}
+      </label>
+      {hint ? (
+        <p className="mt-0.5 text-xs text-gray-500">{hint}</p>
+      ) : null}
+      <input
+        id={id}
+        type="number"
+        min={min}
+        max={max}
+        step={1}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-2 w-28 rounded-lg border border-[#E5E7E5] bg-white px-3 py-2 text-sm text-[#17211D] outline-none transition focus:border-[#176B4D] focus:ring-2 focus:ring-[#176B4D]/10"
+      />
+      {errors?.map((message) => (
+        <p key={message} className="mt-2 text-sm text-red-600">
+          {message}
+        </p>
+      ))}
+    </div>
   );
 }
 
@@ -183,6 +258,21 @@ export default function BusinessPolicyPage() {
           body: JSON.stringify({
             ...current,
             max_auto_discount_percent: discount,
+            facebook_max_posts_per_day: Number(
+              current.facebook_max_posts_per_day,
+            ),
+            facebook_max_posts_per_week: Number(
+              current.facebook_max_posts_per_week,
+            ),
+            instagram_max_posts_per_day: Number(
+              current.instagram_max_posts_per_day,
+            ),
+            instagram_max_posts_per_week: Number(
+              current.instagram_max_posts_per_week,
+            ),
+            min_hours_between_posts: Number(
+              current.min_hours_between_posts,
+            ),
           }),
         },
       );
@@ -242,6 +332,22 @@ export default function BusinessPolicyPage() {
             policy.require_refund_approval,
           require_payment_approval:
             policy.require_payment_approval,
+
+          facebook_max_posts_per_day: String(
+            policy.facebook_max_posts_per_day ?? 2,
+          ),
+          facebook_max_posts_per_week: String(
+            policy.facebook_max_posts_per_week ?? 10,
+          ),
+          instagram_max_posts_per_day: String(
+            policy.instagram_max_posts_per_day ?? 1,
+          ),
+          instagram_max_posts_per_week: String(
+            policy.instagram_max_posts_per_week ?? 5,
+          ),
+          min_hours_between_posts: String(
+            policy.min_hours_between_posts ?? 4,
+          ),
         });
       } catch (err) {
         if (err instanceof ApiError) {
@@ -285,6 +391,51 @@ export default function BusinessPolicyPage() {
     }));
   };
 
+  const updateCadence = (
+    field: (typeof CADENCE_FIELDS)[number],
+    value: string,
+  ) => {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+    setSuccess("");
+    setError("");
+    setFieldErrors((current) => ({
+      ...current,
+      [field]: [],
+    }));
+  };
+
+  const formFromPolicy = (policy: BusinessPolicy): PolicyForm => ({
+    allow_content_creation: policy.allow_content_creation,
+    allow_auto_publish: policy.allow_auto_publish,
+    allow_comment_replies: policy.allow_comment_replies,
+    allow_dm_replies: policy.allow_dm_replies,
+    allow_lead_creation: policy.allow_lead_creation,
+    allow_product_management: policy.allow_product_management,
+    allow_order_management: policy.allow_order_management,
+    require_discount_approval: policy.require_discount_approval,
+    max_auto_discount_percent: String(policy.max_auto_discount_percent),
+    require_refund_approval: policy.require_refund_approval,
+    require_payment_approval: policy.require_payment_approval,
+    facebook_max_posts_per_day: String(
+      policy.facebook_max_posts_per_day ?? 2,
+    ),
+    facebook_max_posts_per_week: String(
+      policy.facebook_max_posts_per_week ?? 10,
+    ),
+    instagram_max_posts_per_day: String(
+      policy.instagram_max_posts_per_day ?? 1,
+    ),
+    instagram_max_posts_per_week: String(
+      policy.instagram_max_posts_per_week ?? 5,
+    ),
+    min_hours_between_posts: String(
+      policy.min_hours_between_posts ?? 4,
+    ),
+  });
+
   const handleSubmit = async (
     event: React.FormEvent<HTMLFormElement>,
   ) => {
@@ -323,6 +474,39 @@ export default function BusinessPolicyPage() {
         return;
       }
 
+      const cadenceErrors: Record<string, string[]> = {};
+      const cadenceValues: Record<string, number> = {};
+      const cadenceBounds: Record<
+        (typeof CADENCE_FIELDS)[number],
+        [number, number]
+      > = {
+        facebook_max_posts_per_day: [0, 10],
+        facebook_max_posts_per_week: [0, 40],
+        instagram_max_posts_per_day: [0, 10],
+        instagram_max_posts_per_week: [0, 40],
+        min_hours_between_posts: [1, 48],
+      };
+
+      for (const field of CADENCE_FIELDS) {
+        const raw = form[field].trim();
+        const value = Number(raw);
+        const [min, max] = cadenceBounds[field];
+        if (raw === "" || Number.isNaN(value) || !Number.isInteger(value)) {
+          cadenceErrors[field] = ["Enter a whole number."];
+          continue;
+        }
+        if (value < min || value > max) {
+          cadenceErrors[field] = [`Must be between ${min} and ${max}.`];
+          continue;
+        }
+        cadenceValues[field] = value;
+      }
+
+      if (Object.keys(cadenceErrors).length > 0) {
+        setFieldErrors(cadenceErrors);
+        return;
+      }
+
       const policy = await authenticatedApiRequest<BusinessPolicy>(
         `/business-brain/${businessId}/policy/`,
         accessToken,
@@ -331,29 +515,12 @@ export default function BusinessPolicyPage() {
           body: JSON.stringify({
             ...form,
             max_auto_discount_percent: discount,
+            ...cadenceValues,
           }),
         },
       );
 
-      setForm({
-        allow_content_creation: policy.allow_content_creation,
-        allow_auto_publish: policy.allow_auto_publish,
-        allow_comment_replies: policy.allow_comment_replies,
-        allow_dm_replies: policy.allow_dm_replies,
-        allow_lead_creation: policy.allow_lead_creation,
-        allow_product_management:
-          policy.allow_product_management,
-        allow_order_management: policy.allow_order_management,
-
-        require_discount_approval:
-          policy.require_discount_approval,
-        max_auto_discount_percent:
-          String(policy.max_auto_discount_percent),
-        require_refund_approval:
-          policy.require_refund_approval,
-        require_payment_approval:
-          policy.require_payment_approval,
-      });
+      setForm(formFromPolicy(policy));
 
       if (setup.isSetup) {
         router.push(setup.nextPath || "/workspace");
@@ -378,6 +545,7 @@ export default function BusinessPolicyPage() {
             "max_auto_discount_percent",
             "require_refund_approval",
             "require_payment_approval",
+            ...CADENCE_FIELDS,
           ];
 
           const errors: Record<string, string[]> = {};
@@ -422,18 +590,11 @@ export default function BusinessPolicyPage() {
   return (
           <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
         <div>
-          <p className="text-sm font-medium text-[#176B4D]">
-            Business Brain
-          </p>
-
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#17211D]">
-            Define how Kova is allowed to operate
+          <h1 className="text-2xl font-semibold tracking-tight text-[#17211D]">
+            Rules
           </h1>
-
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-500">
-            Set the operating rules Kova should follow when creating
-            content, communicating with customers, and managing your
-            business.
+          <p className="mt-1.5 text-sm text-gray-500">
+            What Kova may do automatically, and posting limits.
           </p>
         </div>
 
@@ -445,14 +606,22 @@ export default function BusinessPolicyPage() {
           draftError={setup.draftError}
           onDraft={() =>
             setup.draft((fields) =>
-              setForm((current) => ({
-                ...current,
-                ...fields,
-                max_auto_discount_percent:
-                  fields.max_auto_discount_percent == null
-                    ? current.max_auto_discount_percent
-                    : String(fields.max_auto_discount_percent),
-              })),
+              setForm((current) => {
+                const next = {
+                  ...current,
+                  ...fields,
+                  max_auto_discount_percent:
+                    fields.max_auto_discount_percent == null
+                      ? current.max_auto_discount_percent
+                      : String(fields.max_auto_discount_percent),
+                } as PolicyForm;
+                for (const field of CADENCE_FIELDS) {
+                  if (fields[field] != null) {
+                    next[field] = String(fields[field]);
+                  }
+                }
+                return next;
+              }),
             )
           }
         />
@@ -470,13 +639,9 @@ export default function BusinessPolicyPage() {
         )}
 
         <form onSubmit={handleSubmit} className="mt-10 space-y-6">
-          <PolicySection
-            title="Content"
-            description="Control what Kova can create and publish for your business."
-          >
+          <PolicySection title="Content">
             <PolicyToggle
               label="Create content"
-              description="Allow Kova to create social media content for your business."
               checked={form.allow_content_creation}
               onChange={(value) =>
                 updateToggle("allow_content_creation", value)
@@ -484,8 +649,7 @@ export default function BusinessPolicyPage() {
             />
 
             <PolicyToggle
-              label="Publish content automatically"
-              description="Allow Kova to publish content without asking for approval first."
+              label="Publish without approval"
               checked={form.allow_auto_publish}
               onChange={(value) =>
                 updateToggle("allow_auto_publish", value)
@@ -494,12 +658,76 @@ export default function BusinessPolicyPage() {
           </PolicySection>
 
           <PolicySection
-            title="Customer communication"
-            description="Control how Kova can communicate with people interacting with your business."
+            title="Posting cadence"
+            description="Defaults: Facebook 1–2/day, Instagram 3–5/week."
           >
+            <div className="grid gap-6 py-5 sm:grid-cols-2">
+              <CadenceNumber
+                id="facebook-max-day"
+                label="Facebook max per day"
+                hint="Usually 1–2"
+                value={form.facebook_max_posts_per_day}
+                min={0}
+                max={10}
+                errors={fieldErrors.facebook_max_posts_per_day}
+                onChange={(value) =>
+                  updateCadence("facebook_max_posts_per_day", value)
+                }
+              />
+              <CadenceNumber
+                id="facebook-max-week"
+                label="Facebook max per week"
+                hint="Usually 7–14"
+                value={form.facebook_max_posts_per_week}
+                min={0}
+                max={40}
+                errors={fieldErrors.facebook_max_posts_per_week}
+                onChange={(value) =>
+                  updateCadence("facebook_max_posts_per_week", value)
+                }
+              />
+              <CadenceNumber
+                id="instagram-max-day"
+                label="Instagram max per day"
+                hint="Usually 1 feed post"
+                value={form.instagram_max_posts_per_day}
+                min={0}
+                max={10}
+                errors={fieldErrors.instagram_max_posts_per_day}
+                onChange={(value) =>
+                  updateCadence("instagram_max_posts_per_day", value)
+                }
+              />
+              <CadenceNumber
+                id="instagram-max-week"
+                label="Instagram max per week"
+                hint="Usually 3–5"
+                value={form.instagram_max_posts_per_week}
+                min={0}
+                max={40}
+                errors={fieldErrors.instagram_max_posts_per_week}
+                onChange={(value) =>
+                  updateCadence("instagram_max_posts_per_week", value)
+                }
+              />
+              <CadenceNumber
+                id="min-hours-between"
+                label="Minimum hours between posts"
+                hint="Same channel; usually 3–6h"
+                value={form.min_hours_between_posts}
+                min={1}
+                max={48}
+                errors={fieldErrors.min_hours_between_posts}
+                onChange={(value) =>
+                  updateCadence("min_hours_between_posts", value)
+                }
+              />
+            </div>
+          </PolicySection>
+
+          <PolicySection title="Inbox">
             <PolicyToggle
               label="Reply to comments"
-              description="Allow Kova to respond to comments on your social content."
               checked={form.allow_comment_replies}
               onChange={(value) =>
                 updateToggle("allow_comment_replies", value)
@@ -507,8 +735,7 @@ export default function BusinessPolicyPage() {
             />
 
             <PolicyToggle
-              label="Reply to direct messages"
-              description="Allow Kova to respond to customer direct messages."
+              label="Reply to DMs"
               checked={form.allow_dm_replies}
               onChange={(value) =>
                 updateToggle("allow_dm_replies", value)
@@ -517,7 +744,6 @@ export default function BusinessPolicyPage() {
 
             <PolicyToggle
               label="Create leads"
-              description="Allow Kova to identify and create leads from customer interactions."
               checked={form.allow_lead_creation}
               onChange={(value) =>
                 updateToggle("allow_lead_creation", value)
@@ -525,13 +751,9 @@ export default function BusinessPolicyPage() {
             />
           </PolicySection>
 
-          <PolicySection
-            title="Commerce"
-            description="Control whether Kova can make changes to your business commerce operations."
-          >
+          <PolicySection title="Shop">
             <PolicyToggle
               label="Manage products"
-              description="Allow Kova to create or update product information."
               checked={form.allow_product_management}
               onChange={(value) =>
                 updateToggle("allow_product_management", value)
@@ -540,7 +762,6 @@ export default function BusinessPolicyPage() {
 
             <PolicyToggle
               label="Manage orders"
-              description="Allow Kova to take actions related to customer orders."
               checked={form.allow_order_management}
               onChange={(value) =>
                 updateToggle("allow_order_management", value)
@@ -548,33 +769,23 @@ export default function BusinessPolicyPage() {
             />
           </PolicySection>
 
-          <PolicySection
-            title="Approvals"
-            description="Define actions that should always require your approval."
-          >
+          <PolicySection title="Approvals">
             <PolicyToggle
-              label="Discounts require approval"
-              description="Require your approval before Kova applies a discount."
+              label="Discounts need approval"
               checked={form.require_discount_approval}
               onChange={(value) =>
                 updateToggle("require_discount_approval", value)
               }
             />
 
-            <div className="py-5">
+            <div className="py-4">
               <label
                 htmlFor="max-auto-discount"
                 className="block text-sm font-medium text-[#17211D]"
               >
-                Maximum automatic discount
+                Max auto discount
               </label>
-
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
-                The highest discount percentage Kova may apply
-                automatically when automatic discounts are allowed.
-              </p>
-
-              <div className="mt-4 flex items-center gap-3">
+              <div className="mt-2 flex items-center gap-3">
                 <input
                   id="max-auto-discount"
                   type="number"
@@ -585,12 +796,10 @@ export default function BusinessPolicyPage() {
                   onChange={(event) =>
                     updateDiscount(event.target.value)
                   }
-                  className="w-28 rounded-lg border border-[#E5E7E5] bg-white px-3 py-2.5 text-sm text-[#17211D] outline-none transition focus:border-[#176B4D] focus:ring-2 focus:ring-[#176B4D]/10"
+                  className="w-28 rounded-lg border border-[#E5E7E5] bg-white px-3 py-2 text-sm text-[#17211D] outline-none transition focus:border-[#176B4D] focus:ring-2 focus:ring-[#176B4D]/10"
                 />
-
                 <span className="text-sm text-gray-500">%</span>
               </div>
-
               {fieldErrors.max_auto_discount_percent?.map(
                 (message) => (
                   <p
@@ -604,8 +813,7 @@ export default function BusinessPolicyPage() {
             </div>
 
             <PolicyToggle
-              label="Refunds require approval"
-              description="Require your approval before Kova takes refund-related actions."
+              label="Refunds need approval"
               checked={form.require_refund_approval}
               onChange={(value) =>
                 updateToggle("require_refund_approval", value)
@@ -613,8 +821,7 @@ export default function BusinessPolicyPage() {
             />
 
             <PolicyToggle
-              label="Payments require approval"
-              description="Require your approval before Kova takes payment-related actions."
+              label="Payments need approval"
               checked={form.require_payment_approval}
               onChange={(value) =>
                 updateToggle("require_payment_approval", value)
@@ -628,7 +835,7 @@ export default function BusinessPolicyPage() {
               disabled={isSaving}
               className="rounded-lg bg-[#176B4D] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#12563D] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSaving ? "Saving..." : setup.isSetup ? "Continue" : "Save policies"}
+              {isSaving ? "Saving…" : setup.isSetup ? "Continue" : "Save"}
             </button>
           </div>
         </form>

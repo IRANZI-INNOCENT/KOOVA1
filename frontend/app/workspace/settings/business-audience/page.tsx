@@ -93,7 +93,7 @@ function TextareaField({
 
 interface FormSectionProps {
   title: string;
-  description: string;
+  description?: string;
   children: React.ReactNode;
 }
 
@@ -103,18 +103,12 @@ function FormSection({
   children,
 }: FormSectionProps) {
   return (
-    <section className="border border-kova-border bg-white p-6 sm:p-8">
-      <h2 className="text-lg font-semibold text-kova-dark">
-        {title}
-      </h2>
-
-      <p className="mt-1 text-sm leading-6 text-gray-500">
-        {description}
-      </p>
-
-      <div className="mt-6 space-y-6">
-        {children}
-      </div>
+    <section className="border border-kova-border bg-white p-5 sm:p-6">
+      <h2 className="text-sm font-semibold text-kova-dark">{title}</h2>
+      {description ? (
+        <p className="mt-0.5 text-xs text-gray-500">{description}</p>
+      ) : null}
+      <div className="mt-5 space-y-5">{children}</div>
     </section>
   );
 }
@@ -327,20 +321,11 @@ export default function BusinessAudiencePage() {
           <div className="p-6 sm:p-8">
         <div className="mx-auto max-w-3xl">
           <header>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-kova-green">
-              Business Brain
-            </p>
-
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-kova-dark sm:text-4xl">
-              Help Kova understand your customers
+            <h1 className="text-2xl font-semibold tracking-tight text-kova-dark">
+              Customers
             </h1>
-
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
-              Tell Kova who your business serves, what your
-              customers need, and what influences their
-              decisions. This information helps Kova create
-              more relevant content, conversations, and sales
-              experiences.
+            <p className="mt-1.5 text-sm text-gray-500">
+              Who you sell to and why they buy.
             </p>
           </header>
 
@@ -361,10 +346,7 @@ export default function BusinessAudiencePage() {
             onSubmit={handleSubmit}
             className="mt-10 space-y-8"
           >
-            <FormSection
-              title="Who you serve"
-              description="Describe the people or organizations that are most important to your business."
-            >
+            <FormSection title="Who you serve">
               <TextareaField
                 label="Primary audience"
                 value={form.primary_audience}
@@ -377,10 +359,7 @@ export default function BusinessAudiencePage() {
               />
             </FormSection>
 
-            <FormSection
-              title="Customer needs"
-              description="Help Kova understand what your customers are trying to achieve."
-            >
+            <FormSection title="Needs">
               <TextareaField
                 label="What do your customers need?"
                 value={form.customer_needs}
@@ -392,10 +371,7 @@ export default function BusinessAudiencePage() {
               />
             </FormSection>
 
-            <FormSection
-              title="Customer pain points"
-              description="Understanding customer frustrations helps Kova communicate with more relevance and empathy."
-            >
+            <FormSection title="Pain points">
               <TextareaField
                 label="What challenges do your customers face?"
                 value={form.pain_points}
@@ -407,10 +383,7 @@ export default function BusinessAudiencePage() {
               />
             </FormSection>
 
-            <FormSection
-              title="Why customers buy"
-              description="Tell Kova what usually influences a customer to choose your business."
-            >
+            <FormSection title="Why they buy">
               <TextareaField
                 label="Buying motivations"
                 value={form.buying_motivations}
@@ -422,10 +395,7 @@ export default function BusinessAudiencePage() {
               />
             </FormSection>
 
-            <FormSection
-              title="Customer behavior"
-              description="Describe how customers discover, evaluate, interact with, and purchase from your business."
-            >
+            <FormSection title="Behavior">
               <TextareaField
                 label="How do customers behave?"
                 value={form.customer_behavior}
@@ -437,10 +407,7 @@ export default function BusinessAudiencePage() {
               />
             </FormSection>
 
-            <FormSection
-              title="Preferred channels"
-              description="Tell Kova where your customers are most likely to discover and communicate with your business."
-            >
+            <FormSection title="Channels">
               <TextareaField
                 label="Customer channels"
                 value={form.preferred_channels}

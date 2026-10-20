@@ -25,12 +25,7 @@ export function OverviewActionPanel({
   return (
     <section className="rounded-lg border border-kova-border bg-white">
       <div className="border-b border-kova-border/60 px-4 py-2.5 sm:px-5">
-        <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-kova-dark">
-          Needs your action
-        </h2>
-        <p className="mt-0.5 text-xs text-gray-500">
-          From your store, social accounts, leads, and content in Kova.
-        </p>
+        <h2 className="text-sm font-semibold text-kova-dark">Needs action</h2>
       </div>
       <ul className="divide-y divide-kova-border/60">
         {items.map((item) => (
@@ -40,10 +35,8 @@ export function OverviewActionPanel({
               className="flex items-start gap-3 px-4 py-3 transition hover:bg-kova-background/80 sm:px-5"
             >
               <span
-                className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                  item.priority === "high"
-                    ? "bg-kova-orange"
-                    : "bg-kova-green/70"
+                className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-sm ${
+                  item.priority === "high" ? "bg-kova-orange" : "bg-gray-300"
                 }`}
               />
               <span className="min-w-0 flex-1">
@@ -55,9 +48,6 @@ export function OverviewActionPanel({
                     {item.detail}
                   </span>
                 ) : null}
-              </span>
-              <span className="shrink-0 text-xs font-semibold text-kova-green">
-                Open →
               </span>
             </Link>
           </li>
@@ -92,8 +82,8 @@ export function buildOverviewActions(input: {
     items.push({
       id: `lead-${lead.id}`,
       title: `New lead: ${name}`,
-      detail: detail || "Status: new — follow up in Leads.",
-      href: "/workspace/leads",
+      detail: detail || undefined,
+      href: "/workspace/inbox?tab=leads",
       priority: "high",
     });
   }
@@ -102,7 +92,6 @@ export function buildOverviewActions(input: {
     items.push({
       id: "social-connect",
       title: "Connect Facebook or Instagram",
-      detail: "Not connected in Kova yet.",
       href: "/workspace/social/channels",
       priority: "high",
     });
@@ -113,10 +102,9 @@ export function buildOverviewActions(input: {
       id: "social-pending",
       title:
         input.pendingSocialActions === 1
-          ? "1 autopilot action waiting"
-          : `${input.pendingSocialActions} autopilot actions waiting`,
-      detail: "Needs approval in Social autopilot.",
-      href: "/workspace/social/autopilot",
+          ? "1 action waiting for approval"
+          : `${input.pendingSocialActions} actions waiting for approval`,
+      href: "/workspace/social",
       priority: "high",
     });
   }
@@ -128,19 +116,15 @@ export function buildOverviewActions(input: {
         input.approvedContentCount === 1
           ? "1 approved post ready"
           : `${input.approvedContentCount} approved posts ready`,
-      detail: "Publish or schedule in Content Studio.",
       href: "/workspace/social/studio",
     });
   }
 
-  if (
-    !input.storeLive &&
-    input.activeProductCount > 0
-  ) {
+  if (!input.storeLive && input.activeProductCount > 0) {
     items.push({
       id: "store-unpublished",
-      title: "Store not published",
-      detail: `${input.activeProductCount} active product${input.activeProductCount === 1 ? "" : "s"} — customers cannot shop yet.`,
+      title: "Publish your store",
+      detail: `${input.activeProductCount} product${input.activeProductCount === 1 ? "" : "s"} ready`,
       href: "/workspace/commerce/storefront",
     });
   }
@@ -149,7 +133,6 @@ export function buildOverviewActions(input: {
     items.push({
       id: "no-products",
       title: "Add your first product",
-      detail: "Commerce is empty in Kova.",
       href: "/workspace/commerce/snap-to-sell",
     });
   }

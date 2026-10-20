@@ -7,13 +7,13 @@ export default function ProductDemoSection() {
     <section className="border-t border-kova-border bg-kova-background">
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
         <SectionHeader
-          eyebrow="FROM PRODUCT PHOTO TO SOCIAL POST"
+          eyebrow="Product to post"
           title="Got a product to sell? Start with a photo."
-          lead="Take a photo of your product. KCOVA helps you put together a product listing and prepare it for your store and social media."
+          lead="Take a photo. KCOVA helps you build a listing and prepare it for your store and social media."
         />
 
         <div className="mt-12 grid items-stretch gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
-          <div className="relative min-h-[280px] overflow-hidden rounded-lg sm:min-h-[360px] lg:min-h-[420px]">
+          <div className="relative min-h-[280px] overflow-hidden sm:min-h-[360px] lg:min-h-[420px]">
             <Image
               src="/landing/sofa.jpg"
               alt="Sofa product photograph ready to list and share"
@@ -21,23 +21,17 @@ export default function ProductDemoSection() {
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 560px"
             />
-            <div
-              className="absolute inset-0 bg-gradient-to-t from-kova-dark/50 via-transparent to-transparent"
-              aria-hidden
-            />
           </div>
 
-          <div className="flex flex-col justify-center rounded-lg border border-kova-border bg-white p-6 sm:p-8">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-kova-orange">
-              TALK TO KCOVA
-            </p>
+          <div className="flex flex-col justify-center border border-kova-border bg-white p-6 sm:p-8">
+            <p className="text-sm font-medium text-gray-500">Talk to Kova</p>
 
             <div className="mt-6 space-y-4">
-              <div className="ml-auto max-w-[90%] rounded-lg bg-kova-green px-4 py-3 text-sm leading-6 text-white">
+              <div className="ml-auto max-w-[90%] bg-kova-green px-4 py-3 text-sm leading-6 text-white">
                 Help me post this sofa tonight.
               </div>
 
-              <div className="max-w-[95%] rounded-lg border border-kova-border bg-kova-background px-4 py-4">
+              <div className="max-w-[95%] border border-kova-border bg-kova-background px-4 py-4">
                 <p className="text-sm font-semibold text-kova-dark">
                   Your caption is ready.
                 </p>

@@ -150,15 +150,14 @@ function ConnectContent() {
     <div className={WORKSPACE_PAGE}>
       <div className="mx-auto max-w-2xl space-y-5">
         <PageHeader
-          eyebrow="Connect"
-          title="LinkedIn"
-          description="Optional for v1: copy drafts into LinkedIn anytime. With OAuth, Kova can publish text posts and run your schedule."
+          title="Connect LinkedIn"
+          description="Copy drafts anytime — or connect so Kova can publish for you."
           actions={
             <button
               type="button"
               disabled={loading}
               onClick={connect}
-              className="inline-flex h-10 items-center gap-2 rounded-lg bg-kova-orange/15 px-3 text-sm font-semibold text-kova-dark ring-1 ring-kova-orange/40 transition hover:bg-kova-orange/25 disabled:opacity-60"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-kova-border bg-white px-3 text-sm font-semibold text-kova-dark transition hover:border-kova-dark disabled:opacity-60"
             >
               <PlatformBrandIcon platform="linkedin" size={18} />
               {loading ? "Opening LinkedIn…" : "Connect LinkedIn"}
@@ -190,12 +189,7 @@ function ConnectContent() {
                     <PlatformBrandIcon platform="linkedin" size={14} />
                     LinkedIn
                   </span>
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-semibold ${status.bg} ${status.text}`}
-                  >
-                    <span
-                      className={`inline-block h-1.5 w-1.5 rounded-full ${status.dot}`}
-                    />
+                  <span className={`font-medium ${status.text}`}>
                     {status.label}
                   </span>
                 </div>
@@ -239,7 +233,7 @@ function ConnectContent() {
 
           {connectConfig?.redirect_uri && (
             <div className="border-t border-kova-border px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+              <p className="text-xs font-medium text-gray-500">
                 Redirect URL (must match LinkedIn app)
               </p>
               <p className="mt-1 break-all font-mono text-xs text-kova-ink">

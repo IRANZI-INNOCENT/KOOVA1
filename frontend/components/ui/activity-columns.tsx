@@ -34,9 +34,9 @@ function formatType(raw: string) {
 }
 
 function statusClass(status: string) {
-  if (status === "completed") return "bg-kova-green/10 text-kova-green";
-  if (status === "failed") return "bg-red-50 text-red-600";
-  return "bg-kova-orange/10 text-kova-orange";
+  if (status === "completed") return "text-kova-green";
+  if (status === "failed") return "text-red-600";
+  return "text-gray-500";
 }
 
 interface ActivityColumnsProps {
@@ -79,11 +79,11 @@ export function ActivityColumns({
             className="rounded-md border border-kova-border/70 bg-white px-3 py-2.5"
           >
             <div className="flex items-start justify-between gap-2">
-              <span className="truncate text-xs font-semibold uppercase tracking-wide text-kova-orange">
+              <span className="truncate text-xs font-medium text-gray-500">
                 {formatType(action.action_type)}
               </span>
               <span
-                className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${statusClass(action.action_status)}`}
+                className={`shrink-0 text-xs font-medium ${statusClass(action.action_status)}`}
               >
                 {action.action_status}
               </span>

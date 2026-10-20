@@ -8,7 +8,7 @@ export default function SocialLeadsRedirectPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/workspace/leads");
+    router.replace("/workspace/inbox?tab=leads");
   }, [router]);
 
   return (

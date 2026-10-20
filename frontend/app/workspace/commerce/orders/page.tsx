@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
+import { WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { useAuth } from "@/lib/auth-context";
 import { getBusiness } from "@/lib/commerce";
 import { getOrders, updateOrder, type OrderRecord } from "@/lib/operations";
@@ -39,14 +39,9 @@ export default function OrdersPage() {
   return (
     <div className={WORKSPACE_PAGE}>
       <div className="mx-auto max-w-3xl space-y-6">
-        <PageHeader
-          eyebrow="Orders"
-          title="Customer orders"
-          description="When someone taps Order on your store, it shows up here."
-        />
         {orders.length === 0 ? (
           <p className="py-6 text-sm text-gray-500">
-            No orders yet. They appear when a customer orders from your store.
+            No orders yet. They appear when someone orders from your store.
           </p>
         ) : (
             <div className="space-y-3">

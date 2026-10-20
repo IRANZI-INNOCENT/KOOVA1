@@ -320,18 +320,11 @@ export default function BusinessBrandPage() {
           <div className="p-6 sm:p-8">
         <div className="mx-auto max-w-3xl">
           <header>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-kova-green">
-              Business Brain
-            </p>
-
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-kova-dark sm:text-4xl">
-              Define your business brand
+            <h1 className="text-2xl font-semibold tracking-tight text-kova-dark">
+              Brand
             </h1>
-
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
-              Tell Kova how your business should sound,
-              communicate, and present itself when creating
-              content or interacting with customers.
+            <p className="mt-1.5 text-sm text-gray-500">
+              Voice and tone for posts and replies.
             </p>
           </header>
 

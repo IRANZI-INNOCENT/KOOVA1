@@ -35,7 +35,7 @@ export function BusinessSwitcher() {
 
   return (
     <label className="hidden min-w-0 sm:flex sm:flex-col sm:items-end">
-      <span className="text-[10px] font-bold uppercase tracking-wider text-white/60">
+      <span className="text-[10px] font-medium text-white/60">
         Business brain
       </span>
       <select

@@ -3,11 +3,10 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-/** Morning brief lives on Overview now. */
-export default function MorningBriefRedirectPage() {
+export default function BriefRedirectPage() {
   const router = useRouter();
   useEffect(() => {
-    router.replace("/workspace");
+    router.replace("/workspace/analytics");
   }, [router]);
   return null;
 }

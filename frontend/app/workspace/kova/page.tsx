@@ -204,7 +204,7 @@ export default function KovaChatPage() {
           </div>
         )}
 
-        <div className="bg-kova-orange/20 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="border-t border-kova-border bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div className="mx-auto max-w-3xl">
             <div className="mb-2 flex flex-wrap gap-2">
               {TASK_OPTIONS.map((opt) => (
@@ -212,10 +212,10 @@ export default function KovaChatPage() {
                   key={opt.value}
                   type="button"
                   onClick={() => setTask(opt.value)}
-                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                  className={`rounded-md border px-3 py-1 text-xs font-medium transition-colors ${
                     task === opt.value
-                      ? "bg-kova-green text-white"
-                      : "bg-white/80 text-gray-600 hover:text-kova-green"
+                      ? "border-kova-dark bg-kova-dark text-white"
+                      : "border-kova-border bg-white text-gray-600 hover:border-kova-dark"
                   }`}
                 >
                   {opt.label}
@@ -284,69 +284,62 @@ function EmptyState({
   onSuggestion: (text: string) => void;
 }) {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center px-2 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-kova-green/10">
-        <span className="text-xl font-bold text-kova-green">K</span>
-      </div>
-
-      <h2 className="mt-5 text-2xl font-semibold tracking-tight text-kova-dark">
+    <div className="mx-auto flex min-h-[50vh] max-w-xl flex-col justify-center px-2 py-8">
+      <h2 className="text-2xl font-semibold tracking-tight text-kova-dark">
         Talk to Kova
       </h2>
       <p className="mt-1 text-sm text-gray-500">{businessName}</p>
 
-      {desk && (
-        <div className="mt-4 flex max-w-md flex-col items-center gap-2">
-          <span className="rounded-full bg-kova-green/10 px-3 py-0.5 text-xs font-medium text-kova-green">
-            {MODE_LABEL[desk.mode]}
-          </span>
-          {desk.mode === "autopilot" && (
+      {desk ? (
+        <div className="mt-3 space-y-1 text-sm">
+          <p className="text-gray-600">{MODE_LABEL[desk.mode]}</p>
+          {desk.mode === "autopilot" ? (
             <Link
-              href="/workspace/social/autopilot"
-              className="text-xs font-medium text-kova-green hover:underline"
+              href="/workspace/social"
+              className="text-sm font-medium text-kova-green hover:underline"
             >
               See what Kova is doing
             </Link>
-          )}
-          {desk.paused && (
-            <p className="text-sm leading-6 text-amber-800">
+          ) : null}
+          {desk.paused ? (
+            <p className="text-amber-800">
               {desk.pauseReason.trim() ||
                 "Scheduled publishing is paused until you resume it."}
             </p>
-          )}
-          {desk.plan.trim() && (
-            <p className="text-sm leading-6 text-kova-dark/75">{desk.plan}</p>
-          )}
+          ) : null}
+          {desk.plan.trim() ? (
+            <p className="text-kova-dark/80">{desk.plan}</p>
+          ) : null}
         </div>
-      )}
+      ) : null}
 
-      {(loading || suggestions.length > 0) && (
-        <div className="mt-6 w-full max-w-xl text-left">
-          <p className="text-center text-[11px] font-bold uppercase tracking-[0.14em] text-kova-orange">
-            Suggested questions
-          </p>
-          <p className="mt-0.5 text-center text-xs text-gray-500">
+      {loading || suggestions.length > 0 ? (
+        <div className="mt-6">
+          <p className="text-sm font-semibold text-kova-dark">Suggestions</p>
+          <p className="mt-0.5 text-xs text-gray-500">
             Tap to fill the box — edit before you send.
           </p>
-
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {loading &&
-              Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={`sk-${i}`}
-                  className="h-14 animate-pulse rounded-md border border-kova-border/80 bg-white"
-                />
-              ))}
-            {!loading &&
-              suggestions.map((text) => (
-                <SuggestionCard
-                  key={text}
-                  text={text}
-                  onSelect={() => onSuggestion(text)}
-                />
-              ))}
+            {loading
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={`sk-${i}`}
+                    className="h-14 animate-pulse border border-kova-border bg-white"
+                  />
+                ))
+              : null}
+            {!loading
+              ? suggestions.map((text) => (
+                  <SuggestionCard
+                    key={text}
+                    text={text}
+                    onSelect={() => onSuggestion(text)}
+                  />
+                ))
+              : null}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -392,24 +385,16 @@ function SuggestionCard({
   text: string;
   onSelect: () => void;
 }) {
-  const { tag, tone } = suggestionCategory(text);
-  const tagClass =
-    tone === "orange"
-      ? "bg-kova-orange/15 text-kova-dark"
-      : "bg-kova-green/10 text-kova-green";
+  const { tag } = suggestionCategory(text);
 
   return (
     <button
       type="button"
       onClick={onSelect}
-      className="group rounded-md border border-kova-border/90 bg-white px-3 py-2.5 text-left transition hover:border-kova-orange/50 hover:bg-kova-orange/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-kova-green"
+      className="border border-kova-border bg-white px-3 py-2.5 text-left transition hover:border-kova-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-kova-green"
     >
-      <span
-        className={`inline-flex rounded-full px-2 py-px text-[9px] font-bold uppercase tracking-wide ${tagClass}`}
-      >
-        {tag}
-      </span>
-      <p className="mt-1.5 text-xs leading-snug text-kova-dark line-clamp-2">
+      <span className="text-xs text-gray-500">{tag}</span>
+      <p className="mt-1 line-clamp-2 text-xs leading-snug text-kova-dark">
         {text}
       </p>
     </button>
@@ -493,19 +478,20 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
 
   return (
-    <div className={`flex gap-3 ${isUser ? "justify-end" : ""}`}>
-      {!isUser && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-kova-green text-xs font-bold text-white">
-          K
-        </div>
-      )}
-
-      <div className={`max-w-[85%] ${isUser ? "order-first" : ""}`}>
+    <div className={`flex ${isUser ? "justify-end" : ""}`}>
+      <div className="max-w-[85%]">
+        <p className="mb-1 text-xs text-gray-500">
+          {isUser ? "You" : "Kova"} ·{" "}
+          {message.timestamp.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </p>
         <div
-          className={`rounded-lg px-4 py-3 text-sm leading-relaxed ${
+          className={`px-4 py-3 text-sm leading-relaxed ${
             isUser
               ? "bg-kova-green text-white"
-              : "border border-kova-orange/40 bg-kova-orange/25 text-kova-dark"
+              : "border border-kova-border bg-white text-kova-dark"
           }`}
         >
           {isUser ? (
@@ -519,56 +505,37 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           )}
         </div>
 
-        {/* Tool calls */}
-        {message.toolCalls && message.toolCalls.length > 0 && (
+        {message.toolCalls && message.toolCalls.length > 0 ? (
           <div className="mt-2 space-y-1">
             {message.toolCalls.map((tc, i) => (
               <div
                 key={i}
-                className="flex items-center gap-2 px-1 text-xs text-gray-500"
+                className="flex items-center gap-2 text-xs text-gray-500"
               >
-                <span
-                  className={`h-1.5 w-1.5 rounded-full ${
-                    tc.status === "success" ? "bg-kova-green" : "bg-red-400"
-                  }`}
-                />
                 <span>{TOOL_LABELS[tc.tool_name] || tc.tool_name}</span>
                 <span className="text-gray-300">·</span>
-                <span className={tc.status === "success" ? "text-kova-green" : "text-red-500"}>
+                <span
+                  className={
+                    tc.status === "success" ? "text-kova-green" : "text-red-500"
+                  }
+                >
                   {tc.status}
                 </span>
               </div>
             ))}
           </div>
-        )}
-
-        <p className="mt-1 px-1 text-xs text-gray-400">
-          {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-        </p>
+        ) : null}
       </div>
-
-      {isUser && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-kova-dark text-xs font-bold text-white">
-          U
-        </div>
-      )}
     </div>
   );
 }
 
-
 function ThinkingIndicator() {
   return (
-    <div className="flex gap-3">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-kova-green text-xs font-bold text-white">
-        K
-      </div>
-      <div className="rounded-lg border border-kova-orange/40 bg-kova-orange/25 px-4 py-3">
-        <div className="flex items-center gap-1.5">
-          <div className="h-2 w-2 animate-bounce rounded-full bg-kova-green/40" style={{ animationDelay: "0ms" }} />
-          <div className="h-2 w-2 animate-bounce rounded-full bg-kova-green/40" style={{ animationDelay: "150ms" }} />
-          <div className="h-2 w-2 animate-bounce rounded-full bg-kova-green/40" style={{ animationDelay: "300ms" }} />
-        </div>
+    <div>
+      <p className="mb-1 text-xs text-gray-500">Kova</p>
+      <div className="border border-kova-border bg-white px-4 py-3 text-sm text-gray-500">
+        Thinking…
       </div>
     </div>
   );

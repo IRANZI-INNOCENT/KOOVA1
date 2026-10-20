@@ -21,14 +21,19 @@ export function SetupGuide({
 
   return (
     <div className="mt-6 border border-kova-border bg-white p-4">
-      {isSetup && (
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-kova-green">
-          Setup {stepIndex + 2} of {SETUP_SECTIONS.length + 1} · {SETUP_LABELS[section]}
+      {isSetup ? (
+        <p className="text-xs text-gray-500">
+          Setup {stepIndex + 2} of {SETUP_SECTIONS.length + 1} ·{" "}
+          {SETUP_LABELS[section]}
         </p>
-      )}
-      <div className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${isSetup ? "mt-3" : ""}`}>
-        <p className="max-w-xl text-sm leading-6 text-gray-600">
-          Ask Kova to draft this from your business setup. You can edit every field before you continue.
+      ) : null}
+      <div
+        className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${
+          isSetup ? "mt-2" : ""
+        }`}
+      >
+        <p className="max-w-xl text-sm text-gray-600">
+          Draft from your setup — edit anything before you continue.
         </p>
         <button
           type="button"

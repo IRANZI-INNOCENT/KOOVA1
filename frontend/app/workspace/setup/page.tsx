@@ -257,19 +257,14 @@ export default function BusinessSetupPage() {
       <div className="p-6 sm:p-8">
         <div className="mx-auto max-w-4xl">
 
-          <div className="mb-10">
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-kova-green">
-              Business Setup
-            </p>
-
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-kova-dark">
-              {businessId ? "Your business" : "Let's set up your business."}
+          <div className="mb-8">
+            <h1 className="text-2xl font-semibold tracking-tight text-kova-dark">
+              {businessId ? "Basics" : "Set up your business"}
             </h1>
-
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
+            <p className="mt-1.5 max-w-2xl text-sm text-gray-500">
               {businessId
-                ? "Update the name, phone number, email, and location customers and Kova use."
-                : "Tell Kova a little about your business. Next you will walk through profile, customers, brand, goals, policies, and a market brief. Each part is saved if you leave, and Kova can draft the later parts from what you enter here."}
+                ? "Name, contact, and location used on your store and posts."
+                : "Start with the basics. You can fill profile, customers, brand, and goals next — progress saves if you leave."}
             </p>
           </div>
 
@@ -311,15 +306,10 @@ export default function BusinessSetupPage() {
                       event.target.value,
                     )
                   }
-                  rows={5}
-                  placeholder="Tell Kova what your business sells or provides."
+                  rows={4}
+                  placeholder="What you sell or provide"
                   className="mt-2 block w-full border border-kova-border bg-white px-4 py-3 text-sm text-kova-dark outline-none focus:border-kova-green focus:ring-1 focus:ring-kova-green"
                 />
-
-                <p className="mt-2 text-xs text-gray-500">
-                  This becomes part of the information Kova uses
-                  to understand your business.
-                </p>
               </div>
 
 

@@ -75,45 +75,43 @@ export default function LinkedInHomePage() {
       <div className={WORKSPACE_PAGE}>
         <div className="mx-auto max-w-3xl space-y-5">
           <PageHeader
-            eyebrow="LinkedIn"
-            title="Professional posts on LinkedIn"
+            title="LinkedIn"
             description={
               profile?.headline ||
-              "Connect, set your focus, then run a topic week or event post."
+              "Optional — for professional posts, not your shop."
             }
           />
 
-          <KovaStepsGuide
-            title="LinkedIn in three steps"
-            steps={[
-              {
-                letter: "A",
-                title: "Connect",
-                description: "Link LinkedIn so Kova can publish for you.",
-                href: "/workspace/linkedin/connect",
-                done: isConnected,
-              },
-              {
-                letter: "B",
-                title: "Profile & pillars",
-                description: "Tell Kova what you stand for.",
-                href: "/workspace/linkedin/profile",
-                done: hasPillars,
-              },
-              {
-                letter: "C",
-                title: "First program",
-                description: "Topic week or event moment.",
-                href: "/workspace/linkedin/topic-week",
-                done: posts.length > 0,
-              },
-            ]}
-          />
+          {(!isConnected || !hasPillars || posts.length === 0) && (
+            <KovaStepsGuide
+              title="Setup"
+              steps={[
+                {
+                  letter: "1",
+                  title: "Connect",
+                  href: "/workspace/linkedin/connect",
+                  done: isConnected,
+                },
+                {
+                  letter: "2",
+                  title: "Profile",
+                  href: "/workspace/linkedin/profile",
+                  done: hasPillars,
+                },
+                {
+                  letter: "3",
+                  title: "First posts",
+                  href: "/workspace/linkedin/topic-week",
+                  done: posts.length > 0,
+                },
+              ]}
+            />
+          )}
 
           <div className="flex flex-wrap items-center gap-3">
             {isConnected ? (
               <>
-                <span className="inline-flex items-center gap-2 rounded-full border border-kova-green/30 bg-kova-green/5 px-2 py-1 text-sm font-semibold text-kova-dark">
+                <span className="inline-flex items-center gap-2 border border-kova-border bg-white px-2 py-1 text-sm font-semibold text-kova-dark">
                   <PlatformAvatar
                     platform="linkedin"
                     imageUrl={linkedin?.profile_knowledge?.photo_url}
@@ -142,7 +140,7 @@ export default function LinkedInHomePage() {
                 </span>
                 <button
                   type="button"
-                  className="inline-flex h-9 items-center gap-2 rounded-lg bg-kova-orange/15 px-3 text-sm font-semibold text-kova-dark ring-1 ring-kova-orange/40 hover:bg-kova-orange/25 disabled:opacity-60"
+                  className="inline-flex h-9 items-center gap-2 rounded-md border border-kova-border bg-white px-3 text-sm font-semibold text-kova-dark hover:border-kova-dark disabled:opacity-60"
                   disabled={connecting}
                   onClick={connectLinkedIn}
                 >
@@ -156,24 +154,24 @@ export default function LinkedInHomePage() {
             <p className="text-sm text-amber-800">{connectMessage}</p>
           ) : null}
 
-          <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+          <div className="flex flex-wrap gap-x-5 gap-y-2 border-y border-kova-border/60 py-3 text-sm">
             <Link
               href="/workspace/linkedin/topic-week"
               className="font-semibold text-kova-dark hover:text-kova-green"
             >
-              Topic week →
+              Topic week
             </Link>
             <Link
               href="/workspace/linkedin/event"
               className="font-semibold text-kova-dark hover:text-kova-green"
             >
-              Event moment →
+              Event
             </Link>
             <Link
               href="/workspace/linkedin/calendar"
               className="font-semibold text-kova-dark hover:text-kova-green"
             >
-              Calendar →
+              Calendar
             </Link>
           </div>
 

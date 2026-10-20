@@ -619,22 +619,14 @@ export default function StorefrontPage() {
 
 
           {/* Header */}
-          <div className="mt-8">
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-kova-green">
-              Commerce
-            </p>
-
-            <div className="mt-3 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-
+          <div className="mt-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h1 className="text-3xl font-semibold tracking-tight text-kova-dark sm:text-4xl">
-                  Your storefront
+                <h1 className="text-2xl font-semibold tracking-tight text-kova-dark sm:text-3xl">
+                  Store
                 </h1>
-
-                <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-600">
-                  This is the commerce presence Kova can use to
-                  turn your products and social activity into a
-                  place where customers can discover and buy.
+                <p className="mt-1.5 max-w-xl text-sm leading-6 text-gray-500">
+                  Your public shop page — colors, logo, and layout.
                 </p>
               </div>
 
@@ -680,23 +672,17 @@ export default function StorefrontPage() {
               onSubmit={handleSave}
               className="border border-kova-border bg-white"
             >
-              <div className="border-b border-kova-border px-6 py-5">
-                <h2 className="font-semibold text-kova-dark">
-                  Storefront information
+              <div className="border-b border-kova-border px-5 py-4 sm:px-6">
+                <h2 className="text-sm font-semibold text-kova-dark">
+                  Details
                 </h2>
-
-                <p className="mt-1 text-sm text-gray-500">
-                  This information becomes part of your public
-                  commerce presence.
-                </p>
               </div>
 
-
-              <div className="space-y-6 p-6">
+              <div className="space-y-5 p-5 sm:p-6">
 
                 <div>
                   <label className="block text-sm font-medium text-kova-dark">
-                    Storefront title
+                    Title
                   </label>
 
                   <input
@@ -712,12 +698,8 @@ export default function StorefrontPage() {
                       business?.name ||
                       "Your business name"
                     }
-                    className="mt-2 w-full border border-kova-border px-3 py-3 text-sm outline-none focus:border-kova-green"
+                    className="mt-1.5 w-full border border-kova-border px-3 py-2.5 text-sm outline-none focus:border-kova-green"
                   />
-
-                  <p className="mt-2 text-xs text-gray-500">
-                    The main name customers will see.
-                  </p>
                 </div>
 
 
@@ -735,8 +717,8 @@ export default function StorefrontPage() {
                         event.target.value,
                       )
                     }
-                    placeholder="A short statement about what you sell"
-                    className="mt-2 w-full border border-kova-border px-3 py-3 text-sm outline-none focus:border-kova-green"
+                    placeholder="Short line under your title"
+                    className="mt-1.5 w-full border border-kova-border px-3 py-2.5 text-sm outline-none focus:border-kova-green"
                   />
                 </div>
 
@@ -754,19 +736,19 @@ export default function StorefrontPage() {
                         event.target.value,
                       )
                     }
-                    rows={6}
-                    placeholder="Tell customers what your business offers."
-                    className="mt-2 w-full resize-y border border-kova-border px-3 py-3 text-sm leading-6 outline-none focus:border-kova-green"
+                    rows={3}
+                    placeholder="What you sell"
+                    className="mt-1.5 w-full resize-y border border-kova-border px-3 py-2.5 text-sm leading-6 outline-none focus:border-kova-green"
                   />
                 </div>
 
 
-                <div className="border-t border-kova-border pt-6">
-                  <p className="font-semibold text-kova-dark">
+                <div className="border-t border-kova-border pt-5">
+                  <label className="block text-sm font-medium text-kova-dark">
                     Store link
-                  </p>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Your public URL: /store/{form.slug || "your-shop"}
+                  </label>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    /store/{form.slug || "your-shop"}
                   </p>
                   <input
                     type="text"
@@ -775,21 +757,15 @@ export default function StorefrontPage() {
                       updateField("slug", event.target.value.toLowerCase())
                     }
                     placeholder="your-shop"
-                    className="mt-3 w-full border border-kova-border px-3 py-3 text-sm outline-none focus:border-kova-green"
+                    className="mt-2 w-full border border-kova-border px-3 py-2.5 text-sm outline-none focus:border-kova-green"
                   />
                 </div>
 
-                <div className="border-t border-kova-border pt-6">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold text-kova-dark">
-                        Brand look
-                      </p>
-                      <p className="mt-1 text-sm text-gray-500">
-                        Three brand colors, logo, and promo banners so your shop
-                        feels like yours — not a default template.
-                      </p>
-                    </div>
+                <div className="border-t border-kova-border pt-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-kova-dark">
+                      Look
+                    </p>
                     <button
                       type="button"
                       onClick={() => {
@@ -802,9 +778,9 @@ export default function StorefrontPage() {
                         setSuccess("");
                         setError("");
                       }}
-                      className="shrink-0 text-xs font-semibold text-kova-green underline-offset-2 hover:underline"
+                      className="shrink-0 text-xs font-semibold text-kova-green hover:underline"
                     >
-                      Reset to KCOVA colors
+                      Reset colors
                     </button>
                   </div>
 
@@ -935,10 +911,8 @@ export default function StorefrontPage() {
                     <label className="block text-sm font-medium text-kova-dark">
                       Hero slides
                     </label>
-                    <p className="mt-1 text-xs leading-5 text-gray-500">
-                      Up to {page?.banner_limit ?? 5} slides. Feature a product
-                      (uses its photo) or upload a custom banner. Linked products
-                      open when shoppers tap the slide.
+                    <p className="mt-0.5 text-xs text-gray-500">
+                      Up to {page?.banner_limit ?? 5}. Product photo or custom image.
                     </p>
 
                     {(page?.banners?.length ?? 0) > 0 && (
@@ -1136,10 +1110,7 @@ export default function StorefrontPage() {
                       <div className="mt-3 space-y-3">
                         <div className="rounded-md border border-kova-border bg-white p-3">
                           <p className="text-xs font-semibold text-kova-dark">
-                            Feature a product
-                          </p>
-                          <p className="mt-1 text-[11px] text-gray-500">
-                            No banner upload needed — we use the product photo.
+                            Add product slide
                           </p>
                           <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                             <select
@@ -1170,9 +1141,7 @@ export default function StorefrontPage() {
                               onClick={() => void handleAddProductSlide()}
                               className="inline-flex h-10 shrink-0 items-center justify-center rounded-md border border-kova-green bg-kova-green px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              {addingProductSlide
-                                ? "Adding…"
-                                : "Add product slide"}
+                              {addingProductSlide ? "Adding…" : "Add"}
                             </button>
                           </div>
                         </div>
@@ -1197,13 +1166,8 @@ export default function StorefrontPage() {
                           >
                             {uploading === "banner"
                               ? "Uploading…"
-                              : "Or upload custom banner"}
+                              : "Upload banner"}
                           </button>
-                          <p className="mt-2 text-[11px] text-gray-500">
-                            JPG, PNG, or WebP.{" "}
-                            {(page?.banners?.length ?? 0) + 1} of{" "}
-                            {page?.banner_limit ?? 5} slots.
-                          </p>
                         </div>
                       </div>
                     )}
@@ -1215,13 +1179,9 @@ export default function StorefrontPage() {
                   </div>
                 </div>
 
-                <div className="border-t border-kova-border pt-6">
-                  <p className="font-semibold text-kova-dark">Layout</p>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Pick a preset — not a blank canvas. Your catalog stays easy
-                    to shop.
-                  </p>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="border-t border-kova-border pt-5">
+                  <p className="text-sm font-semibold text-kova-dark">Layout</p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     {LAYOUT_PRESETS.map((preset) => (
                       <button
                         key={preset.id}
@@ -1229,7 +1189,7 @@ export default function StorefrontPage() {
                         onClick={() =>
                           updateField("layout_preset", preset.id)
                         }
-                        className={`rounded-md border px-3 py-3 text-left text-sm transition ${
+                        className={`rounded-md border px-3 py-2.5 text-left text-sm transition ${
                           form.layout_preset === preset.id
                             ? "border-kova-green bg-kova-green/5"
                             : "border-kova-border bg-white hover:border-kova-green/40"
@@ -1238,15 +1198,12 @@ export default function StorefrontPage() {
                         <span className="font-semibold text-kova-dark">
                           {preset.label}
                         </span>
-                        <span className="mt-1 block text-xs text-gray-500">
-                          {preset.blurb}
-                        </span>
                       </button>
                     ))}
                   </div>
 
-                  <p className="mt-5 text-sm font-medium text-kova-dark">
-                    Type style
+                  <p className="mt-4 text-sm font-medium text-kova-dark">
+                    Font
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {FONT_PRESETS.map((preset) => (
@@ -1299,110 +1256,78 @@ export default function StorefrontPage() {
                   </div>
                 </div>
 
-                <div className="border-t border-kova-border pt-6">
-                  <p className="font-semibold text-kova-dark">
-                    Customer contact
-                  </p>
-
-                  <p className="mt-1 text-sm text-gray-500">
-                    Ways customers can reach the business.
+                <div className="border-t border-kova-border pt-5">
+                  <p className="text-sm font-semibold text-kova-dark">
+                    Contact
                   </p>
                 </div>
 
-
-                <div className="grid gap-5 sm:grid-cols-2">
-
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <label className="block text-sm font-medium text-kova-dark">
                       WhatsApp
                     </label>
-
                     <input
                       type="text"
                       value={form.whatsapp}
                       onChange={(event) =>
-                        updateField(
-                          "whatsapp",
-                          event.target.value,
-                        )
+                        updateField("whatsapp", event.target.value)
                       }
                       placeholder="+254..."
-                      className="mt-2 w-full border border-kova-border px-3 py-3 text-sm outline-none focus:border-kova-green"
+                      className="mt-1.5 w-full border border-kova-border px-3 py-2.5 text-sm outline-none focus:border-kova-green"
                     />
                   </div>
-
-
                   <div>
                     <label className="block text-sm font-medium text-kova-dark">
                       Phone
                     </label>
-
                     <input
                       type="text"
                       value={form.phone}
                       onChange={(event) =>
-                        updateField(
-                          "phone",
-                          event.target.value,
-                        )
+                        updateField("phone", event.target.value)
                       }
                       placeholder="+254..."
-                      className="mt-2 w-full border border-kova-border px-3 py-3 text-sm outline-none focus:border-kova-green"
+                      className="mt-1.5 w-full border border-kova-border px-3 py-2.5 text-sm outline-none focus:border-kova-green"
                     />
                   </div>
-
-
                   <div>
                     <label className="block text-sm font-medium text-kova-dark">
                       Email
                     </label>
-
                     <input
                       type="email"
                       value={form.email}
                       onChange={(event) =>
-                        updateField(
-                          "email",
-                          event.target.value,
-                        )
+                        updateField("email", event.target.value)
                       }
                       placeholder="business@example.com"
-                      className="mt-2 w-full border border-kova-border px-3 py-3 text-sm outline-none focus:border-kova-green"
+                      className="mt-1.5 w-full border border-kova-border px-3 py-2.5 text-sm outline-none focus:border-kova-green"
                     />
                   </div>
-
-
                   <div>
                     <label className="block text-sm font-medium text-kova-dark">
                       Location
                     </label>
-
                     <input
                       type="text"
                       value={form.location}
                       onChange={(event) =>
-                        updateField(
-                          "location",
-                          event.target.value,
-                        )
+                        updateField("location", event.target.value)
                       }
                       placeholder="Nairobi, Kenya"
-                      className="mt-2 w-full border border-kova-border px-3 py-3 text-sm outline-none focus:border-kova-green"
+                      className="mt-1.5 w-full border border-kova-border px-3 py-2.5 text-sm outline-none focus:border-kova-green"
                     />
                   </div>
-
                 </div>
 
-
-                <div className="flex justify-end border-t border-kova-border pt-6">
+                <div className="flex justify-end border-t border-kova-border pt-5">
                   <button
                     type="submit"
                     disabled={saving}
-                    className="border border-kova-green bg-kova-green px-6 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-md border border-kova-green bg-kova-green px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {saving
-                      ? "Saving..."
-                      : "Save storefront"}
+                    {saving ? "Saving…" : "Save"}
                   </button>
                 </div>
 
@@ -1413,60 +1338,44 @@ export default function StorefrontPage() {
             {/* Storefront status */}
             <aside className="space-y-5">
 
-              <div className="border border-kova-border bg-white p-6">
-                <p className="text-sm font-semibold uppercase tracking-[0.12em] text-kova-green">
-                  Storefront status
-                </p>
-
-                <h2 className="mt-3 text-xl font-semibold text-kova-dark">
-                  {page?.is_published
-                    ? "Your storefront is live"
-                    : "Your storefront is a draft"}
+              <div className="border border-kova-border bg-white p-5">
+                <h2 className="text-sm font-semibold text-kova-dark">
+                  {page?.is_published ? "Live" : "Draft"}
                 </h2>
-
-                <p className="mt-3 text-sm leading-6 text-gray-500">
+                <p className="mt-1 text-sm text-gray-500">
                   {page?.is_published
-                    ? "Customers can access the published commerce presence."
-                    : "Save your information and publish when you are ready for customers to see it."}
+                    ? "Customers can shop this store."
+                    : "Save, then publish when ready."}
                 </p>
 
-
-                {page?.slug && (
+                {page?.slug ? (
                   <StoreShareLink
                     slug={page.slug}
                     published={!!page.is_published}
                   />
-                )}
+                ) : null}
 
                 <button
                   type="button"
-                  onClick={
-                    handlePublish
-                  }
+                  onClick={handlePublish}
                   disabled={publishing}
                   className={
                     page?.is_published
-                      ? "mt-6 w-full border border-kova-border bg-white px-4 py-3 text-sm font-semibold text-kova-dark hover:bg-kova-background disabled:opacity-60"
-                      : "mt-6 w-full border border-kova-green bg-kova-green px-4 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+                      ? "mt-4 w-full rounded-md border border-kova-border bg-white px-4 py-2.5 text-sm font-semibold text-kova-dark hover:bg-kova-background disabled:opacity-60"
+                      : "mt-4 w-full rounded-md border border-kova-green bg-kova-green px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
                   }
                 >
                   {publishing
-                    ? "Updating..."
+                    ? "Updating…"
                     : page?.is_published
-                      ? "Unpublish storefront"
-                      : "Publish storefront"}
+                      ? "Unpublish"
+                      : "Publish"}
                 </button>
               </div>
 
 
               <div className="border border-kova-border bg-white p-6">
-                <p className="text-sm font-semibold uppercase tracking-[0.12em] text-kova-green">
-                  Live preview
-                </p>
-                <p className="mt-2 text-sm text-gray-500">
-                  Primary chrome, secondary titles, accent CTAs — balanced
-                  for customers.
-                </p>
+                <p className="text-sm font-semibold text-kova-dark">Preview</p>
                 <div
                   className="mt-4 overflow-hidden rounded-md border"
                   style={{
@@ -1548,21 +1457,9 @@ export default function StorefrontPage() {
                     rel="noopener noreferrer"
                     className="mt-4 inline-flex text-sm font-semibold text-kova-green hover:underline"
                   >
-                    Open live store →
+                    Open live store
                   </a>
                 )}
-              </div>
-
-              <div className="border border-kova-border bg-kova-background p-6">
-                <p className="font-semibold text-kova-dark">
-                  What happens next?
-                </p>
-
-                <p className="mt-2 text-sm leading-6 text-gray-500">
-                  Save and publish when ready. Customers see your colors,
-                  logo, and layout on /store/{form.slug || "your-shop"}.
-                  Custom domains come later — “Powered by KCOVA” stays for now.
-                </p>
               </div>
 
             </aside>

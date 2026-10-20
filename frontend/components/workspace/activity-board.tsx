@@ -46,7 +46,7 @@ export function ActivityBoard({
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <header>
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
+        <p className="text-xs font-medium text-gray-500">
           Results
         </p>
         <h1 className="mt-1 text-2xl font-semibold text-kova-dark">{title}</h1>

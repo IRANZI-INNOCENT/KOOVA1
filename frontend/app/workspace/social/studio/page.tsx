@@ -43,13 +43,6 @@ const TYPE_LABELS: Record<string, string> = {
   story: "Story",
 };
 
-const TYPE_ICONS: Record<string, string> = {
-  post: "📝",
-  carousel: "🎠",
-  reel: "🎬",
-  story: "📱",
-};
-
 const STATUS_BADGE: Record<
   string,
   { bg: string; text: string; dot: string }
@@ -279,43 +272,20 @@ export default function ContentStudioPage() {
     return (
       <div className={WORKSPACE_PAGE}>
         <div className="space-y-6">
-          <PageHeader
-            eyebrow="Create"
-            title="Connect an account first"
-            description="Kova writes posts for the accounts you connect — Facebook and Instagram."
-          />
+          <PageHeader title="Create" />
 
-          <div className="h-px bg-kova-border" />
-
-          <section className="rounded-lg border-2 border-dashed border-kova-orange/40 bg-kova-orange/5 p-8 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-kova-orange/20">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-kova-orange"
-              >
-                <path d="M17 2H7a2 2 0 00-2 2v16l7-4 7 4V4a2 2 0 00-2-2z" />
-              </svg>
-            </div>
-            <p className="mt-4 text-lg font-semibold text-kova-dark">
-              Content adapts to the channel
+          <section className="border border-kova-border bg-white px-5 py-6">
+            <p className="font-semibold text-kova-dark">
+              Connect an account first
             </p>
-            <p className="mt-2 text-sm leading-6 text-gray-500">
-              Kova writes for your connected accounts — Facebook and Instagram
-              posts, plus real multi-image carousels when a product has 2+
-              photos.
+            <p className="mt-1 text-sm text-gray-500">
+              Facebook or Instagram — then Kova can draft posts.
             </p>
             <Link
               href="/workspace/social/channels"
-              className="mt-5 inline-flex h-11 items-center justify-center rounded-md bg-kova-orange px-5 text-sm font-bold text-kova-dark hover:bg-[#f0a46e]"
+              className="mt-4 inline-flex h-10 items-center justify-center rounded-md bg-kova-orange px-5 text-sm font-bold text-kova-dark hover:bg-[#f0a46e]"
             >
-              Connect an account
+              Connect
             </Link>
           </section>
         </div>
@@ -326,56 +296,41 @@ export default function ContentStudioPage() {
   return (
     <div className={WORKSPACE_PAGE}>
       <div className="space-y-6">
-        <PageHeader
-          eyebrow="Create"
-          title="Make posts for your accounts"
-          description="Pick a product, share everyday tips, or upload a short video. Kova formats it for Facebook and Instagram."
-          actions={
-            mode === "autopilot" ? (
-              <div className="flex items-center gap-2 rounded-full bg-kova-orange/15 px-4 py-2">
-                <span className="flex h-2 w-2 rounded-full bg-kova-orange" />
-                <span className="text-xs font-bold text-kova-orange">
-                  Autopilot on
-                </span>
-              </div>
-            ) : undefined
-          }
-        />
-
-        <div className="flex flex-wrap gap-2">
-          {channels?.accounts.map((a) => (
-            <span
-              key={a.id}
-              className="inline-flex items-center gap-2 rounded-full border border-kova-orange/25 bg-kova-orange/10 px-2 py-1 text-xs font-semibold text-kova-dark"
-            >
-              <PlatformAvatar
-                platform={a.platform}
-                imageUrl={a.profile_picture_url}
-                name={a.name}
-                size="sm"
-              />
-              {PLATFORM_LABELS[a.platform] ?? a.platform}: {a.name}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            {channels?.accounts.map((a) => (
+              <span
+                key={a.id}
+                className="inline-flex items-center gap-2 truncate rounded-md border border-kova-border bg-white px-2 py-1 text-xs font-semibold text-kova-dark"
+              >
+                <PlatformAvatar
+                  platform={a.platform}
+                  imageUrl={a.profile_picture_url}
+                  name={a.name}
+                  size="sm"
+                />
+                {a.name}
+              </span>
+            ))}
+          </div>
+          {mode === "autopilot" ? (
+            <span className="text-xs font-semibold text-kova-dark">
+              Autopilot on
             </span>
-          ))}
+          ) : null}
         </div>
 
         {capabilities?.kenya_relatable_mode ? (
-          <div className="rounded-lg border border-kova-green/25 bg-kova-green/5 px-4 py-3 text-sm text-kova-dark">
-            <span className="font-semibold text-kova-green">
-              Kenya relatable mode on
-            </span>
-            {" — "}
-            drafts use local voice and include reel skit film briefs.{" "}
+          <p className="text-xs text-gray-500">
+            Kenya voice on.{" "}
             <Link
               href="/workspace/settings/business-brand"
-              className="font-semibold text-kova-green underline underline-offset-2"
+              className="font-semibold text-kova-green hover:underline"
             >
-              Change in Brand
+              Brand settings
             </Link>
-          </div>
+          </p>
         ) : null}
-
-        <div className="h-px bg-kova-border" />
 
         {error && (
           <div
@@ -396,28 +351,20 @@ export default function ContentStudioPage() {
         {/* ──── Brief composer (assist / approval only) ──── */}
         {mode !== "autopilot" && (
         <div className="overflow-hidden rounded-lg border border-kova-border bg-white">
-          <div className="border-b border-kova-border bg-gradient-to-r from-kova-orange/10 to-kova-orange/5 px-5 py-4 sm:px-6">
-            <h2 className="text-sm font-bold text-kova-dark">
-              Content brief
-            </h2>
-            <p className="mt-0.5 text-xs text-gray-500">
-              One brief → content for every connected channel
-            </p>
-          </div>
-          <div className="space-y-5 p-5 sm:p-6">
+          <div className="space-y-4 p-4 sm:p-5">
             <div className="flex flex-wrap gap-2">
               {(
                 [
                   ["product", "Product"],
-                  ["organic", "Organic"],
-                  ["video", "Upload video"],
+                  ["organic", "Tip / story"],
+                  ["video", "Video"],
                 ] as const
               ).map(([key, label]) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setCampaignMode(key)}
-                  className={`rounded-full px-4 py-2 text-xs font-bold transition ${
+                  className={`rounded-md px-3.5 py-2 text-xs font-semibold transition ${
                     campaignMode === key
                       ? "bg-kova-green text-white"
                       : "bg-kova-background text-kova-dark hover:bg-kova-green/10"
@@ -436,9 +383,9 @@ export default function ContentStudioPage() {
               <select
                 value={productId}
                 onChange={(e) => setProductId(e.target.value)}
-                className="mt-2 block w-full rounded-md border border-kova-border bg-white px-3 py-3 text-base text-kova-dark transition focus:border-kova-orange focus:ring-1 focus:ring-kova-orange"
+                className="mt-1.5 block w-full rounded-md border border-kova-border bg-white px-3 py-2.5 text-sm text-kova-dark focus:border-kova-orange focus:ring-1 focus:ring-kova-orange"
               >
-                <option value="">Pick a product to feature</option>
+                <option value="">Choose a product</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}{" "}
@@ -453,26 +400,19 @@ export default function ContentStudioPage() {
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-kova-dark">
-                    Content seeds from Kova
+                    Ideas
                   </p>
                   <button
                     type="button"
                     disabled={seedsLoading}
                     onClick={() => void loadOrganicSeeds(true)}
-                    className="text-xs font-bold text-kova-green hover:underline disabled:opacity-50"
+                    className="text-xs font-semibold text-kova-green hover:underline disabled:opacity-50"
                   >
-                    {seedsLoading ? "Refreshing…" : "New ideas"}
+                    {seedsLoading ? "Refreshing…" : "Refresh"}
                   </button>
                 </div>
-                <p className="text-xs leading-5 text-gray-500">
-                  Pick an angle — Kova will adapt it for every connected channel.
-                  You can edit the brief below before generating.
-                </p>
                 {seedsLoading && organicSeeds.length === 0 ? (
-                  <div className="flex items-center gap-2 py-6 text-sm text-gray-500">
-                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-kova-green border-t-transparent" />
-                    Kova is drafting ideas for your business…
-                  </div>
+                  <p className="py-4 text-sm text-gray-500">Loading ideas…</p>
                 ) : (
                   <ul className="grid gap-2 sm:grid-cols-2">
                     {organicSeeds.map((seed) => {
@@ -485,20 +425,17 @@ export default function ContentStudioPage() {
                               setSelectedSeedId(seed.id);
                               setNote(seed.brief);
                             }}
-                            className={`w-full rounded-lg border px-3 py-3 text-left transition ${
+                            className={`w-full border px-3 py-2.5 text-left transition ${
                               active
-                                ? "border-kova-orange bg-kova-orange/10 ring-1 ring-kova-orange/40"
-                                : "border-kova-border bg-white hover:border-kova-orange/35"
+                                ? "border-kova-dark bg-kova-background"
+                                : "border-kova-border bg-white hover:border-kova-dark/40"
                             }`}
                           >
                             <p className="text-sm font-semibold text-kova-dark">
                               {seed.title}
                             </p>
-                            <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-600">
+                            <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">
                               {seed.brief}
-                            </p>
-                            <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-kova-orange">
-                              {seed.theme_label}
                             </p>
                           </button>
                         </li>
@@ -512,7 +449,7 @@ export default function ContentStudioPage() {
             {campaignMode === "video" && (
               <label className="block">
                 <span className="text-sm font-semibold text-kova-dark">
-                  Short video (MP4, MOV, WebM — max 100 MB)
+                  Video file
                 </span>
                 <input
                   type="file"
@@ -520,53 +457,40 @@ export default function ContentStudioPage() {
                   onChange={(e) =>
                     setVideoFile(e.target.files?.[0] ?? null)
                   }
-                  className="mt-2 block w-full text-sm text-gray-600"
+                  className="mt-1.5 block w-full text-sm text-gray-600"
                 />
               </label>
             )}
 
-            {/* Product preview */}
             {campaignMode === "product" && selectedProduct && (
-              <div className="flex items-center gap-4 rounded-lg border border-kova-orange/30 bg-kova-orange/5 p-4">
+              <div className="flex items-center gap-3 rounded-md border border-kova-border bg-kova-background/60 p-3">
                 {selectedProduct.images[0]?.url ? (
                   <img
                     src={mediaSrc(selectedProduct.images[0].url)}
                     alt={selectedProduct.name}
-                    className="h-16 w-16 rounded-lg object-cover ring-2 ring-kova-orange/30"
+                    className="h-12 w-12 rounded-md object-cover"
                   />
                 ) : (
-                  <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-kova-background text-xs text-gray-400">
-                    No img
+                  <div className="flex h-12 w-12 items-center justify-center rounded-md bg-white text-xs text-gray-400">
+                    —
                   </div>
                 )}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-kova-dark">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-kova-dark">
                     {selectedProduct.name}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {selectedProduct.category &&
-                      `${selectedProduct.category} · `}
                     {selectedProduct.price
                       ? `${selectedProduct.currency} ${selectedProduct.price}`
                       : "Price on request"}
-                    {selectedProduct.color &&
-                      ` · ${selectedProduct.color}`}
                   </p>
-                  {selectedProduct.selling_points.length > 0 && (
-                    <p className="mt-1 truncate text-xs font-medium text-kova-orange">
-                      {selectedProduct.selling_points
-                        .slice(0, 3)
-                        .join(" · ")}
-                    </p>
-                  )}
                 </div>
               </div>
             )}
 
-            {/* Note */}
             <label className="block">
               <span className="text-sm font-semibold text-kova-dark">
-                What should Kova create?
+                Brief
               </span>
               <textarea
                 value={note}
@@ -574,65 +498,34 @@ export default function ContentStudioPage() {
                 rows={3}
                 placeholder={
                   campaignMode === "organic"
-                    ? "Adjust the brief for this seed, or add extra detail for Kova."
+                    ? "Edit the idea or add detail"
                     : campaignMode === "video"
-                      ? "Caption for your video (optional)."
-                      : "Promote the new grey sofa, mention free delivery in Nairobi."
+                      ? "Caption (optional)"
+                      : "e.g. Mention free delivery in Nairobi"
                 }
-                className="mt-2 block w-full rounded-md border border-kova-border bg-white px-3 py-3 text-base text-kova-dark transition placeholder:text-gray-400 focus:border-kova-orange focus:ring-1 focus:ring-kova-orange"
+                className="mt-1.5 block w-full rounded-md border border-kova-border bg-white px-3 py-2.5 text-sm text-kova-dark placeholder:text-gray-400 focus:border-kova-orange focus:ring-1 focus:ring-kova-orange"
               />
             </label>
 
-            {/* Generate button */}
             <button
               type="button"
               onClick={generateCampaign}
               disabled={generating}
-              className="inline-flex h-12 items-center justify-center rounded-lg bg-kova-orange px-6 text-sm font-bold text-kova-dark shadow-sm transition hover:bg-[#f0a46e] disabled:opacity-60"
+              className="inline-flex h-11 items-center justify-center rounded-lg bg-kova-orange px-5 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e] disabled:opacity-60"
             >
               {generating ? (
                 <>
                   <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-kova-dark/30 border-t-kova-dark" />
-                  {campaignMode === "video"
-                    ? "Uploading…"
-                    : "Generating for all channels…"}
+                  {campaignMode === "video" ? "Uploading…" : "Generating…"}
                 </>
+              ) : campaignMode === "video" ? (
+                "Upload video"
               ) : (
-                <>
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="mr-2"
-                  >
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                  </svg>
-                  {campaignMode === "video"
-                    ? "Upload and queue video"
-                    : "Generate content for all channels"}
-                </>
+                "Generate"
               )}
             </button>
           </div>
         </div>
-        )}
-
-        {/* ──── Empty state ──── */}
-        {mode !== "autopilot" && batches.length === 0 && !generating && (
-          <div className="rounded-lg border-2 border-dashed border-kova-border bg-white p-8 text-center">
-            <p className="font-semibold text-kova-dark">
-              No content generated yet
-            </p>
-            <p className="mt-2 text-sm leading-6 text-gray-500">
-              Describe what you want above and Kova will create adapted content
-              for every connected channel.
-            </p>
-          </div>
         )}
 
         {/* ──── Batch list ──── */}
@@ -674,38 +567,30 @@ function BatchSection({
   return (
     <section className="overflow-hidden rounded-lg border border-kova-border bg-white">
       {/* Batch header */}
-      <div className="flex flex-col gap-3 border-b border-kova-border bg-gradient-to-r from-kova-green/5 to-transparent px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="flex flex-col gap-3 border-b border-kova-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="min-w-0">
-          <h2 className="truncate text-base font-bold text-kova-dark">
+          <h2 className="truncate text-sm font-semibold text-kova-dark">
             {batch.kind === "owner_video"
-              ? "Your video"
+              ? "Video"
               : batch.kind === "organic"
-                ? `Organic · ${batch.organic_theme?.replace("_", " ") ?? "brand"}`
-                : batch.product_name
-                  ? `Content for ${batch.product_name}`
-                  : "Business content"}
+                ? batch.organic_theme?.replace("_", " ") ?? "Tip / story"
+                : batch.product_name || "Posts"}
           </h2>
-          {batch.brief && (
-            <p className="mt-0.5 truncate text-sm text-gray-500">
+          {batch.brief ? (
+            <p className="mt-0.5 truncate text-xs text-gray-500">
               {batch.brief}
             </p>
-          )}
+          ) : null}
         </div>
-        <div className="flex shrink-0 gap-2">
-          {hasDrafts && mode !== "autopilot" && (
-            <button
-              type="button"
-              onClick={onApproveAll}
-              className="inline-flex h-9 items-center rounded-md bg-kova-green px-3 text-xs font-bold text-white"
-            >
-              Approve all drafts
-            </button>
-          )}
-          <span className="inline-flex items-center rounded-full bg-kova-orange/10 px-2.5 py-1 text-xs font-semibold text-kova-orange">
-            {batch.contents.length} piece
-            {batch.contents.length !== 1 ? "s" : ""}
-          </span>
-        </div>
+        {hasDrafts && mode !== "autopilot" ? (
+          <button
+            type="button"
+            onClick={onApproveAll}
+            className="inline-flex h-9 shrink-0 items-center rounded-md bg-kova-green px-3 text-xs font-bold text-white"
+          >
+            Approve all
+          </button>
+        ) : null}
       </div>
 
       {/* Piece grid */}
@@ -763,39 +648,31 @@ function PieceCard({
       {/* Card header */}
       <div className="flex items-center justify-between border-b border-kova-border px-4 py-3">
         <div className="flex items-center gap-2 text-xs">
-          <span>{TYPE_ICONS[piece.content_type] ?? "📄"}</span>
-          <span className="font-bold uppercase tracking-wide text-kova-dark">
+          <span className="font-semibold text-kova-dark">
             {PLATFORM_LABELS[piece.platform] ?? piece.platform}
           </span>
           <span className="text-gray-300">·</span>
-          <span className="font-semibold text-gray-500">
+          <span className="text-gray-500">
             {TYPE_LABELS[piece.content_type] ?? piece.content_type}
           </span>
         </div>
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold ${badge.bg} ${badge.text}`}
-        >
-          <span
-            className={`inline-block h-1.5 w-1.5 rounded-full ${badge.dot}`}
-          />
+        <span className={`text-xs font-medium ${badge.text}`}>
           {statusLabel}
         </span>
       </div>
-      {queued && piece.scheduled_at && (
-        <div className="border-b border-kova-border bg-kova-green/5 px-4 py-1.5">
-          <p className="text-xs font-medium text-kova-green">
+      {queued && piece.scheduled_at ? (
+        <div className="border-b border-kova-border px-4 py-1.5">
+          <p className="text-xs text-gray-500">
             On calendar · {new Date(piece.scheduled_at).toLocaleString()}
           </p>
         </div>
-      )}
+      ) : null}
 
-      {piece.account_name && (
-        <div className="border-b border-kova-border bg-kova-orange/5 px-4 py-1.5">
-          <p className="text-xs font-medium text-kova-orange">
-            {piece.account_name}
-          </p>
+      {piece.account_name ? (
+        <div className="border-b border-kova-border px-4 py-1.5">
+          <p className="text-xs text-gray-500">{piece.account_name}</p>
         </div>
-      )}
+      ) : null}
 
       {/* Media */}
       {(() => {
@@ -850,38 +727,26 @@ function PieceCard({
           (piece.content_type === "carousel" ||
             piece.content_type === "reel") && (
             <div className="space-y-1.5">
-              <p className="text-xs font-bold uppercase tracking-wide text-kova-orange">
-                {piece.content_type === "reel"
-                  ? "Film beats"
-                  : "Slides"}
+              <p className="text-xs font-medium text-gray-500">
+                {piece.content_type === "reel" ? "Film beats" : "Slides"}
               </p>
               {piece.slides.map((slide, i) => (
                 <div
                   key={i}
-                  className="rounded-md border-l-3 border-kova-orange/40 bg-kova-orange/5 py-2 pl-3 pr-2 text-xs leading-5 text-kova-dark"
+                  className="border-l border-kova-border py-1.5 pl-3 text-xs leading-5 text-kova-dark"
                 >
-                  <span className="font-bold text-kova-orange">
-                    {i + 1}.{" "}
-                  </span>
+                  <span className="font-medium text-gray-500">{i + 1}. </span>
                   {slide.caption}
                 </div>
               ))}
             </div>
           )}
 
-        {/* Hashtags */}
-        {piece.hashtags && piece.hashtags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {piece.hashtags.map((tag, i) => (
-              <span
-                key={i}
-                className="rounded-full bg-kova-orange/10 px-2 py-0.5 text-xs font-semibold text-kova-orange"
-              >
-                #{tag}
-              </span>
-            ))}
-          </div>
-        )}
+        {piece.hashtags && piece.hashtags.length > 0 ? (
+          <p className="text-xs leading-5 text-gray-500">
+            {piece.hashtags.map((tag) => `#${tag}`).join(" ")}
+          </p>
+        ) : null}
       </div>
 
       {/* Actions */}
@@ -894,7 +759,7 @@ function PieceCard({
               type="button"
               onClick={() => onAction("approve")}
               disabled={busy}
-              className="inline-flex h-8 items-center rounded-md bg-kova-orange/15 px-3 text-xs font-bold text-kova-orange transition hover:bg-kova-orange/25 disabled:opacity-60"
+              className="inline-flex h-8 items-center rounded-md border border-kova-border bg-white px-3 text-xs font-semibold text-kova-dark transition hover:border-kova-dark disabled:opacity-60"
             >
               {busy && busyLabel === "approve" ? "Approving…" : "Approve"}
             </button>

@@ -20,7 +20,7 @@ const steps = [
   {
     title: "Share and sell.",
     description:
-      "Share your page or individual products on social media, and let customers continue their orders with you on WhatsApp.",
+      "Share your page or products on social media, and let customers continue on WhatsApp.",
   },
 ];
 
@@ -44,12 +44,15 @@ const catalogItems = [
 
 export default function SnapToSellSection() {
   return (
-    <section id="commerce" className="scroll-mt-24 border-t border-kova-border bg-kova-background">
+    <section
+      id="commerce"
+      className="scroll-mt-24 border-t border-kova-border bg-kova-background"
+    >
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
         <SectionHeader
-          eyebrow="SNAP TO SELL · YOUR ONLINE STORE"
+          eyebrow="Snap to Sell"
           title="Turn your products into a store customers can browse."
-          lead="Take photos of your products, add your prices, and let KCOVA help prepare the listings. Snap to Sell brings your products together on one commerce page, giving customers one place to discover what you sell and choose what they want to buy."
+          lead="Take photos, add prices, and let KCOVA help prepare listings. One commerce page for discovery — orders continue with you on WhatsApp."
         />
 
         <div className="mt-12 grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-start lg:gap-14">
@@ -60,8 +63,8 @@ export default function SnapToSellSection() {
             <ol className="mt-8 space-y-5">
               {steps.map((step, index) => (
                 <li key={step.title} className="flex gap-4">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-kova-green text-xs font-bold text-white">
-                    {index + 1}
+                  <span className="w-5 shrink-0 text-sm font-medium text-gray-500">
+                    {index + 1}.
                   </span>
                   <div>
                     <p className="text-sm font-semibold text-kova-dark">
@@ -82,11 +85,9 @@ export default function SnapToSellSection() {
             </a>
           </div>
 
-          <div className="overflow-hidden rounded-lg border border-kova-border bg-white shadow-[0_24px_56px_-36px_rgba(23,33,29,0.4)]">
+          <div className="overflow-hidden border border-kova-border bg-white">
             <div className="border-b border-kova-border px-5 py-4">
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-kova-orange">
-                Commerce page
-              </p>
+              <p className="text-sm font-medium text-gray-500">Commerce page</p>
               <p className="mt-1 text-base font-semibold text-kova-dark">
                 Your products, all in one place.
               </p>
@@ -110,7 +111,7 @@ export default function SnapToSellSection() {
                     <p className="mt-1 text-xs font-medium text-kova-dark/60">
                       {item.price}
                     </p>
-                    <p className="mt-3 text-[11px] font-semibold text-kova-green">
+                    <p className="mt-3 text-xs font-semibold text-kova-green">
                       Continue on WhatsApp
                     </p>
                   </div>
@@ -127,12 +128,11 @@ export default function SnapToSellSection() {
             </h3>
             <p className="mt-4 max-w-lg text-base leading-7 text-kova-dark/68">
               Add products individually, bring them together on one commerce
-              page, and use the same product information when preparing social
-              posts and customer replies.
+              page, and reuse the same details for social posts and replies.
             </p>
           </div>
           <div className="grid grid-cols-[0.9fr_1.1fr] gap-3 sm:gap-4">
-            <div className="relative aspect-[3/4] overflow-hidden rounded-lg">
+            <div className="relative aspect-[3/4] overflow-hidden">
               <Image
                 src="/landing/watch.jpg"
                 alt="Individual product photo for a listing"
@@ -141,9 +141,9 @@ export default function SnapToSellSection() {
                 sizes="(max-width: 1024px) 40vw, 220px"
               />
             </div>
-            <div className="flex flex-col justify-between rounded-lg border border-kova-border bg-white p-5">
+            <div className="flex flex-col justify-between border border-kova-border bg-white p-5">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-kova-orange">
+                <p className="text-sm font-medium text-gray-500">
                   Product listing
                 </p>
                 <p className="mt-3 text-base font-semibold text-kova-dark">

@@ -254,12 +254,12 @@ export default function TopicWeekPage() {
                 key={item.id}
                 type="button"
                 onClick={() => setStep(item.id)}
-                className={`rounded-full px-3 py-1 text-sm font-medium transition ${
+                className={`rounded-md border px-3 py-1 text-sm font-medium transition ${
                   active
-                    ? "bg-kova-green text-white"
+                    ? "border-kova-dark bg-kova-dark text-white"
                     : done
-                      ? "bg-kova-green/10 text-kova-green"
-                      : "bg-kova-cream text-kova-muted"
+                      ? "border-kova-green text-kova-green"
+                      : "border-kova-border bg-white text-gray-600"
                 }`}
               >
                 {item.label}
@@ -277,7 +277,7 @@ export default function TopicWeekPage() {
         {step === "topic" && (
           <div className="space-y-4">
             <LinkedInBrainCard topic={topic.trim() || undefined} />
-          <div className="space-y-4 rounded-xl border border-kova-border bg-white p-5 shadow-sm">
+          <div className="space-y-4 border border-kova-border bg-white p-5">
             <Input
               label="Topic"
               placeholder="e.g. Trends in Agentic AI"

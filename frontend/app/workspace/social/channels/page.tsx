@@ -13,7 +13,7 @@ import {
 } from "@/components/social/instagram-professional-guide";
 import { PlatformAvatar } from "@/components/social/platform-avatar";
 import { PlatformBrandIcon } from "@/components/social/platform-brand";
-import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
+import { WORKSPACE_PAGE } from "@/components/ui/page-header";
 import {
   disconnectSocialAccount,
   getInstagramReadiness,
@@ -189,7 +189,7 @@ export default function ChannelsPage() {
         setPendingPages(pending);
         if (result.pending_pages?.length) {
           setVerifyNote(
-            `${result.pending_pages.length} extra Page(s) need their own business brain before Kova can publish for them.`,
+            `${result.pending_pages.length} extra Page(s) need their own business before Kova can publish for them.`,
           );
         } else {
           setVerifyNote("");
@@ -325,39 +325,30 @@ export default function ChannelsPage() {
   return (
     <div className={WORKSPACE_PAGE}>
       <div className="space-y-5">
-        <PageHeader
-          eyebrow="Connect"
-          title="Facebook & Instagram"
-          description="One business brain owns one Facebook Page. Meta Login can return several Pages; the first attaches to this brain, and any others wait until you assign them their own brain."
-          actions={
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => connectMeta("facebook")}
-                className="inline-flex h-10 items-center gap-2 rounded-lg bg-kova-orange/15 px-3 text-sm font-semibold text-kova-dark ring-1 ring-kova-orange/40 transition hover:bg-kova-orange/25"
-              >
-                <PlatformBrandIcon platform="facebook_page" size={18} />
-                Connect Facebook
-              </button>
-              <button
-                type="button"
-                onClick={() => connectMeta("instagram")}
-                className="inline-flex h-10 items-center gap-2 rounded-lg bg-white px-3 text-sm font-semibold text-kova-dark ring-1 ring-kova-border transition hover:ring-kova-orange/40"
-              >
-                <PlatformBrandIcon platform="instagram" size={18} />
-                Connect Instagram
-              </button>
-            </div>
-          }
-        />
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => connectMeta("facebook")}
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-kova-border bg-white px-3 text-sm font-semibold text-kova-dark transition hover:border-kova-orange"
+          >
+            <PlatformBrandIcon platform="facebook_page" size={18} />
+            Facebook
+          </button>
+          <button
+            type="button"
+            onClick={() => connectMeta("instagram")}
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-kova-border bg-white px-3 text-sm font-semibold text-kova-dark transition hover:border-kova-orange"
+          >
+            <PlatformBrandIcon platform="instagram" size={18} />
+            Instagram
+          </button>
+        </div>
 
-        <div className="h-px bg-kova-border" />
-
-        {verifyNote && (
+        {verifyNote ? (
           <p className="rounded-lg border border-kova-green/30 bg-kova-green/5 px-4 py-3 text-sm text-kova-dark">
             {verifyNote}
           </p>
-        )}
+        ) : null}
 
         {error && !showInstagramGuide && (
           <div
@@ -389,17 +380,12 @@ export default function ChannelsPage() {
 
         {/* ──── Account list ──── */}
         {accounts.length === 0 ? (
-          <section className="rounded-lg border-2 border-dashed border-kova-orange/40 bg-kova-orange/5 p-8 text-center">
-            <div className="mx-auto flex items-center justify-center gap-2">
-              <PlatformBrandIcon platform="facebook_page" size={28} />
-              <PlatformBrandIcon platform="instagram" size={28} />
-            </div>
-            <p className="mt-4 text-lg font-semibold text-kova-dark">
-              No accounts connected yet
+          <section className="border border-kova-border bg-white px-5 py-6">
+            <p className="font-semibold text-kova-dark">
+              No accounts connected
             </p>
-            <p className="mt-2 text-sm leading-6 text-gray-500">
-              Connect your first social account so Kova can start working for
-              you.
+            <p className="mt-1 text-sm text-gray-500">
+              Connect Facebook or Instagram above to post and reply.
             </p>
           </section>
         ) : (
@@ -441,13 +427,9 @@ export default function ChannelsPage() {
                             {PLATFORM_LABELS[account.platform] ??
                               account.platform}
                           </span>
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-semibold ${status.bg} ${status.text}`}
-                          >
-                            <span
-                              className={`inline-block h-1.5 w-1.5 rounded-full ${status.dot}`}
-                            />
-                            {permissions.hasGap && account.connection_status === "connected"
+                          <span className={`font-medium ${status.text}`}>
+                            {permissions.hasGap &&
+                            account.connection_status === "connected"
                               ? "Partial access"
                               : status.label}
                           </span>
@@ -506,15 +488,14 @@ export default function ChannelsPage() {
                   )}
                   {account.capabilities?.length > 0 && (
                     <div className="border-t border-kova-border px-5 py-4">
-                      {permissions.hasGap && (
-                        <div className="mb-4 rounded-lg border border-kova-orange/35 bg-kova-orange/10 px-4 py-3 text-sm leading-6 text-kova-dark">
+                      {permissions.hasGap ? (
+                        <div className="mb-4 border border-kova-border bg-kova-background px-4 py-3 text-sm text-kova-dark">
                           <p className="font-semibold">
-                            Kova needs a few more Facebook permissions
+                            More permissions needed
                           </p>
-                          <p className="mt-1 text-gray-700">
-                            Publishing and reading comments work today. To reply
-                            to comments and Page messages, open Facebook again
-                            and approve the remaining permissions.
+                          <p className="mt-1 text-gray-600">
+                            Replies need extra Facebook access. Approve the
+                            missing permissions to continue.
                           </p>
                           <button
                             type="button"
@@ -530,11 +511,11 @@ export default function ChannelsPage() {
                             Allow missing permissions
                           </button>
                         </div>
-                      )}
-                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
-                        What Kova can do on this account
+                      ) : null}
+                      <p className="text-xs font-semibold text-gray-500">
+                        Permissions
                       </p>
-                      <ul className="mt-3 space-y-1 text-sm">
+                      <ul className="mt-2 space-y-1 text-sm">
                         {account.capabilities.map((item) => (
                           <li
                             key={item.scope}
@@ -548,7 +529,7 @@ export default function ChannelsPage() {
                                   : "font-medium text-kova-orange"
                               }
                             >
-                              {item.available ? "Granted" : "Not granted yet"}
+                              {item.available ? "Granted" : "Missing"}
                             </span>
                           </li>
                         ))}
