@@ -64,6 +64,9 @@ export function buildOverviewActions(input: {
     interest: string;
     source: string;
   }>;
+  dueFollowUps?: number;
+  lowStockCount?: number;
+  packingOrders?: number;
   socialConnected: boolean;
   approvedContentCount: number;
   pendingSocialActions: number;
@@ -72,6 +75,42 @@ export function buildOverviewActions(input: {
   totalProductCount: number;
 }): OverviewActionItem[] {
   const items: OverviewActionItem[] = [];
+
+  if ((input.dueFollowUps || 0) > 0) {
+    items.push({
+      id: "leads-due",
+      title:
+        input.dueFollowUps === 1
+          ? "1 lead due for follow-up"
+          : `${input.dueFollowUps} leads due for follow-up`,
+      href: "/workspace/inbox?tab=leads",
+      priority: "high",
+    });
+  }
+
+  if ((input.lowStockCount || 0) > 0) {
+    items.push({
+      id: "low-stock",
+      title:
+        input.lowStockCount === 1
+          ? "1 product is low on stock"
+          : `${input.lowStockCount} products are low on stock`,
+      href: "/workspace/commerce/products",
+      priority: "medium",
+    });
+  }
+
+  if ((input.packingOrders || 0) > 0) {
+    items.push({
+      id: "orders-packing",
+      title:
+        input.packingOrders === 1
+          ? "1 order needs packing or delivery"
+          : `${input.packingOrders} orders need packing or delivery`,
+      href: "/workspace/commerce/orders",
+      priority: "high",
+    });
+  }
 
   for (const lead of input.newLeads.slice(0, 5)) {
     const name = lead.customer_name?.trim() || "Unnamed lead";

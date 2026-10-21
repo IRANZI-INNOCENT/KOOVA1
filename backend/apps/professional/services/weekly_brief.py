@@ -79,6 +79,7 @@ def generate_weekly_brief(profile: ProfessionalProfile) -> ProfessionalWeeklyBri
             temperature=0.35,
             max_tokens=2000,
             response_format={"type": "json_object"},
+            feature="professional",
         )
         raw = response["choices"][0]["message"]["content"]
         data = _parse_json(raw)

@@ -53,13 +53,29 @@ export interface ActivitySnapshot {
     clicks: number;
   };
   leads: { total: number; new: number; by_source: Record<string, number> };
-  orders: { total: number; new: number; fulfilled: number };
+  orders: {
+    total: number;
+    new: number;
+    packing?: number;
+    out_for_delivery?: number;
+    delivered?: number;
+    fulfilled: number;
+  };
   messages: { inbound: number; buying: number; complaints?: number; needs_review?: number };
   converted_leads?: number;
   evidence?: string[];
   observations?: string[];
   plan?: string;
 }
+
+export type OrderStatus =
+  | "new"
+  | "confirmed"
+  | "packing"
+  | "out_for_delivery"
+  | "delivered"
+  | "fulfilled"
+  | "cancelled";
 
 export interface OrderRecord {
   id: number;
@@ -68,9 +84,14 @@ export interface OrderRecord {
   customer_name: string;
   phone: string;
   note: string;
+  customer_address?: string;
+  delivery_note?: string;
+  rider_name?: string;
+  review_ask_draft?: string;
   quantity: number;
-  status: "new" | "confirmed" | "fulfilled" | "cancelled";
+  status: OrderStatus;
   source: string;
+  stock_adjusted?: boolean;
   created_at: string;
 }
 
@@ -163,12 +184,18 @@ export function updateOrder(
   businessId: number,
   orderId: number,
   token: string,
-  status: OrderRecord["status"],
+  body: {
+    status?: OrderStatus;
+    note?: string;
+    delivery_note?: string;
+    rider_name?: string;
+    customer_address?: string;
+  },
 ) {
   return authenticatedApiRequest<OrderRecord>(
     `/commerce/${businessId}/orders/${orderId}/`,
     token,
-    { method: "PATCH", body: JSON.stringify({ status }) },
+    { method: "PATCH", body: JSON.stringify(body) },
   );
 }
 

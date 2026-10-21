@@ -169,6 +169,8 @@ def _ask_for_times(
         temperature=0.3,
         max_tokens=1500,
         response_format={"type": "json_object"},
+        feature="schedule",
+        business_id=getattr(business, "id", None),
     )
     try:
         raw = response["choices"][0]["message"]["content"]

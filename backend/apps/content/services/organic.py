@@ -185,6 +185,7 @@ def _call_organic_ai(
         temperature=0.55,
         max_tokens=3000,
         response_format={"type": "json_object"},
+        feature="organic",
     )
     try:
         raw = response["choices"][0]["message"]["content"]

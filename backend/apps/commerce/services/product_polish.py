@@ -11,11 +11,10 @@ import logging
 from decimal import Decimal
 from typing import Any
 
-from django.conf import settings
-
 from apps.commerce.models import Product, ProductAIAnalysis
 from apps.commerce.services.business_context import CommerceBusinessContextService
 from apps.commerce.services.product_vision import ProductVisionService
+from apps.kova_ai.services.model_routes import resolve_model_for_task
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +25,7 @@ def polish_product(product: Product) -> Product:
     from apps.kova_ai.services.usage import track_ai_usage
 
     with track_ai_usage("product_polish", product.business_id):
-        vision = ProductVisionService(
-            model=getattr(settings, "OPENROUTER_VISION_MODEL", "") or None,
-        )
+        vision = ProductVisionService()
         result = vision.polish(
             images=_image_payload(product),
             listing=_listing(product),
@@ -38,7 +35,7 @@ def polish_product(product: Product) -> Product:
         _apply(product, result)
         ProductAIAnalysis.objects.create(
             product=product,
-            model=getattr(settings, "OPENROUTER_VISION_MODEL", "") or "openrouter",
+            model=resolve_model_for_task("product_polish"),
             result=result,
             confidence=_confidence_percent(result.get("confidence")),
         )

@@ -46,18 +46,16 @@ class OpenRouterService:
             )
         )
 
-        self.model = (
-            model
-            if model is not None
-            else getattr(
-                settings,
-                "OPENROUTER_MODEL",
-                "",
-            )
-        )
-
+        # Explicit constructor model wins over per-task admin routes.
+        self._model_override = model
         self.timeout = timeout
         self.session = self._build_session()
+
+    @property
+    def model(self) -> str:
+        if self._model_override:
+            return self._model_override
+        return getattr(settings, "OPENROUTER_MODEL", "") or ""
 
     @staticmethod
     def _build_session() -> requests.Session:
@@ -117,6 +115,7 @@ class OpenRouterService:
         reasoning: dict[str, Any] | None = None,
         feature: str | None = None,
         business_id: int | None = None,
+        model: str | None = None,
     ) -> dict[str, Any]:
         """
         Send a chat completion request to OpenRouter.
@@ -136,6 +135,7 @@ class OpenRouterService:
             plugins: Optional OpenRouter plugins, including web search.
             feature: Optional usage label (overrides track_ai_usage scope).
             business_id: Optional business FK for usage attribution.
+            model: Optional one-off model override for this call.
 
         Returns:
             Parsed OpenRouter response.
@@ -151,7 +151,13 @@ class OpenRouterService:
                 "OPENROUTER_API_KEY is not configured."
             )
 
-        if not self.model:
+        resolved_feature = self._resolve_feature(feature)
+        effective_model = self._resolve_model(
+            feature=resolved_feature,
+            model=model,
+        )
+
+        if not effective_model:
             raise OpenRouterError(
                 "OPENROUTER_MODEL is not configured."
             )
@@ -162,7 +168,7 @@ class OpenRouterService:
             )
 
         payload: dict[str, Any] = {
-            "model": self.model,
+            "model": effective_model,
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
@@ -254,12 +260,47 @@ class OpenRouterService:
 
         record_openrouter_usage(
             response=data,
-            model=self.model,
-            feature=feature,
+            model=effective_model,
+            feature=resolved_feature,
             business_id=business_id,
         )
 
         return data
+
+    @staticmethod
+    def _resolve_feature(feature: str | None) -> str | None:
+        if feature and feature != "unknown":
+            return feature
+        try:
+            from apps.kova_ai.services.usage import current_feature
+
+            scoped = current_feature()
+            if scoped and scoped != "unknown":
+                return scoped
+        except Exception:
+            pass
+        return feature if feature else None
+
+    def _resolve_model(
+        self,
+        *,
+        feature: str | None,
+        model: str | None,
+    ) -> str:
+        if model:
+            return model
+        if self._model_override:
+            return self._model_override
+        try:
+            from apps.kova_ai.services.model_routes import (
+                resolve_model_for_task,
+            )
+
+            if feature:
+                return resolve_model_for_task(feature)
+            return resolve_model_for_task(None)
+        except Exception:
+            return self.model
 
     @staticmethod
     def _extract_error_detail(

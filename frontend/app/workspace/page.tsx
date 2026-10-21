@@ -29,6 +29,7 @@ import {
   type Content,
   type Lead,
 } from "@/lib/commerce";
+import { getOrders, type OrderRecord } from "@/lib/operations";
 import { useAuth } from "@/lib/auth-context";
 import { useWorkspace } from "@/lib/workspace-context";
 
@@ -53,6 +54,7 @@ export default function OverviewPage() {
   const [commercePage, setCommercePage] = useState<CommercePage | null>(null);
   const [contents, setContents] = useState<Content[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [contentPlans, setContentPlans] = useState<
     Record<number, ProductContentPlan>
   >({});
@@ -77,12 +79,13 @@ export default function OverviewPage() {
         setLoading(true);
         setError("");
 
-        const [prods, page, contentList, leadList, plans, channels, social, dailyBrief] =
+        const [prods, page, contentList, leadList, orderList, plans, channels, social, dailyBrief] =
           await Promise.all([
             getProducts(bizId, token),
             getCommercePage(bizId, token),
             getContents(bizId, token).catch(() => [] as Content[]),
             getLeads(bizId, token).catch(() => [] as Lead[]),
+            getOrders(bizId, token).catch(() => [] as OrderRecord[]),
             getProductContentPlans(bizId, token).catch(
               () => [] as ProductContentPlan[],
             ),
@@ -97,6 +100,7 @@ export default function OverviewPage() {
         setCommercePage(page);
         setContents(contentList);
         setLeads(leadList);
+        setOrders(orderList);
         setContentPlans(
           Object.fromEntries(plans.map((plan) => [plan.product_id, plan])),
         );
@@ -159,12 +163,27 @@ export default function OverviewPage() {
 
   const activeProducts = products.filter((p) => p.status === "active");
   const newLeads = leads.filter((l) => l.status === "new");
+  const now = Date.now();
+  const dueFollowUps = leads.filter((lead) => {
+    if (["converted", "lost"].includes(lead.status)) return false;
+    if (!lead.next_follow_up_at) return lead.status === "new";
+    return new Date(lead.next_follow_up_at).getTime() <= now;
+  }).length;
+  const lowStockCount = activeProducts.filter(
+    (product) => product.stock !== null && product.stock <= 2,
+  ).length;
+  const packingOrders = orders.filter((order) =>
+    ["confirmed", "packing", "out_for_delivery"].includes(order.status),
+  ).length;
   const draftContent = contents.filter((c) => c.status === "draft");
   const approvedContent = contents.filter((c) => c.status === "approved");
   const publishedContent = contents.filter((c) => c.status === "published");
   const storeIsLive = !!commercePage?.is_published;
   const actionItems = buildOverviewActions({
     newLeads,
+    dueFollowUps,
+    lowStockCount,
+    packingOrders,
     socialConnected,
     approvedContentCount: approvedContent.length,
     pendingSocialActions,

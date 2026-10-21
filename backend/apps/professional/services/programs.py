@@ -30,6 +30,7 @@ def _ai_json(system: str, user: str, *, temperature: float = 0.4) -> dict:
         temperature=temperature,
         max_tokens=2500,
         response_format={"type": "json_object"},
+        feature="professional",
     )
     try:
         raw = response["choices"][0]["message"]["content"]

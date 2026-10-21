@@ -779,37 +779,28 @@ export default function SnapToSellModal({
                 ))}
 
                 {images.length < MAX_SNAP_PHOTOS && (
-                  <button
-                    type="button"
-                    onClick={openCamera}
-                    className="flex aspect-square flex-col items-center justify-center border border-dashed border-[#BFC8C3] bg-[#FAFAF8] text-sm font-semibold text-[#176B4D] transition hover:border-[#176B4D] hover:bg-white"
-                  >
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      aria-hidden="true"
+                  <>
+                    <button
+                      type="button"
+                      onClick={openCamera}
+                      className="flex aspect-square flex-col items-center justify-center border border-dashed border-[#BFC8C3] bg-[#FAFAF8] text-sm font-semibold text-[#176B4D] transition hover:border-[#176B4D] hover:bg-white"
                     >
-                      <path
-                        d="M4 7.5C4 6.67 4.67 6 5.5 6H8L9.5 4H14.5L16 6H18.5C19.33 6 20 6.67 20 7.5V18.5C20 19.33 19.33 20 18.5 20H5.5C4.67 20 4 19.33 4 18.5V7.5Z"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                      />
-
-                      <circle
-                        cx="12"
-                        cy="13"
-                        r="3.5"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                      />
-                    </svg>
-
-                    <span className="mt-2">
-                      Take another photo
-                    </span>
-                  </button>
+                      <CameraIcon />
+                      <span className="mt-2 px-2 text-center text-xs sm:text-sm">
+                        Take another photo
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={openFilePicker}
+                      className="flex aspect-square flex-col items-center justify-center border border-dashed border-[#BFC8C3] bg-[#FAFAF8] text-sm font-semibold text-[#176B4D] transition hover:border-[#176B4D] hover:bg-white"
+                    >
+                      <GalleryIcon />
+                      <span className="mt-2 px-2 text-center text-xs sm:text-sm">
+                        Upload more
+                      </span>
+                    </button>
+                  </>
                 )}
               </div>
 
@@ -819,7 +810,31 @@ export default function SnapToSellModal({
                   ? "photo"
                   : "photos"}{" "}
                 added
+                {images.length < MAX_SNAP_PHOTOS
+                  ? " · take another or upload several at once"
+                  : ""}
               </p>
+
+              {images.length < MAX_SNAP_PHOTOS ? (
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                  <button
+                    type="button"
+                    onClick={openCamera}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-kova-border bg-white px-3 py-2.5 text-sm font-semibold text-kova-dark transition hover:border-kova-dark sm:w-auto"
+                  >
+                    <CameraIcon />
+                    Take another photo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openFilePicker}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-kova-border bg-white px-3 py-2.5 text-sm font-semibold text-kova-dark transition hover:border-kova-dark sm:w-auto"
+                  >
+                    <GalleryIcon />
+                    Upload more photos
+                  </button>
+                </div>
+              ) : null}
 
               {images.length > 1 && (
                 <div className="mt-5 space-y-3 border border-[#E5E7E5] bg-white p-4">

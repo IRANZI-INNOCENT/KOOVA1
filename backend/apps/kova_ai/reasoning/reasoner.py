@@ -76,6 +76,7 @@ class AIReasoner:
             response_format={
                 "type": "json_object",
             },
+            feature="reasoning",
         )
 
         content = self._extract_content(response)

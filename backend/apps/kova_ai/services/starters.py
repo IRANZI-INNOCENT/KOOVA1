@@ -147,6 +147,8 @@ def _ask_for_prompts(business: Business, activity: dict, note: str) -> list[str]
             max_tokens=500,
             response_format={"type": "json_object"},
             reasoning={"effort": "low"},
+            feature="starters",
+            business_id=getattr(business, "id", None),
         )
     except OpenRouterError:
         return []

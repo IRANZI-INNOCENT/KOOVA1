@@ -2,6 +2,38 @@ from django.conf import settings
 from django.db import models
 
 from apps.businesses.models import Business
+from apps.kova_ai.services.model_routes import ALLOWED_MODELS, task_choices
+
+
+class AiModelRoute(models.Model):
+    """
+    Which OpenRouter model a named AI task should use.
+
+    Edited in Django admin. Missing rows fall back to catalog defaults
+    in ``apps.kova_ai.services.model_routes``.
+    """
+
+    task_key = models.CharField(
+        max_length=64,
+        unique=True,
+        db_index=True,
+        choices=task_choices(),
+        help_text="Stable task id (inbox, product_vision, ask_kova, …).",
+    )
+    model_id = models.CharField(
+        max_length=120,
+        choices=ALLOWED_MODELS,
+        help_text="OpenRouter model slug, e.g. google/gemini-2.5-flash-lite.",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["task_key"]
+        verbose_name = "AI model route"
+        verbose_name_plural = "AI model control"
+
+    def __str__(self) -> str:
+        return f"{self.task_key} → {self.model_id}"
 
 
 class AiUsageEvent(models.Model):

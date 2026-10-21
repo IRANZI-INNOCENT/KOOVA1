@@ -602,6 +602,7 @@ export async function getConnectedChannels(
 export interface Lead {
   id: number;
   business: number;
+  product?: number | null;
   customer_name: string;
   customer_id: string;
   conversation_id: string;
@@ -610,6 +611,9 @@ export interface Lead {
   notes: string;
   status: "new" | "contacted" | "qualified" | "converted" | "lost";
   created_by_ai: boolean;
+  next_follow_up_at?: string | null;
+  follow_up_draft?: string;
+  last_followed_up_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -617,10 +621,95 @@ export interface Lead {
 export async function getLeads(
   businessId: number,
   token: string,
+  opts?: { due?: boolean },
 ): Promise<Lead[]> {
+  const query = opts?.due ? "?due=1" : "";
   return authenticatedApiRequest<Lead[]>(
-    `/leads/${businessId}/`,
+    `/leads/${businessId}/${query}`,
     token,
+  );
+}
+
+export async function markLeadFollowedUp(
+  businessId: number,
+  leadId: number,
+  token: string,
+): Promise<Lead> {
+  return authenticatedApiRequest<Lead>(
+    `/leads/${businessId}/${leadId}/`,
+    token,
+    { method: "PATCH", body: JSON.stringify({ mark_followed_up: true }) },
+  );
+}
+
+export interface BusinessExpense {
+  id: number;
+  business: number;
+  amount: string;
+  currency: string;
+  category: "rider" | "packaging" | "restock" | "ads" | "other" | string;
+  note: string;
+  spent_on: string;
+  created_at: string;
+}
+
+export async function getExpenses(
+  businessId: number,
+  token: string,
+  spentOn?: string,
+): Promise<BusinessExpense[]> {
+  const query = spentOn ? `?spent_on=${encodeURIComponent(spentOn)}` : "";
+  return authenticatedApiRequest<BusinessExpense[]>(
+    `/commerce/${businessId}/expenses/${query}`,
+    token,
+  );
+}
+
+export async function createExpense(
+  businessId: number,
+  token: string,
+  body: {
+    amount: number | string;
+    category: string;
+    note?: string;
+    spent_on?: string;
+    currency?: string;
+  },
+): Promise<BusinessExpense> {
+  return authenticatedApiRequest<BusinessExpense>(
+    `/commerce/${businessId}/expenses/`,
+    token,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export async function deleteExpense(
+  businessId: number,
+  expenseId: number,
+  token: string,
+): Promise<void> {
+  await authenticatedApiRequest(
+    `/commerce/${businessId}/expenses/${expenseId}/`,
+    token,
+    { method: "DELETE" },
+  );
+}
+
+export interface BroadcastPack {
+  status_text: string;
+  group_text: string;
+  product_count: number;
+  store_url: string;
+}
+
+export async function createBroadcastPack(
+  businessId: number,
+  token: string,
+): Promise<BroadcastPack> {
+  return authenticatedApiRequest<BroadcastPack>(
+    `/commerce/${businessId}/broadcast-pack/`,
+    token,
+    { method: "POST" },
   );
 }
 

@@ -154,6 +154,8 @@ def _reason(business: Business, evidence: dict) -> dict:
         temperature=0.45,
         max_tokens=2200,
         response_format={"type": "json_object"},
+        feature="weekly_brief",
+        business_id=getattr(business, "id", None),
     )
     try:
         raw = response["choices"][0]["message"]["content"]

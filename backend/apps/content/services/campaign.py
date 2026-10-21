@@ -399,6 +399,7 @@ def _call_ai(
         temperature=0.5,
         max_tokens=3000,
         response_format={"type": "json_object"},
+        feature="campaign",
     )
 
     try:

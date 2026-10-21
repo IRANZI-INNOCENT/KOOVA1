@@ -6,7 +6,12 @@ import { useEffect, useState } from "react";
 import { WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { ListSkeleton } from "@/components/workspace/page-skeleton";
 import { ApiError } from "@/lib/api";
-import { getProducts, type Product } from "@/lib/commerce";
+import {
+  createBroadcastPack,
+  getProducts,
+  type BroadcastPack,
+  type Product,
+} from "@/lib/commerce";
 import { useWorkspace } from "@/lib/workspace-context";
 
 const STATUS_BADGE: Record<string, { bg: string; text: string }> = {
@@ -20,6 +25,9 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [broadcast, setBroadcast] = useState<BroadcastPack | null>(null);
+  const [broadcastBusy, setBroadcastBusy] = useState(false);
+  const [broadcastNotice, setBroadcastNotice] = useState("");
 
   useEffect(() => {
     if (workspaceLoading || !businessId || !accessToken) {
@@ -56,6 +64,32 @@ export default function ProductsPage() {
 
   const storePath = products.find((item) => item.store_path)?.store_path;
 
+  async function shareTodaysStock() {
+    if (!businessId || !accessToken) return;
+    setBroadcastBusy(true);
+    setBroadcastNotice("");
+    setError("");
+    try {
+      const pack = await createBroadcastPack(businessId, accessToken);
+      setBroadcast(pack);
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "Could not build share drafts.",
+      );
+    } finally {
+      setBroadcastBusy(false);
+    }
+  }
+
+  async function copyText(label: string, text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setBroadcastNotice(`${label} copied.`);
+    } catch {
+      setError("Could not copy.");
+    }
+  }
+
   if (workspaceLoading || loading) {
     return (
       <div className={WORKSPACE_PAGE}>
@@ -68,6 +102,14 @@ export default function ProductsPage() {
     <div className={WORKSPACE_PAGE}>
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => void shareTodaysStock()}
+            disabled={broadcastBusy}
+            className="inline-flex h-10 items-center rounded-lg border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark disabled:opacity-60"
+          >
+            {broadcastBusy ? "Building…" : "Share today’s stock"}
+          </button>
           <Link
             href="/workspace/commerce/snap-to-sell"
             className="inline-flex h-10 items-center rounded-lg bg-kova-orange px-4 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e]"
@@ -92,6 +134,48 @@ export default function ProductsPage() {
             className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
           >
             {error}
+          </div>
+        ) : null}
+
+        {broadcastNotice ? (
+          <p className="text-xs font-medium text-kova-green">{broadcastNotice}</p>
+        ) : null}
+
+        {broadcast ? (
+          <div className="space-y-3 rounded-lg border border-kova-border bg-white p-4">
+            <p className="text-sm font-semibold text-kova-dark">
+              Share drafts · {broadcast.product_count} products
+            </p>
+            <div>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <p className="text-xs font-medium text-gray-500">WhatsApp Status</p>
+                <button
+                  type="button"
+                  onClick={() => copyText("Status", broadcast.status_text)}
+                  className="text-xs font-semibold text-kova-green"
+                >
+                  Copy
+                </button>
+              </div>
+              <p className="whitespace-pre-wrap text-sm text-kova-dark">
+                {broadcast.status_text}
+              </p>
+            </div>
+            <div>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <p className="text-xs font-medium text-gray-500">Group message</p>
+                <button
+                  type="button"
+                  onClick={() => copyText("Group message", broadcast.group_text)}
+                  className="text-xs font-semibold text-kova-green"
+                >
+                  Copy
+                </button>
+              </div>
+              <p className="whitespace-pre-wrap text-sm text-kova-dark">
+                {broadcast.group_text}
+              </p>
+            </div>
           </div>
         ) : null}
 

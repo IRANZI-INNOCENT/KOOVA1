@@ -9,6 +9,7 @@ const TABS = [
   { href: "/workspace/commerce/products", label: "Products" },
   { href: "/workspace/commerce/storefront", label: "Store" },
   { href: "/workspace/commerce/orders", label: "Orders" },
+  { href: "/workspace/commerce/expenses", label: "Expenses" },
 ] as const;
 
 export default function CommerceLayout({ children }: { children: ReactNode }) {

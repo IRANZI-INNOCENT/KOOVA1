@@ -93,6 +93,8 @@ def draft_section(business: Business, section: str) -> dict:
         temperature=0.4,
         max_tokens=1200,
         response_format={"type": "json_object"},
+        feature="business_draft",
+        business_id=getattr(business, "id", None),
     )
     return _fields_from_response(response, section)
 

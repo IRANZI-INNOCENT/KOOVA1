@@ -39,6 +39,7 @@ def search_market(
             temperature=0.2,
             max_tokens=1600,
             plugins=[{"id": "web", "max_results": 5}],
+            feature="market_research",
         )
     except OpenRouterError as exc:
         raise MarketSearchError(

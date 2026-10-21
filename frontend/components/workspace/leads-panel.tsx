@@ -3,13 +3,20 @@
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/lib/auth-context";
-import { getBusiness, getLeads, type Lead } from "@/lib/commerce";
+import {
+  getBusiness,
+  getLeads,
+  markLeadFollowedUp,
+  type Lead,
+} from "@/lib/commerce";
 
 export function LeadsPanel() {
   const { accessToken } = useAuth();
+  const [businessId, setBusinessId] = useState<number | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     if (!accessToken) return;
@@ -19,7 +26,10 @@ export function LeadsPanel() {
       try {
         const biz = await getBusiness(token);
         const leadList = await getLeads(biz.id, token);
-        if (!cancelled) setLeads(leadList);
+        if (!cancelled) {
+          setBusinessId(biz.id);
+          setLeads(leadList);
+        }
       } catch {
         if (!cancelled) setError("Could not load leads.");
       } finally {
@@ -31,6 +41,37 @@ export function LeadsPanel() {
       cancelled = true;
     };
   }, [accessToken]);
+
+  const now = Date.now();
+  const dueLeads = leads.filter((lead) => {
+    if (["converted", "lost"].includes(lead.status)) return false;
+    if (!lead.next_follow_up_at) return lead.status === "new";
+    return new Date(lead.next_follow_up_at).getTime() <= now;
+  });
+
+  async function copyDraft(lead: Lead) {
+    const text = lead.follow_up_draft?.trim();
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setNotice("Follow-up draft copied.");
+    } catch {
+      setError("Could not copy draft.");
+    }
+  }
+
+  async function markDone(lead: Lead) {
+    if (!accessToken || !businessId) return;
+    try {
+      const updated = await markLeadFollowedUp(businessId, lead.id, accessToken);
+      setLeads((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      );
+      setNotice("Follow-up marked. Next reminder in 3 days.");
+    } catch {
+      setError("Could not update lead.");
+    }
+  }
 
   if (loading) {
     return <p className="text-sm text-gray-500">Loading leads…</p>;
@@ -54,7 +95,50 @@ export function LeadsPanel() {
         {contactedLeads.length > 0
           ? ` · ${contactedLeads.length} contacted`
           : ""}
+        {dueLeads.length > 0 ? ` · ${dueLeads.length} due for follow-up` : ""}
       </p>
+      {notice ? (
+        <p className="mt-2 text-xs font-medium text-kova-green">{notice}</p>
+      ) : null}
+
+      {dueLeads.length > 0 ? (
+        <div className="mt-4 space-y-2 border border-kova-border bg-white p-4">
+          <p className="text-sm font-semibold text-kova-dark">Due follow-ups</p>
+          {dueLeads.map((lead) => (
+            <div
+              key={`due-${lead.id}`}
+              className="flex flex-wrap items-start justify-between gap-2 border-t border-kova-border pt-3 first:border-t-0 first:pt-0"
+            >
+              <div>
+                <p className="text-sm font-medium text-kova-dark">
+                  {lead.customer_name || lead.customer_id || "Lead"}
+                </p>
+                <p className="mt-1 text-xs text-gray-500 line-clamp-2">
+                  {lead.follow_up_draft || lead.interest}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                {lead.follow_up_draft ? (
+                  <button
+                    type="button"
+                    onClick={() => copyDraft(lead)}
+                    className="inline-flex h-8 items-center rounded-md border border-kova-border px-3 text-xs font-semibold text-kova-dark"
+                  >
+                    Copy draft
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => markDone(lead)}
+                  className="inline-flex h-8 items-center rounded-md bg-kova-green px-3 text-xs font-bold text-white"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {leads.length === 0 ? (
         <div className="mt-6 border border-kova-border bg-white px-5 py-6">

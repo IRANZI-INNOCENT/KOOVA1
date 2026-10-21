@@ -111,6 +111,8 @@ def _from_citations(
             temperature=0.2,
             max_tokens=2000,
             response_format={"type": "json_object"},
+            feature="market_research",
+            business_id=getattr(business, "id", None),
         )
     except OpenRouterError as exc:
         raise MarketSearchError(

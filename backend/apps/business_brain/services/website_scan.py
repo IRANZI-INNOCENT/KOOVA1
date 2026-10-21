@@ -210,6 +210,8 @@ def _suggest_fields(
             temperature=0.2,
             max_tokens=1400,
             response_format={"type": "json_object"},
+            feature="website_scan",
+            business_id=getattr(business, "id", None),
         )
     except OpenRouterError as exc:
         raise WebsiteScanError(

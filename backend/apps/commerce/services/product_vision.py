@@ -498,13 +498,23 @@ Also put those colors in visual_attributes.color.
     ) -> dict[str, Any]:
         """Ask the vision model for JSON, with little hidden reasoning."""
 
+        feature = "product_vision"
+        try:
+            from apps.kova_ai.services.usage import current_feature
+
+            scoped = current_feature()
+            if scoped and scoped not in ("unknown",):
+                feature = scoped
+        except Exception:
+            pass
+
         return self.provider.chat(
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
             response_format={"type": "json_object"},
             reasoning={"effort": "low"},
-            feature="product_vision",
+            feature=feature,
         )
 
     def _read_result(self, payload: dict[str, Any]) -> dict[str, Any]:

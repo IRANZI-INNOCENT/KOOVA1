@@ -580,6 +580,8 @@ def _plan(business: Business, briefing: str) -> dict:
             max_tokens=700,
             response_format={"type": "json_object"},
             reasoning={"effort": "low"},
+            feature="autopilot",
+            business_id=getattr(business, "id", None),
         )
         raw = response["choices"][0]["message"]["content"]
         parsed = json.loads(raw if isinstance(raw, str) else "{}")

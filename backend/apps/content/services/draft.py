@@ -80,6 +80,8 @@ def draft_post(
         temperature=0.5,
         max_tokens=1600 if facts.get("kenya_relatable_mode") else 1200,
         response_format={"type": "json_object"},
+        feature="draft",
+        business_id=getattr(business, "id", None),
     )
     result = _parse_response(response, content_type)
     allow_swipe = (
