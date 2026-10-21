@@ -71,7 +71,7 @@ Then add these yourself. Values marked “from local `.env`” are copied from `
 | `FRONTEND_URL` | Leave this for step 8, after the site has a domain. If Railway requires a value now, use `https://placeholder.invalid` and replace it in step 8. |
 | `CORS_ALLOWED_ORIGINS` | The same address you put in `FRONTEND_URL`, with no path on the end. |
 | `OPENROUTER_API_KEY` | From local `.env` |
-| `OPENROUTER_MODEL` | `google/gemini-3.8-flash` |
+| `OPENROUTER_MODEL` | Fallback only when a call has no task label. Per-task models are set in Django admin (**Kova → AI model control**); defaults favour Flash Lite. See `docs/architecture/openrouter-model-routing.md`. |
 | `OPENROUTER_SITE_URL` | The public site URL, once you have it. Same host as `FRONTEND_URL`. |
 | `OPENROUTER_APP_NAME` | `Kova` |
 | `FACEBOOK_APP_ID` | From local `.env` |
