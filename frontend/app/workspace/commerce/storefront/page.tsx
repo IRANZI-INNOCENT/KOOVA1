@@ -266,8 +266,8 @@ export default function StorefrontPage() {
     value: (typeof form)[K],
   ): void {
     setForm((current) => ({
-      ...current,
-      [field]: value,
+        ...current,
+        [field]: value,
     }));
     setSuccess("");
     setError("");
@@ -435,8 +435,8 @@ export default function StorefrontPage() {
 
     try {
       const updatedPage = await saveCommercePage(
-        business.id,
-        accessToken,
+          business.id,
+          accessToken,
         brandingPayload(),
       );
 
@@ -501,17 +501,17 @@ export default function StorefrontPage() {
        * Save the current form first so publishing never exposes
        * stale storefront information (including brand look).
        */
-      await saveCommercePage(
-        business.id,
-        accessToken,
+        await saveCommercePage(
+          business.id,
+          accessToken,
         brandingPayload(),
       );
 
       const publishedPage = await publishCommercePage(
-        business.id,
-        accessToken,
-        !page.is_published,
-      );
+          business.id,
+          accessToken,
+          !page.is_published,
+        );
 
       setPage(publishedPage);
       setForm(formFromPage(publishedPage));
@@ -782,7 +782,7 @@ export default function StorefrontPage() {
                     >
                       Reset colors
                     </button>
-                  </div>
+                </div>
 
                   <div className="mt-4 grid gap-4 sm:grid-cols-3">
                     <div>

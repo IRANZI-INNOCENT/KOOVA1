@@ -1,12 +1,13 @@
+import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { StoreOrderButton } from "@/components/store/order-button";
-import { StoreHeroCarousel } from "@/components/store/store-hero-carousel";
 import { StoreFrame } from "@/components/store/store-frame";
+import { StoreSpotlight } from "@/components/store/store-spotlight";
 import { JsonLd } from "@/components/seo/json-ld";
-import type { Product } from "@/lib/commerce";
+import type { CommercePage, Product } from "@/lib/commerce";
 import { mediaSrc } from "@/lib/media";
 import { fetchPublicStore } from "@/lib/public-store-api";
 import { buildPageMetadata } from "@/lib/seo";
@@ -15,6 +16,8 @@ import { resolveStoreImage } from "@/lib/store-theme";
 import { formatPrice, whatsappLink } from "@/lib/storefront";
 
 type Params = { slug: string };
+
+const ABOUT_ICONS = ["fork", "tag", "pin", "people", "star"] as const;
 
 export async function generateMetadata({
   params,
@@ -48,88 +51,117 @@ export async function generateMetadata({
   });
 }
 
-function ProductCard({
+function productImage(product: Product) {
+  return product.images.find((i) => i.is_primary) ?? product.images[0];
+}
+
+function headlineParts(page: CommercePage) {
+  const raw = (page.tagline || page.title || page.business_name).trim();
+  const location = page.location?.trim() || "";
+  if (location && raw.toLowerCase().endsWith(location.toLowerCase())) {
+    return {
+      lead: raw.slice(0, raw.length - location.length).trim(),
+      accent: location,
+    };
+  }
+  const words = raw.split(/\s+/).filter(Boolean);
+  if (words.length > 3) {
+    return {
+      lead: words.slice(0, -1).join(" "),
+      accent: words[words.length - 1],
+    };
+  }
+  if (location && !raw.toLowerCase().includes(location.toLowerCase())) {
+    return { lead: raw, accent: location };
+  }
+  return { lead: raw, accent: "" };
+}
+
+function aboutPoints(page: CommercePage): string[] {
+  const description = page.description?.trim() || "";
+  const sentences = description
+    .split(/\n+|(?<=[.!?])\s+/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 2 && line.length < 90);
+  if (sentences.length >= 2) return sentences.slice(0, 5);
+
+  const points: string[] = [];
+  if (page.tagline?.trim()) points.push(page.tagline.trim());
+  if (description && description.length < 90) points.push(description);
+  if (page.location?.trim()) points.push(page.location.trim());
+  if (page.phone?.trim()) points.push(page.phone.trim());
+  if (page.whatsapp?.trim()) points.push("Order on WhatsApp");
+  return points.slice(0, 5);
+}
+
+function displayPhone(raw: string) {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.startsWith("254") && digits.length >= 12) {
+    return `+254 ${digits.slice(3, 6)} ${digits.slice(6, 9)} ${digits.slice(9, 12)}`;
+  }
+  return raw.trim();
+}
+
+function DishCard({
   product,
   slug,
-  hasWhatsApp,
   whatsapp,
-  large,
 }: {
   product: Product;
   slug: string;
-  hasWhatsApp: boolean;
   whatsapp: string;
-  large?: boolean;
 }) {
-  const image =
-    product.images.find((i) => i.is_primary) ?? product.images[0];
+  const image = productImage(product);
   return (
-    <article
-      className="group overflow-hidden rounded-lg bg-white transition hover:shadow-sm"
-      style={{ border: "1px solid var(--store-border)" }}
-    >
-      <Link href={`/store/${slug}/${product.slug}`} className="block">
-        <div
-          className={`overflow-hidden ${
-            large ? "aspect-[4/5]" : "aspect-square"
-          }`}
-          style={{ backgroundColor: "var(--store-secondary-soft)" }}
-        >
+    <article className="flex flex-col overflow-hidden rounded-xl bg-white shadow-[0_8px_24px_rgba(107,62,22,0.08)]">
+      <Link href={`/store/${slug}/${product.slug}`} className="block px-3 pt-3">
+        <div className="aspect-[4/3] overflow-hidden rounded-lg bg-[#F3E6D4]">
           {image?.url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={mediaSrc(image.url)}
               alt={image.alt_text || product.name}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="h-full w-full object-cover"
               loading="lazy"
-              decoding="async"
-              sizes={
-                large
-                  ? "(max-width: 640px) 100vw, 50vw"
-                  : "(max-width: 640px) 50vw, 25vw"
-              }
             />
-          ) : (
-            <div className="flex h-full items-center justify-center text-sm text-gray-400">
-              No image
-            </div>
-          )}
+          ) : null}
         </div>
-        <div className="px-3.5 pt-3">
-          <h3
-            className={`line-clamp-2 font-semibold leading-5 ${
-              large ? "text-base" : "text-sm"
-            }`}
-            style={{ color: "var(--store-secondary)" }}
-          >
-            {product.name}
-          </h3>
-        </div>
-      </Link>
-      <div className="flex items-center justify-between gap-2 px-3.5 pb-3.5 pt-2">
-        <p
-          className="truncate text-sm font-bold"
-          style={{ color: "var(--store-accent)" }}
+        <h3
+          className="px-1 pb-3 pt-3 text-center text-sm font-semibold"
+          style={{ color: "#3F3A34" }}
         >
-          {formatPrice(product.currency, product.price)}
-        </p>
-        {hasWhatsApp && (
+          {product.name}
+        </h3>
+      </Link>
+      {whatsapp ? (
+        <div className="mt-auto flex justify-center px-3 pb-4">
           <StoreOrderButton
             slug={slug}
             productSlug={product.slug}
             productName={product.name}
             whatsapp={whatsapp}
-            className="inline-flex shrink-0 items-center rounded-md px-2.5 py-1 text-xs font-bold transition disabled:opacity-70"
-            style={{
-              backgroundColor: "var(--store-accent-soft)",
-              color: "var(--store-secondary)",
-            }}
+            className="inline-flex h-9 min-w-[7.5rem] items-center justify-center rounded-md px-4 text-xs font-semibold text-white disabled:opacity-70"
+            style={{ backgroundColor: "#C9973A" }}
           >
-            Order
+            Order Now
           </StoreOrderButton>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="px-3 pb-4 text-center text-xs font-semibold" style={{ color: "#C9973A" }}>
+          {formatPrice(product.currency, product.price)}
+        </div>
+      )}
     </article>
+  );
+}
+
+function SectionTitle({ children }: { children: ReactNode }) {
+  return (
+    <h2 className="text-xl font-bold" style={{ color: "#6B3E16" }}>
+      <span className="border-b-[3px] pb-1" style={{ borderColor: "#C9973A" }}>
+        {children}
+      </span>
+    </h2>
   );
 }
 
@@ -143,8 +175,8 @@ export default async function PublicStorePage({
   if (!data) notFound();
 
   const { page, products } = data;
-  const hasWhatsApp = !!page.whatsapp;
-  const layout = page.layout_preset || "compact";
+  const { lead, accent } = headlineParts(page);
+  const subtitle = (page.description || "").trim();
   const bannerSlides =
     page.banners && page.banners.length > 0
       ? page.banners
@@ -152,27 +184,26 @@ export default async function PublicStorePage({
           .map((b) => ({
             id: b.id,
             url: b.url as string,
-            alt_text: b.alt_text || "",
-            product_name: b.product_name || undefined,
-            href: b.href || undefined,
+            alt_text: b.alt_text || b.product_name || "",
           }))
       : page.cover_url
-        ? [{ id: "cover", url: page.cover_url, alt_text: "" }]
-        : [];
-  const coverSrc = resolveStoreImage(
-    bannerSlides[0]?.url || page.cover_url,
-  );
-  const showHero =
-    page.show_hero !== false &&
-    (bannerSlides.length > 0 || page.tagline || page.description);
-  const featured =
-    page.show_featured && products.length > 0 ? products.slice(0, 4) : [];
-  const gridClass =
-    layout === "gallery"
-      ? "mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2"
-      : layout === "editorial"
-        ? "mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2"
-        : "mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4";
+        ? [{ id: "cover", url: page.cover_url, alt_text: page.business_name }]
+        : products[0] && productImage(products[0])?.url
+          ? [
+              {
+                id: "product",
+                url: productImage(products[0])!.url as string,
+                alt_text: products[0].name,
+              },
+            ]
+          : [];
+  const popular = products.slice(0, 4);
+  const points = page.show_about === false ? [] : aboutPoints(page);
+  const aboutPhoto =
+    resolveStoreImage(
+      products[1] ? productImage(products[1])?.url : page.cover_url,
+    ) || resolveStoreImage(page.cover_url || page.logo_url);
+  const phoneLabel = page.whatsapp ? displayPhone(page.whatsapp) : "";
 
   const storeLd = {
     "@context": "https://schema.org",
@@ -182,7 +213,9 @@ export default async function PublicStorePage({
     url: absoluteUrl(`/store/${slug}`),
     telephone: page.phone || undefined,
     email: page.email || undefined,
-    image: coverSrc || resolveStoreImage(page.logo_url) || undefined,
+    image: bannerSlides[0]?.url
+      ? resolveStoreImage(bannerSlides[0].url)
+      : undefined,
     address: page.location
       ? {
           "@type": "PostalAddress",
@@ -196,153 +229,146 @@ export default async function PublicStorePage({
     <StoreFrame page={page} slug={slug}>
       <JsonLd data={storeLd} />
 
-      {bannerSlides.length > 0 && page.show_hero !== false ? (
-        <section
-          className="border-b bg-white"
-          style={{ borderColor: "var(--store-border)" }}
-        >
-          <h1 className="sr-only">
-            {page.title?.trim() || page.business_name}
-          </h1>
-          <StoreHeroCarousel
-            slides={bannerSlides}
-            tall={layout === "editorial"}
-          />
-        </section>
+      {page.show_hero !== false ? (
+        <StoreSpotlight
+          slides={bannerSlides}
+          lead={lead}
+          accent={accent}
+          subtitle={subtitle}
+          menuHref="#menu"
+          whatsappHref={page.whatsapp ? whatsappLink(page.whatsapp) : ""}
+          whatsappLabel={
+            phoneLabel ? `Order on WhatsApp  ${phoneLabel}` : "Order on WhatsApp"
+          }
+        />
       ) : null}
 
-      {/* Title/WhatsApp block only when there is no carousel (header already has both). */}
-      {bannerSlides.length === 0 && showHero ? (
-        <section
-          className="border-b bg-white"
-          style={{ borderColor: "var(--store-border)" }}
-        >
-          <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div className="min-w-0">
-                <h1
-                  className="text-2xl font-bold tracking-tight sm:text-3xl"
-                  style={{ color: "var(--store-secondary)" }}
-                >
-                  {page.title?.trim() || page.business_name}
-                </h1>
-                {(page.tagline || page.description) && (
-                  <p className="mt-1.5 max-w-2xl text-sm leading-6 text-gray-600 sm:text-[15px]">
-                    {page.tagline || page.description}
-                  </p>
-                )}
-              </div>
-              {page.whatsapp && (
-                <a
-                  href={whatsappLink(page.whatsapp)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg px-5 text-sm font-bold transition hover:brightness-105 sm:h-12 sm:px-6"
-                  style={{
-                    backgroundColor: "var(--store-accent)",
-                    color: "var(--store-on-accent)",
-                  }}
-                >
-                  {layout === "whatsapp_first"
-                    ? "Chat on WhatsApp to order"
-                    : "WhatsApp"}
-                </a>
-              )}
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {!showHero && bannerSlides.length === 0 && (
-        <div className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 sm:pt-10">
-          <h1
-            className="text-2xl font-bold tracking-tight sm:text-3xl"
-            style={{ color: "var(--store-secondary)" }}
-          >
-            {page.title?.trim() || page.business_name}
-          </h1>
-          {(page.tagline || page.description) && (
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-              {page.tagline || page.description}
+      <section className="mx-auto grid max-w-6xl gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:py-12">
+        <div id="menu">
+          <SectionTitle>Popular</SectionTitle>
+          {popular.length === 0 ? (
+            <p className="mt-6 text-sm text-[#6B3E16]/70">
+              No products listed yet. Check back soon.
             </p>
-          )}
-        </div>
-      )}
-
-      {featured.length > 0 && (
-        <section
-          className="border-b bg-white"
-          style={{
-            borderColor: "var(--store-border)",
-            backgroundColor: "var(--store-primary-soft)",
-          }}
-        >
-          <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-            <h2
-              className="text-lg font-bold"
-              style={{ color: "var(--store-secondary)" }}
-            >
-              Featured
-            </h2>
-            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {featured.map((product) => (
-                <ProductCard
+          ) : (
+            <div className="mt-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
+              {popular.map((product) => (
+                <DishCard
                   key={product.id}
                   product={product}
                   slug={slug}
-                  hasWhatsApp={hasWhatsApp}
                   whatsapp={page.whatsapp}
-                  large={layout === "gallery"}
                 />
               ))}
             </div>
-          </div>
-        </section>
-      )}
-
-      <section
-        id="products"
-        className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10"
-      >
-        <div className="flex items-end justify-between">
-          <h2
-            className="text-xl font-bold tracking-tight"
-            style={{ color: "var(--store-secondary)" }}
-          >
-            Products
-          </h2>
-          <span
-            className="rounded-md px-2 py-0.5 text-xs font-semibold"
-            style={{
-              backgroundColor: "var(--store-secondary-soft)",
-              color: "var(--store-secondary)",
-            }}
-          >
-            {products.length} item{products.length !== 1 ? "s" : ""}
-          </span>
+          )}
         </div>
 
-        {products.length === 0 ? (
-          <div className="mt-6 rounded-lg border-2 border-dashed border-kova-border bg-white p-10 text-center">
-            <p className="text-sm text-gray-500">
-              No products listed yet. Check back soon.
-            </p>
-          </div>
-        ) : (
-          <div className={gridClass}>
-            {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                slug={slug}
-                hasWhatsApp={hasWhatsApp}
-                whatsapp={page.whatsapp}
-                large={layout === "gallery" || layout === "editorial"}
+        {page.show_about !== false ? (
+          <aside id="about">
+            <SectionTitle>
+              About {page.title?.trim() || page.business_name}
+            </SectionTitle>
+            {points.length > 0 ? (
+              <ul className="mt-6 space-y-3">
+                {points.map((point, index) => (
+                  <li key={point} className="flex items-start gap-3 text-sm text-[#3F3A34]">
+                    <AboutIcon name={ABOUT_ICONS[index % ABOUT_ICONS.length]} />
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {aboutPhoto ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={aboutPhoto}
+                alt=""
+                className="mt-6 h-28 w-full rounded-lg object-cover"
               />
-            ))}
+            ) : null}
+          </aside>
+        ) : null}
+      </section>
+
+      <section id="gallery" className="mx-auto max-w-6xl px-4 pb-12 sm:px-6">
+        <SectionTitle>Gallery</SectionTitle>
+        {products.length === 0 ? (
+          <p className="mt-6 text-sm text-[#6B3E16]/70">Photos will appear here.</p>
+        ) : (
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {products.map((product) => {
+              const image = productImage(product);
+              return (
+                <Link
+                  key={product.id}
+                  href={`/store/${slug}/${product.slug}`}
+                  className="group overflow-hidden rounded-xl bg-white shadow-[0_8px_24px_rgba(107,62,22,0.06)]"
+                >
+                  <div className="aspect-[4/3] overflow-hidden bg-[#F3E6D4]">
+                    {image?.url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={mediaSrc(image.url)}
+                        alt={product.name}
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        loading="lazy"
+                      />
+                    ) : null}
+                  </div>
+                  <p className="px-3 py-3 text-center text-sm font-semibold text-[#3F3A34]">
+                    {product.name}
+                  </p>
+                </Link>
+              );
+            })}
           </div>
         )}
       </section>
     </StoreFrame>
+  );
+}
+
+function AboutIcon({ name }: { name: (typeof ABOUT_ICONS)[number] }) {
+  const common = {
+    width: 16,
+    height: 16,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#C9973A",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+  return (
+    <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center">
+      {name === "fork" ? (
+        <svg {...common}>
+          <path d="M8 3v8M12 3v8M10 11v10M16 3c2 3 2 6 0 8v10" />
+        </svg>
+      ) : name === "tag" ? (
+        <svg {...common}>
+          <path d="M20 12l-8 8-9-9V4h7l10 8z" />
+          <circle cx="7.5" cy="7.5" r="1" fill="#C9973A" />
+        </svg>
+      ) : name === "pin" ? (
+        <svg {...common}>
+          <path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z" />
+          <circle cx="12" cy="10" r="2" />
+        </svg>
+      ) : name === "people" ? (
+        <svg {...common}>
+          <circle cx="9" cy="8" r="3" />
+          <path d="M3 19c1-3 3.5-4.5 6-4.5S14 16 15 19" />
+          <circle cx="17" cy="9" r="2" />
+          <path d="M16 14.5c2.2.3 4 1.8 5 4.5" />
+        </svg>
+      ) : (
+        <svg {...common}>
+          <path d="M12 3l2.4 5.2L20 9l-4 3.8.9 5.7L12 16.8 7.1 18.5 8 12.8 4 9l5.6-.8L12 3z" />
+        </svg>
+      )}
+    </span>
   );
 }

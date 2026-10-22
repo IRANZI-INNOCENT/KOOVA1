@@ -102,12 +102,12 @@ export default async function PublicProductPage({
   return (
     <StoreFrame page={page} slug={slug}>
       <JsonLd data={productLd} />
-      <div className="border-b border-kova-border bg-white">
+      <div className="border-b" style={{ borderColor: "rgba(107,62,22,0.1)" }}>
         <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6">
           <Link
             href={`/store/${slug}`}
             className="text-sm font-semibold hover:underline"
-            style={{ color: "var(--store-primary)" }}
+            style={{ color: "#6B3E16" }}
           >
             ← All products
           </Link>
@@ -121,20 +121,20 @@ export default async function PublicProductPage({
           {product.category && (
             <p
               className="text-xs font-bold uppercase tracking-[0.16em]"
-              style={{ color: "var(--store-secondary)" }}
-            >
-              {product.category}
-            </p>
+            style={{ color: "#C9973A" }}
+          >
+            {product.category}
+          </p>
           )}
           <h1
             className="mt-2 break-words text-2xl font-bold tracking-tight sm:text-3xl"
-            style={{ color: "var(--store-secondary)" }}
+            style={{ color: "#6B3E16" }}
           >
             {product.name}
           </h1>
           <p
             className="mt-4 text-2xl font-bold"
-            style={{ color: "var(--store-accent)" }}
+            style={{ color: "#6B3E16" }}
           >
             {formatPrice(product.currency, product.price)}
           </p>
@@ -157,11 +157,8 @@ export default async function PublicProductPage({
               productSlug={productSlug}
               productName={product.name}
               whatsapp={page.whatsapp}
-              className="mt-6 inline-flex h-12 items-center justify-center rounded-lg px-6 text-sm font-bold shadow-sm transition hover:brightness-105 disabled:opacity-70"
-              style={{
-                backgroundColor: "var(--store-accent)",
-                color: "var(--store-on-accent)",
-              }}
+              className="mt-6 inline-flex h-12 items-center justify-center rounded-md px-6 text-sm font-semibold text-white disabled:opacity-70"
+              style={{ backgroundColor: "#1B7A34" }}
             >
               <svg
                 width="18"
@@ -256,7 +253,7 @@ export default async function PublicProductPage({
                       </p>
                       <p
                         className="mt-1.5 text-sm font-bold"
-                        style={{ color: "var(--store-accent)" }}
+                        style={{ color: "#C9973A" }}
                       >
                         {formatPrice(item.currency, item.price)}
                       </p>
