@@ -23,11 +23,13 @@ export function PlatformAvatar({
   const dim = SIZE[size];
   const alt = name ? `${name} profile` : "Account";
 
-  if (imageUrl?.trim()) {
+  const photo = typeof imageUrl === "string" ? imageUrl.trim() : "";
+
+  if (photo) {
     return (
       <div className={`relative shrink-0 ${dim.box}`}>
         <img
-          src={imageUrl}
+          src={photo}
           alt={alt}
           referrerPolicy="no-referrer"
           className={`${dim.img} rounded-full object-cover`}

@@ -7,20 +7,28 @@ export interface ActivityItem {
   created_at?: string;
 }
 
+function text(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
 function activityKey(item: ActivityItem) {
   return [
-    item.action_type,
-    item.action_status,
-    item.intent.trim(),
-    (item.result ?? "").trim(),
+    text(item.action_type),
+    text(item.action_status),
+    text(item.intent),
+    text(item.result),
   ].join("|");
 }
 
 /** Drop back-to-back duplicate log lines (same type, status, intent, result). */
-export function dedupeActivities<T extends ActivityItem>(items: T[]): T[] {
+export function dedupeActivities<T extends ActivityItem>(
+  items: T[] | null | undefined,
+): T[] {
+  if (!Array.isArray(items) || items.length === 0) return [];
   const seen = new Set<string>();
   const out: T[] = [];
   for (const item of items) {
+    if (!item || item.id == null) continue;
     const key = activityKey(item);
     if (seen.has(key)) continue;
     seen.add(key);
@@ -29,8 +37,8 @@ export function dedupeActivities<T extends ActivityItem>(items: T[]): T[] {
   return out;
 }
 
-function formatType(raw: string) {
-  return raw.replace(/_/g, " ");
+function formatType(raw: unknown) {
+  return text(raw).replace(/_/g, " ");
 }
 
 function statusClass(status: string) {
@@ -83,17 +91,17 @@ export function ActivityColumns({
                 {formatType(action.action_type)}
               </span>
               <span
-                className={`shrink-0 text-xs font-medium ${statusClass(action.action_status)}`}
+                className={`shrink-0 text-xs font-medium ${statusClass(text(action.action_status))}`}
               >
-                {action.action_status}
+                {text(action.action_status)}
               </span>
             </div>
             <p className="mt-1 line-clamp-2 text-xs leading-5 text-kova-dark">
-              {action.intent}
+              {text(action.intent)}
             </p>
-            {action.result ? (
+            {text(action.result) ? (
               <p className="mt-0.5 truncate text-[11px] text-gray-500">
-                {action.result}
+                {text(action.result)}
               </p>
             ) : null}
           </li>

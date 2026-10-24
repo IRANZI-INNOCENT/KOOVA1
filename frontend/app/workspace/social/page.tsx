@@ -38,8 +38,17 @@ const MODE_META: Record<
 
 const MODES: OperatingMode[] = ["assist", "approval", "autopilot"];
 
+function modeCopy(current: string) {
+  return MODE_META[current as OperatingMode] ?? MODE_META.assist;
+}
+
+function knownMode(value: string | null | undefined): value is OperatingMode {
+  return Boolean(value && (MODES as readonly string[]).includes(value));
+}
+
 export default function SocialOverviewPage() {
-  const { businessId, accessToken, workspaceLoading } = useWorkspace();
+  const { businessId, accessToken, workspaceLoading, workspaceError } =
+    useWorkspace();
   const [overview, setOverview] = useState<SocialOverview | null>(null);
   const [mode, setMode] = useState<OperatingMode>("assist");
   const [modeUpdating, setModeUpdating] = useState(false);
@@ -68,7 +77,9 @@ export default function SocialOverviewPage() {
         ]);
         if (cancelled) return;
         setOverview(data);
-        if (policy) setMode(policy.social_operating_mode);
+        if (knownMode(policy?.social_operating_mode)) {
+          setMode(policy.social_operating_mode);
+        }
       } catch (err) {
         if (cancelled) return;
         setError(
@@ -93,7 +104,9 @@ export default function SocialOverviewPage() {
     setModeUpdating(true);
     try {
       const policy = await updateOperatingMode(businessId, next, accessToken);
-      setMode(policy.social_operating_mode);
+      if (knownMode(policy.social_operating_mode)) {
+        setMode(policy.social_operating_mode);
+      }
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -109,7 +122,7 @@ export default function SocialOverviewPage() {
     return (
       <div className={WORKSPACE_PAGE}>
         <div className="space-y-6">
-          <p className="text-sm text-gray-500">{MODE_META[mode].description}</p>
+          <p className="text-sm text-gray-500">{modeCopy(mode).description}</p>
           <div className="grid w-full grid-cols-3 rounded-lg border border-kova-border bg-white p-0.5 sm:flex sm:w-auto">
             {MODES.map((m) => (
               <span
@@ -135,24 +148,48 @@ export default function SocialOverviewPage() {
     );
   }
 
-  if (error && !overview) {
+  if (!overview?.channels || !Array.isArray(overview.channels.accounts)) {
+    const notice =
+      error ||
+      workspaceError ||
+      "Posting will show here once your business is ready.";
     return (
-      <div className="p-4 sm:p-8">
-        <div className="mx-auto max-w-6xl rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
-          {error}
+      <div className={WORKSPACE_PAGE}>
+        <div className="space-y-6">
+          <p className="text-sm text-gray-500">{modeCopy(mode).description}</p>
+          <div
+            role="alert"
+            className="rounded-lg border border-kova-border bg-white px-4 py-3 text-sm text-kova-dark"
+          >
+            {notice}
+          </div>
         </div>
       </div>
     );
   }
 
-  const o = overview!;
-  const hasChannels = o.channels.total > 0;
+  const accounts = overview.channels.accounts;
+  const recentActions = Array.isArray(overview.recent_actions)
+    ? overview.recent_actions
+    : [];
+  const drafts = overview.content?.drafts ?? 0;
+  const hasChannels = (overview.channels.total ?? accounts.length) > 0;
+  const recommendations = (overview.command?.recommendations ?? []).filter(
+    (item) =>
+      Boolean(
+        item &&
+          typeof item.href === "string" &&
+          item.href &&
+          typeof item.title === "string" &&
+          item.title,
+      ),
+  );
 
   return (
     <div className={WORKSPACE_PAGE}>
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-gray-500">{MODE_META[mode].description}</p>
+          <p className="text-sm text-gray-500">{modeCopy(mode).description}</p>
           <div className="grid w-full grid-cols-3 rounded-lg border border-kova-border bg-white p-0.5 sm:flex sm:w-auto sm:shrink-0">
             {MODES.map((m) => {
               const active = m === mode;
@@ -190,33 +227,33 @@ export default function SocialOverviewPage() {
           items={[
             {
               label: "Scheduled",
-              value: o.command?.scheduled_posts ?? 0,
+              value: overview.command?.scheduled_posts ?? 0,
               tone: "orange",
             },
             {
               label: "Inbox",
-              value: o.command?.conversations_to_review ?? 0,
+              value: overview.command?.conversations_to_review ?? 0,
             },
             {
               label: "Leads",
-              value: o.command?.potential_leads ?? 0,
+              value: overview.command?.potential_leads ?? 0,
               tone: "green",
             },
             {
               label: "Verified today",
-              value: o.command?.actions_verified_today ?? 0,
+              value: overview.command?.actions_verified_today ?? 0,
               tone: "green",
             },
           ]}
         />
 
-        {o.command?.plan ? (
-          <p className="text-sm leading-6 text-kova-dark">{o.command.plan}</p>
+        {overview.command?.plan ? (
+          <p className="text-sm leading-6 text-kova-dark">{overview.command.plan}</p>
         ) : null}
 
-        {o.command?.automation_paused ? (
+        {overview.command?.automation_paused ? (
           <div className="flex flex-col gap-3 rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between">
-            <p>{o.command.pause_reason || "Scheduled publishing is paused."}</p>
+            <p>{overview.command.pause_reason || "Scheduled publishing is paused."}</p>
             <button
               type="button"
               className="inline-flex h-11 w-full items-center justify-center rounded-md bg-kova-green px-4 text-xs font-bold text-white sm:h-9 sm:w-auto"
@@ -239,11 +276,11 @@ export default function SocialOverviewPage() {
           </div>
         ) : null}
 
-        {o.command?.recommendations?.length > 0 ? (
+        {recommendations.length > 0 ? (
           <section>
             <h2 className="text-sm font-semibold text-kova-dark">Next</h2>
             <ul className="mt-2 space-y-1.5">
-              {o.command.recommendations.map((item) => (
+              {recommendations.map((item) => (
                 <li key={item.title}>
                   <Link
                     href={item.href}
@@ -252,7 +289,7 @@ export default function SocialOverviewPage() {
                     <p className="text-sm font-semibold text-kova-dark">
                       {item.title}
                     </p>
-                    {item.detail ? (
+                    {typeof item.detail === "string" && item.detail ? (
                       <p className="mt-0.5 text-xs leading-5 text-gray-500">
                         {item.detail}
                       </p>
@@ -264,7 +301,7 @@ export default function SocialOverviewPage() {
           </section>
         ) : null}
 
-        {o.pending_actions > 0 ? (
+        {(overview.pending_actions ?? 0) > 0 ? (
           <Link
             href="/workspace/social/studio"
             className="flex items-center justify-between gap-3 border border-kova-border bg-white px-4 py-3 text-sm"
@@ -273,14 +310,14 @@ export default function SocialOverviewPage() {
               Waiting for your approval
             </span>
             <span className="font-semibold text-kova-dark">
-              {o.pending_actions}
+              {overview.pending_actions}
             </span>
           </Link>
         ) : null}
 
-        {o.channels.accounts.length > 0 ? (
+        {accounts.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
-            {o.channels.accounts.map((acc) => (
+            {accounts.map((acc) => (
               <span
                 key={acc.id}
                 className={`inline-flex max-w-[16rem] items-center gap-2 truncate border px-2 py-1 text-xs ${
@@ -303,11 +340,9 @@ export default function SocialOverviewPage() {
           </div>
         ) : null}
 
-        <ActivityColumns items={o.recent_actions} columns={3} />
+        <ActivityColumns items={recentActions} columns={3} />
 
-        {!hasChannels &&
-        o.content.drafts === 0 &&
-        o.recent_actions.length === 0 ? (
+        {!hasChannels && drafts === 0 && recentActions.length === 0 ? (
           <section className="border border-kova-border bg-white px-5 py-6">
             <p className="font-semibold text-kova-dark">
               Connect Facebook or Instagram
