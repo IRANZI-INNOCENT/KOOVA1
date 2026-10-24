@@ -8,22 +8,27 @@ import requests
 from django.utils import timezone
 
 from ..models import LinkedInConnection
-from .linkedin import LinkedInError, _api_headers, fetch_member_profile
+from .linkedin import _api_headers, ensure_access_token, fetch_member_profile
 
 
 def sync_connection_profile(connection: LinkedInConnection) -> dict[str, Any]:
     """Fetch what LinkedIn allows for this token and store on the connection."""
-    if connection.connection_status != LinkedInConnection.Status.CONNECTED:
-        raise LinkedInError("LinkedIn is not connected.")
-    if not (connection.access_token or "").strip():
-        raise LinkedInError("LinkedIn access token missing.")
+    access_token = ensure_access_token(connection)
 
-    snapshot = build_profile_snapshot(connection.access_token)
+    snapshot = build_profile_snapshot(access_token)
     connection.profile_snapshot = snapshot
     connection.profile_synced_at = timezone.now()
-    connection.save(
-        update_fields=["profile_snapshot", "profile_synced_at", "updated_at"],
-    )
+    update_fields = ["profile_snapshot", "profile_synced_at", "updated_at"]
+    openid = snapshot.get("openid") if isinstance(snapshot.get("openid"), dict) else {}
+    member_id = str(openid.get("member_id") or "")
+    if member_id and not (connection.linkedin_member_id or "").strip():
+        connection.linkedin_member_id = member_id
+        update_fields.append("linkedin_member_id")
+    name = str(snapshot.get("name") or openid.get("name") or "")
+    if name and not (connection.display_name or "").strip():
+        connection.display_name = name[:200]
+        update_fields.append("display_name")
+    connection.save(update_fields=update_fields)
     _maybe_prefill_kova_profile(connection, snapshot)
     return snapshot
 

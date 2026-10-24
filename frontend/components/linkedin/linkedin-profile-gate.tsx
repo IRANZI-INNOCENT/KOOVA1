@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { getProfessionalProfile } from "@/lib/professional";
 
 const SETUP_PREFIX = "/workspace/linkedin/setup";
+const CONNECT_PREFIX = "/workspace/linkedin/connect";
 
 export function LinkedInProfileGate({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -16,6 +17,8 @@ export function LinkedInProfileGate({ children }: { children: ReactNode }) {
   const [checking, setChecking] = useState(true);
   const [ready, setReady] = useState(false);
   const onSetupRoute = pathname.startsWith(SETUP_PREFIX);
+  const onConnectRoute = pathname.startsWith(CONNECT_PREFIX);
+  const openWithoutProfile = onSetupRoute || onConnectRoute;
 
   useEffect(() => {
     if (authLoading) {
@@ -38,7 +41,7 @@ export function LinkedInProfileGate({ children }: { children: ReactNode }) {
         const isReady = profile.profile_ready === true;
         setReady(isReady);
 
-        if (!isReady && !onSetupRoute) {
+        if (!isReady && !openWithoutProfile) {
           router.replace(SETUP_PREFIX);
         } else if (isReady && onSetupRoute) {
           router.replace("/workspace/linkedin");
@@ -49,7 +52,7 @@ export function LinkedInProfileGate({ children }: { children: ReactNode }) {
           return;
         }
         setReady(false);
-        if (!onSetupRoute) {
+        if (!openWithoutProfile) {
           router.replace(SETUP_PREFIX);
         }
       })
@@ -62,13 +65,13 @@ export function LinkedInProfileGate({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [accessToken, authLoading, onSetupRoute, router, pathname]);
+  }, [accessToken, authLoading, onSetupRoute, openWithoutProfile, router, pathname]);
 
   if (authLoading || checking) {
     return <PageSkeleton />;
   }
 
-  if (!ready && !onSetupRoute) {
+  if (!ready && !openWithoutProfile) {
     return null;
   }
 

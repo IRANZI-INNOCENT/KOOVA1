@@ -39,11 +39,30 @@ export async function GET(request: NextRequest) {
   if (upstream.status >= 300 && upstream.status < 400) {
     const location = upstream.headers.get("location");
     if (location) {
-      return NextResponse.redirect(location);
+      return redirectToConnect(request, location);
     }
   }
 
   const connect = new URL("/workspace/linkedin/connect", request.url);
   connect.searchParams.set("error", "callback");
   return NextResponse.redirect(connect);
+}
+
+/** Stay on the site that received LinkedIn's redirect. */
+function redirectToConnect(request: NextRequest, location: string) {
+  const fallback = new URL("/workspace/linkedin/connect", request.url);
+  fallback.searchParams.set("error", "callback");
+  let target: URL;
+  try {
+    target = new URL(location, request.url);
+  } catch {
+    return NextResponse.redirect(fallback);
+  }
+  const path = target.pathname.replace(/\/$/, "") || "/";
+  if (path !== "/workspace/linkedin/connect") {
+    return NextResponse.redirect(fallback);
+  }
+  const local = new URL("/workspace/linkedin/connect", request.url);
+  local.search = target.search;
+  return NextResponse.redirect(local);
 }

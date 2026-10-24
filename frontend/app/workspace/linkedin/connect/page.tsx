@@ -1,12 +1,13 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { PlatformAvatar } from "@/components/social/platform-avatar";
 import { PlatformBrandIcon } from "@/components/social/platform-brand";
 import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
+import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import {
   disconnectLinkedIn,
@@ -47,26 +48,63 @@ const STATUS_CONFIG: Record<
   },
 };
 
+const RETURN_MESSAGES: Record<string, string> = {
+  access_denied: "LinkedIn sign-in was cancelled. Connect again when you're ready.",
+  scope:
+    "LinkedIn refused a permission. The app needs Sign In with OpenID and Share on LinkedIn.",
+  token:
+    "LinkedIn didn't accept the connection. The redirect URL in the app must match the one below.",
+  member: "LinkedIn is connected. Use Sync profile to load your name and photo.",
+  state: "That connection link expired. Click Connect LinkedIn again.",
+  state_expired: "That connection link expired. Click Connect LinkedIn again.",
+  profile: "Sign in again, then connect LinkedIn.",
+  proxy: "We couldn't finish connecting LinkedIn. Please try again.",
+  api_unreachable: "We couldn't reach Kova to finish connecting LinkedIn.",
+  callback: "We couldn't finish connecting LinkedIn. Please try again.",
+};
+
 function ConnectContent() {
   const { accessToken } = useAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [profile, setProfile] = useState<ProfessionalProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState<"success" | "error">("success");
   const [loading, setLoading] = useState(false);
   const [connectConfig, setConnectConfig] = useState<{
     redirect_uri: string;
     redirect_source: string;
   } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   async function reloadProfile() {
-    if (!accessToken) return;
-    setProfile(await getProfessionalProfile(accessToken));
+    if (!accessToken) {
+      setProfileLoading(false);
+      return;
+    }
+    setProfileLoading(true);
+    try {
+      setProfile(await getProfessionalProfile(accessToken));
+    } catch (err) {
+      setMessageTone("error");
+      setMessage(
+        err instanceof ApiError
+          ? err.message
+          : "Could not load the LinkedIn connection.",
+      );
+    } finally {
+      setProfileLoading(false);
+    }
   }
 
   useEffect(() => {
-    if (!accessToken) return;
-    reloadProfile();
+    if (!accessToken) {
+      setProfileLoading(false);
+      return;
+    }
+    void reloadProfile();
     getLinkedInConnectConfig(accessToken)
       .then((data) =>
         setConnectConfig({
@@ -75,41 +113,50 @@ function ConnectContent() {
         }),
       )
       .catch(() => setConnectConfig(null));
+    // Reload when the session token changes, including after OAuth returns.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
 
   useEffect(() => {
-    if (searchParams.get("connected") === "1") {
-      setMessage("LinkedIn connected.");
-      void reloadProfile();
-    }
+    const connected = searchParams.get("connected") === "1";
     const err = searchParams.get("error");
-    if (err) {
-      const messages: Record<string, string> = {
-        callback: "We couldn't finish connecting LinkedIn. Please try again.",
-        token: "We couldn't finish connecting LinkedIn. Please try again.",
-        state: "This link expired. Click Connect LinkedIn again.",
-        state_expired: "This session expired. Click Connect LinkedIn again.",
-        profile: "Complete your LinkedIn workspace setup, then try connecting again.",
-        member: "LinkedIn connected, but we couldn't load your profile. Try Sync profile.",
-        proxy: "We couldn't finish connecting LinkedIn. Please try again.",
-        api_unreachable: "We couldn't finish connecting LinkedIn. Please try again.",
-      };
+    const detail = searchParams.get("detail");
+    const profilePending = searchParams.get("profile") === "pending";
+    if (!connected && !err) return;
+
+    if (connected) {
+      setMessageTone("success");
       setMessage(
-        messages[err] ??
+        profilePending
+          ? "LinkedIn is connected. Use Sync profile if your name does not appear yet."
+          : "LinkedIn connected.",
+      );
+      if (accessToken) void reloadProfile();
+    } else if (err) {
+      setMessageTone("error");
+      setMessage(
+        detail ||
+          RETURN_MESSAGES[err] ||
           "We couldn't finish connecting LinkedIn. Please try again.",
       );
     }
-  }, [searchParams]);
+    router.replace("/workspace/linkedin/connect");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, accessToken, router]);
 
   async function connect() {
     if (!accessToken) return;
     setLoading(true);
+    setMessage("");
     try {
       const { url } = await getLinkedInOAuthUrl(accessToken);
       window.location.href = url;
-    } catch {
+    } catch (err) {
+      setMessageTone("error");
       setMessage(
-        "We couldn't start LinkedIn sign-in. Please try again later.",
+        err instanceof ApiError
+          ? err.message
+          : "We couldn't start LinkedIn sign-in. Please try again later.",
       );
       setLoading(false);
     }
@@ -122,24 +169,55 @@ function ConnectContent() {
     try {
       await refreshLinkedInProfile(accessToken);
       await reloadProfile();
-      setMessage("LinkedIn profile refreshed for Kova's brain.");
-    } catch {
-      setMessage("Could not refresh LinkedIn profile. Try reconnecting.");
+      setMessageTone("success");
+      setMessage("LinkedIn profile refreshed.");
+    } catch (err) {
+      setMessageTone("error");
+      setMessage(
+        err instanceof ApiError
+          ? err.message
+          : "Could not refresh LinkedIn profile. Try reconnecting.",
+      );
     } finally {
       setRefreshing(false);
     }
   }
 
   async function disconnect() {
-    if (!accessToken) return;
-    await disconnectLinkedIn(accessToken);
-    await reloadProfile();
-    setMessage("Disconnected.");
+    if (!accessToken || disconnecting) return;
+    if (!window.confirm("Disconnect LinkedIn? Kova will stop publishing to this account.")) {
+      return;
+    }
+    setDisconnecting(true);
+    setMessage("");
+    try {
+      await disconnectLinkedIn(accessToken);
+      await reloadProfile();
+      setMessageTone("success");
+      setMessage("LinkedIn disconnected.");
+    } catch (err) {
+      setMessageTone("error");
+      setMessage(
+        err instanceof ApiError
+          ? err.message
+          : "Could not disconnect LinkedIn. Please try again.",
+      );
+    } finally {
+      setDisconnecting(false);
+    }
   }
 
   const linkedin = profile?.linkedin;
-  const statusKey = linkedin?.connection_status ?? "disconnected";
+  const statusKey = profileLoading
+    ? "disconnected"
+    : (linkedin?.connection_status ?? "disconnected");
   const status = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG.disconnected;
+  const needsReconnect = statusKey === "expired" || statusKey === "error";
+  const connectLabel = loading
+    ? "Opening LinkedIn…"
+    : statusKey === "connected" || needsReconnect
+      ? "Reconnect LinkedIn"
+      : "Connect LinkedIn";
   const displayName =
     linkedin?.display_name ||
     linkedin?.profile_knowledge?.name ||
@@ -155,12 +233,12 @@ function ConnectContent() {
           actions={
             <button
               type="button"
-              disabled={loading}
+              disabled={loading || profileLoading || linkedin?.configured === false}
               onClick={connect}
               className="inline-flex h-10 items-center gap-2 rounded-md border border-kova-border bg-white px-3 text-sm font-semibold text-kova-dark transition hover:border-kova-dark disabled:opacity-60"
             >
               <PlatformBrandIcon platform="linkedin" size={18} />
-              {loading ? "Opening LinkedIn…" : "Connect LinkedIn"}
+              {connectLabel}
             </button>
           }
         />
@@ -168,7 +246,14 @@ function ConnectContent() {
         <div className="h-px bg-kova-border" />
 
         {message && (
-          <p className="rounded-lg border border-kova-green/30 bg-kova-green/5 px-4 py-3 text-sm text-kova-dark">
+          <p
+            role={messageTone === "error" ? "alert" : "status"}
+            className={`rounded-lg border px-4 py-3 text-sm ${
+              messageTone === "error"
+                ? "border-red-200 bg-red-50 text-red-700"
+                : "border-kova-green/30 bg-kova-green/5 text-kova-dark"
+            }`}
+          >
             {message}
           </p>
         )}
@@ -183,15 +268,19 @@ function ConnectContent() {
                 size="md"
               />
               <div>
-                <p className="font-semibold text-kova-dark">{displayName}</p>
+                <p className="font-semibold text-kova-dark">
+                  {profileLoading ? "Checking LinkedIn…" : displayName}
+                </p>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
                   <span className="inline-flex items-center gap-1 font-medium text-gray-500">
                     <PlatformBrandIcon platform="linkedin" size={14} />
                     LinkedIn
                   </span>
-                  <span className={`font-medium ${status.text}`}>
-                    {status.label}
-                  </span>
+                  {!profileLoading && (
+                    <span className={`font-medium ${status.text}`}>
+                      {status.label}
+                    </span>
+                  )}
                 </div>
                 {linkedin?.profile_knowledge?.headline && (
                   <p className="mt-2 text-sm text-gray-600">
@@ -215,23 +304,25 @@ function ConnectContent() {
               {linkedin?.connection_status === "connected" && (
                 <button
                   type="button"
+                  disabled={disconnecting}
                   onClick={disconnect}
-                  className="inline-flex h-9 items-center rounded-md px-3 text-sm font-semibold text-gray-400 transition hover:text-red-600"
+                  className="inline-flex h-9 items-center rounded-md px-3 text-sm font-semibold text-gray-400 transition hover:text-red-600 disabled:opacity-60"
                 >
-                  Disconnect
+                  {disconnecting ? "Disconnecting…" : "Disconnect"}
                 </button>
               )}
             </div>
           </div>
 
-          {!linkedin?.configured && (
+          {profile && linkedin && !linkedin.configured && (
             <div className="border-t border-kova-border bg-amber-50 px-5 py-3 text-sm text-amber-800">
-              Server env LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET are not
-              set yet.
+              LinkedIn sign-in is not turned on for this workspace yet.
             </div>
           )}
 
-          {connectConfig?.redirect_uri && (
+          {connectConfig?.redirect_uri &&
+            ((profile && linkedin && !linkedin.configured) ||
+              messageTone === "error") && (
             <div className="border-t border-kova-border px-5 py-4">
               <p className="text-xs font-medium text-gray-500">
                 Redirect URL (must match LinkedIn app)

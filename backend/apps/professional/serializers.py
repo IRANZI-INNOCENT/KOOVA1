@@ -25,6 +25,7 @@ class ContentPillarSerializer(serializers.ModelSerializer):
 class LinkedInConnectionSerializer(serializers.ModelSerializer):
     configured = serializers.SerializerMethodField()
     profile_knowledge = serializers.SerializerMethodField()
+    connection_status = serializers.SerializerMethodField()
 
     class Meta:
         model = LinkedInConnection
@@ -37,6 +38,11 @@ class LinkedInConnectionSerializer(serializers.ModelSerializer):
             "profile_knowledge",
             "configured",
         ]
+
+    def get_connection_status(self, obj: LinkedInConnection) -> str:
+        from .services.linkedin import effective_connection_status
+
+        return effective_connection_status(obj)
 
     def get_configured(self, obj: LinkedInConnection) -> bool:
         from .services.linkedin import linkedin_configured

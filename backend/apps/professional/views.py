@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django.core import signing
+from django.core.signing import BadSignature, SignatureExpired
 from django.shortcuts import redirect
 from django.utils import timezone
 from rest_framework import status
@@ -618,7 +618,6 @@ class LinkedInOAuthURLView(APIView):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
         profile = get_profile(request.user)
-        state = signing.dumps({"profile_id": profile.id})
         redirect_uri = linkedin_service.linkedin_oauth_redirect_uri(request)
         if not redirect_uri:
             return Response(
@@ -630,6 +629,10 @@ class LinkedInOAuthURLView(APIView):
                 },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
+        state = linkedin_service.build_oauth_state(
+            profile_id=profile.id,
+            redirect_uri=redirect_uri,
+        )
         url = linkedin_service.oauth_authorize_url(state=state, redirect_uri=redirect_uri)
         return Response({"url": url, "redirect_uri": redirect_uri})
 
@@ -638,53 +641,66 @@ class LinkedInOAuthCallbackView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        error = request.GET.get("error")
         front = linkedin_service.frontend_redirect_base()
+
+        def finish(**kwargs):
+            return redirect(linkedin_service.connect_page_url(front, **kwargs))
+
+        error = request.GET.get("error")
         if error:
-            return redirect(f"{front}/workspace/linkedin/connect?error={error}")
+            return finish(error=error, detail=request.GET.get("error_description", ""))
 
         code = request.GET.get("code", "")
         state = request.GET.get("state", "")
         if not code or not state:
-            return redirect(f"{front}/workspace/linkedin/connect?error=state")
+            return finish(error="state")
 
-        redirect_uri = linkedin_service.linkedin_oauth_redirect_uri(request)
         try:
-            payload = signing.loads(state, max_age=900)
-        except signing.BadSignature:
-            return redirect(f"{front}/workspace/linkedin/connect?error=state_expired")
-        except (TypeError, ValueError, KeyError):
-            return redirect(f"{front}/workspace/linkedin/connect?error=state")
+            payload = linkedin_service.read_oauth_state(state)
+        except SignatureExpired:
+            return finish(error="state_expired")
+        except (BadSignature, TypeError, ValueError, KeyError):
+            return finish(error="state")
+
+        redirect_uri = linkedin_service.accepted_callback_uri(
+            str(payload.get("redirect_uri") or ""),
+        ) or linkedin_service.linkedin_oauth_redirect_uri(request)
+        if not redirect_uri:
+            return finish(error="token", detail="Redirect URL is not configured.")
 
         try:
             profile_id = int(payload["profile_id"])
             profile = ProfessionalProfile.objects.get(pk=profile_id)
-        except (ProfessionalProfile.DoesNotExist, TypeError, ValueError):
-            return redirect(f"{front}/workspace/linkedin/connect?error=profile")
+        except (ProfessionalProfile.DoesNotExist, TypeError, ValueError, KeyError):
+            return finish(error="profile")
 
         try:
             bundle = linkedin_service.exchange_code(code=code, redirect_uri=redirect_uri)
-        except linkedin_service.LinkedInError:
-            return redirect(f"{front}/workspace/linkedin/connect?error=token")
+        except linkedin_service.LinkedInError as exc:
+            return finish(error="token", detail=str(exc))
 
+        member: dict = {}
         try:
-            member = linkedin_service.fetch_member_profile(bundle["access_token"])
+            member = linkedin_service.fetch_member_profile(bundle.get("access_token", ""))
         except linkedin_service.LinkedInError:
-            return redirect(f"{front}/workspace/linkedin/connect?error=member")
+            member = linkedin_service.claims_from_id_token(bundle)
 
         connection, _ = LinkedInConnection.objects.get_or_create(profile=profile)
         linkedin_service.apply_token_bundle(connection, bundle)
-        connection.linkedin_member_id = member.get("sub", "")
-        connection.display_name = member.get("name", "")
-        connection.save()
+        connection.linkedin_member_id = str(member.get("sub") or "")[:64]
+        connection.display_name = str(member.get("name") or "")[:200]
+        connection.save(update_fields=["linkedin_member_id", "display_name", "updated_at"])
+        profile_pending = not connection.linkedin_member_id
         try:
             sync_connection_profile(connection)
+            connection.refresh_from_db()
+            profile_pending = not (connection.linkedin_member_id or "").strip()
         except Exception:
-            pass
+            profile_pending = profile_pending or not (connection.linkedin_member_id or "").strip()
         profile.linkedin_setup_complete = True
         profile.save(update_fields=["linkedin_setup_complete", "updated_at"])
 
-        return redirect(f"{front}/workspace/linkedin/connect?connected=1")
+        return finish(connected=True, profile_pending=profile_pending)
 
 
 class LinkedInRefreshProfileView(APIView):

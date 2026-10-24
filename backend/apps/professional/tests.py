@@ -1,8 +1,12 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
+from django.utils import timezone
 from rest_framework.test import APIClient
 
-from .models import ContentPillar, ProfessionalProfile
+from .models import ContentPillar, LinkedInConnection, ProfessionalProfile
+from .services import linkedin as linkedin_service
 
 
 class ProfessionalProfileTests(TestCase):
@@ -58,3 +62,48 @@ class ProfessionalProfileTests(TestCase):
             format="json",
         )
         self.assertEqual(response.status_code, 400)
+
+
+class LinkedInOAuthFlowTests(SimpleTestCase):
+    def test_default_scopes_do_not_ask_for_offline_access(self):
+        scopes = linkedin_service.oauth_scopes()
+        self.assertIn("openid", scopes)
+        self.assertIn("w_member_social", scopes)
+        self.assertNotIn("offline_access", scopes)
+
+    def test_callback_uri_stays_on_our_path(self):
+        good = "https://ai.kcova.com/api/professional/linkedin/callback/"
+        self.assertEqual(linkedin_service.accepted_callback_uri(good), good)
+        self.assertEqual(
+            linkedin_service.accepted_callback_uri("https://evil.test/api/steal/"),
+            "",
+        )
+        self.assertEqual(
+            linkedin_service.accepted_callback_uri("http://example.com/api/professional/linkedin/callback/"),
+            "",
+        )
+
+    def test_state_round_trip_keeps_the_redirect_used_at_signin(self):
+        uri = "https://ai.kcova.com/api/professional/linkedin/callback/"
+        state = linkedin_service.build_oauth_state(profile_id=4, redirect_uri=uri)
+        payload = linkedin_service.read_oauth_state(state)
+        self.assertEqual(payload["profile_id"], 4)
+        self.assertEqual(payload["redirect_uri"], uri)
+
+    def test_cancelled_signin_uses_a_known_error_code(self):
+        url = linkedin_service.connect_page_url(
+            "https://ai.kcova.com",
+            error="user_cancelled_login",
+        )
+        self.assertIn("error=access_denied", url)
+        self.assertTrue(url.startswith("https://ai.kcova.com/workspace/linkedin/connect?"))
+
+    def test_past_expiry_reads_as_expired_without_a_write(self):
+        connection = LinkedInConnection(
+            connection_status=LinkedInConnection.Status.CONNECTED,
+            token_expires_at=timezone.now() - timedelta(minutes=5),
+        )
+        self.assertEqual(
+            linkedin_service.effective_connection_status(connection),
+            LinkedInConnection.Status.EXPIRED,
+        )
