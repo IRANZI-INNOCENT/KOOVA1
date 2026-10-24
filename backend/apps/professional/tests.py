@@ -5,7 +5,12 @@ from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from .models import ContentPillar, LinkedInConnection, ProfessionalProfile
+from .models import (
+    ContentPillar,
+    LinkedInConnection,
+    ProfessionalPost,
+    ProfessionalProfile,
+)
 from .services import linkedin as linkedin_service
 
 
@@ -162,3 +167,14 @@ class LinkedInOAuthFlowTests(SimpleTestCase):
             linkedin_service.effective_connection_status(connection),
             LinkedInConnection.Status.EXPIRED,
         )
+
+    def test_carousel_outline_is_the_full_post_text(self):
+        post = ProfessionalPost(
+            format=ProfessionalPost.Format.CAROUSEL_OUTLINE,
+            body="Architecting pragmatic agents.",
+            carousel_slides=["Typed tool calls", "A confidence threshold"],
+        )
+        text = linkedin_service.outbound_text(post)
+        self.assertIn("Architecting pragmatic agents.", text)
+        self.assertIn("Typed tool calls", text)
+        self.assertIn("A confidence threshold", text)

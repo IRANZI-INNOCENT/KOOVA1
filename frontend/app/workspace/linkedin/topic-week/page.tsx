@@ -403,10 +403,20 @@ export default function TopicWeekPage() {
                       await schedulePost(accessToken, post.id, iso),
                     );
                   }}
-                  onPublish={async () => {
+                  onPublish={async (text) => {
                     if (!accessToken) return;
-                    const result = await publishPost(accessToken, post.id);
-                    refreshPost(result.post);
+                    if (post.format !== "carousel_outline") {
+                      await updateProfessionalPost(accessToken, post.id, {
+                        body: text,
+                      });
+                    }
+                    const result = await publishPost(accessToken, post.id, text);
+                    if (result.post) refreshPost(result.post);
+                    if (!result.published) {
+                      throw new Error(
+                        result.detail || "LinkedIn did not publish this post.",
+                      );
+                    }
                   }}
                   onCopied={async () => {
                     if (!accessToken) return;

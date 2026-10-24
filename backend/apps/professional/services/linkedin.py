@@ -357,7 +357,20 @@ def commentary_for_linkedin(text: str, limit: int = LINKEDIN_COMMENTARY_LIMIT) -
     return best
 
 
-def publish_text_post(connection: LinkedInConnection, post: ProfessionalPost) -> str:
+def outbound_text(post: ProfessionalPost) -> str:
+    """The plain text that should appear on LinkedIn for this draft."""
+    if post.format == ProfessionalPost.Format.CAROUSEL_OUTLINE:
+        from apps.professional.services.carousel_copy import linkedin_carousel_copy
+
+        return linkedin_carousel_copy(post.body, post.carousel_slides)
+    return post.body or ""
+
+
+def publish_text_post(
+    connection: LinkedInConnection,
+    post: ProfessionalPost,
+    commentary: str | None = None,
+) -> str:
     """Publish a text (and optional multi-image) post. Returns post id/urn if available."""
     access_token = ensure_access_token(connection)
 
@@ -365,10 +378,14 @@ def publish_text_post(connection: LinkedInConnection, post: ProfessionalPost) ->
     if not member_id:
         raise LinkedInError("LinkedIn member id missing.")
 
+    text = (commentary or "").strip() or outbound_text(post).strip()
+    if not text:
+        raise LinkedInError("This post has no text to publish.")
+
     author = f"urn:li:person:{member_id}"
     payload: dict = {
         "author": author,
-        "commentary": commentary_for_linkedin(post.body),
+        "commentary": commentary_for_linkedin(text),
         "visibility": "PUBLIC",
         "lifecycleState": "PUBLISHED",
         "distribution": {

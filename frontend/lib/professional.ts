@@ -365,12 +365,18 @@ export async function schedulePost(
 export async function publishPost(
   token: string,
   postId: number,
+  commentary?: string,
 ): Promise<{ published: boolean; post: ProfessionalPost; detail?: string }> {
   return authenticatedApiRequest<{
     published: boolean;
     post: ProfessionalPost;
     detail?: string;
-  }>(`/professional/posts/${postId}/publish/`, token, { method: "POST" });
+  }>(`/professional/posts/${postId}/publish/`, token, {
+    method: "POST",
+    body: JSON.stringify(
+      commentary && commentary.trim() ? { commentary: commentary.trim() } : {},
+    ),
+  });
 }
 
 export async function markPostCopied(

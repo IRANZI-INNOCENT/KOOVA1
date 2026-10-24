@@ -159,13 +159,7 @@ export default function LinkedInHomePage() {
               href="/workspace/linkedin/topic-week"
               className="font-semibold text-kova-dark hover:text-kova-green"
             >
-              Topic week
-            </Link>
-            <Link
-              href="/workspace/linkedin/event"
-              className="font-semibold text-kova-dark hover:text-kova-green"
-            >
-              Event
+              Posts
             </Link>
             <Link
               href="/workspace/linkedin/calendar"

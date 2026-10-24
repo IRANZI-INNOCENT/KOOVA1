@@ -15,7 +15,7 @@ interface PostCardProps {
   onSave: (body: string) => Promise<void>;
   onApprove: () => Promise<void>;
   onSchedule: (iso: string) => Promise<void>;
-  onPublish: () => Promise<void>;
+  onPublish: (body: string) => Promise<void>;
   onCopied: () => Promise<void>;
 }
 
@@ -36,11 +36,15 @@ export function PostCard({
   const [body, setBody] = useState(initialBody);
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState<"ok" | "error">("ok");
+  const published = post.status === "published";
+  const scheduled = post.status === "scheduled";
 
   async function copyText() {
     const text = post.copy_text || body;
     await navigator.clipboard.writeText(text);
-    setMessage("Copied to clipboard.");
+    setMessageTone("ok");
+    setMessage("Copied.");
     await onCopied();
   }
 
@@ -49,6 +53,23 @@ export function PostCard({
     setMessage("");
     try {
       await fn();
+      if (action === "publish") {
+        setMessageTone("ok");
+        setMessage("Published on LinkedIn.");
+      } else if (action === "save") {
+        setMessageTone("ok");
+        setMessage("Saved.");
+      } else if (action === "schedule") {
+        setMessageTone("ok");
+        setMessage("Scheduled.");
+      }
+    } catch (err) {
+      setMessageTone("error");
+      setMessage(
+        err instanceof Error && err.message
+          ? err.message
+          : "That did not go through. Try again.",
+      );
     } finally {
       setBusy("");
     }
@@ -68,8 +89,11 @@ export function PostCard({
           {post.post_role}
         </span>
         <span>{post.format}</span>
-        <span className="capitalize">{post.status}</span>
-        {post.scheduled_at && (
+        <span className="capitalize">{published ? "Published" : post.status}</span>
+        {published && post.published_at && (
+          <span>Published {new Date(post.published_at).toLocaleString()}</span>
+        )}
+        {!published && post.scheduled_at && (
           <span>Scheduled {new Date(post.scheduled_at).toLocaleString()}</span>
         )}
       </div>
@@ -105,7 +129,15 @@ export function PostCard({
           ))}
         </div>
       )}
-      {message && <p className="mt-2 text-sm text-kova-green">{message}</p>}
+      {message && (
+        <p
+          className={`mt-2 text-sm ${
+            messageTone === "error" ? "text-red-600" : "text-kova-green"
+          }`}
+        >
+          {message}
+        </p>
+      )}
       {post.publish_error && (
         <p className="mt-2 text-sm text-red-600">{post.publish_error}</p>
       )}
@@ -130,17 +162,25 @@ export function PostCard({
         <Button
           type="button"
           variant="outline"
-          disabled={!!busy}
+          disabled={!!busy || published}
           onClick={() => run("schedule", () => onSchedule(defaultSchedule()))}
         >
-          Schedule
+          {scheduled && !published
+            ? "Scheduled"
+            : busy === "schedule"
+              ? "Scheduling…"
+              : "Schedule"}
         </Button>
         <Button
           type="button"
-          disabled={!!busy}
-          onClick={() => run("publish", onPublish)}
+          disabled={!!busy || published}
+          onClick={() => run("publish", () => onPublish(body))}
         >
-          Publish
+          {published
+            ? "Published"
+            : busy === "publish"
+              ? "Publishing…"
+              : "Publish"}
         </Button>
         <Button
           type="button"

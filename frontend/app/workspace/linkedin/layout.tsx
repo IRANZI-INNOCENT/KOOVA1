@@ -8,12 +8,8 @@ import { LinkedInProfileGate } from "@/components/linkedin/linkedin-profile-gate
 import { AppShell } from "@/components/workspace/app-shell";
 
 const tabs = [
-  { href: "/workspace/linkedin", label: "Home" },
-  { href: "/workspace/linkedin/topic-week", label: "Topic week" },
-  { href: "/workspace/linkedin/event", label: "Event moment" },
+  { href: "/workspace/linkedin/topic-week", label: "Posts" },
   { href: "/workspace/linkedin/calendar", label: "Calendar" },
-  { href: "/workspace/linkedin/brief", label: "Weekly brief" },
-  { href: "/workspace/linkedin/profile", label: "Profile & pillars" },
   { href: "/workspace/linkedin/connect", label: "Connect" },
 ];
 
@@ -32,10 +28,7 @@ export default function LinkedInLayout({ children }: { children: ReactNode }) {
             </p>
             <nav className="-mb-px mt-2 flex gap-1 overflow-x-auto pb-0">
               {tabs.map((tab) => {
-                const active =
-                  tab.href === "/workspace/linkedin"
-                    ? pathname === tab.href
-                    : pathname.startsWith(tab.href);
+                const active = pathname.startsWith(tab.href);
                 return (
                   <Link
                     key={tab.href}

@@ -13,7 +13,6 @@ class Command(BaseCommand):
         due = ProfessionalPost.objects.filter(
             status=ProfessionalPost.Status.SCHEDULED,
             scheduled_at__lte=now,
-            format=ProfessionalPost.Format.TEXT,
         ).select_related("profile")[:20]
 
         count = 0

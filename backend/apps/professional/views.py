@@ -506,8 +506,23 @@ class PostPublishView(APIView):
 
     def post(self, request, post_id):
         profile = get_profile(request.user)
-        post = ProfessionalPost.objects.get(pk=post_id, profile=profile)
-        connection = LinkedInConnection.objects.get(profile=profile)
+        try:
+            post = ProfessionalPost.objects.get(pk=post_id, profile=profile)
+        except ProfessionalPost.DoesNotExist:
+            return Response(
+                {"detail": "That post is no longer here."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        try:
+            connection = LinkedInConnection.objects.get(profile=profile)
+        except LinkedInConnection.DoesNotExist:
+            return Response(
+                {
+                    "published": False,
+                    "detail": "Connect LinkedIn before publishing.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if (
             profile.operating_mode == ProfessionalProfile.OperatingMode.APPROVAL
@@ -522,16 +537,6 @@ class PostPublishView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        if post.format == ProfessionalPost.Format.CAROUSEL_OUTLINE:
-            return Response(
-                {
-                    "published": False,
-                    "copy_only": True,
-                    "detail": "Carousel outlines must be posted manually on LinkedIn.",
-                    "post": ProfessionalPostSerializer(post).data,
-                },
-            )
-
         if not linkedin_service.linkedin_configured():
             return Response(
                 {
@@ -542,8 +547,11 @@ class PostPublishView(APIView):
                 },
             )
 
+        commentary = request.data.get("commentary") if isinstance(request.data, dict) else None
+        if commentary is not None and not isinstance(commentary, str):
+            commentary = None
         try:
-            urn = linkedin_service.publish_text_post(connection, post)
+            urn = linkedin_service.publish_text_post(connection, post, commentary)
             post.linkedin_post_urn = urn
             post.status = ProfessionalPost.Status.PUBLISHED
             post.published_at = timezone.now()
