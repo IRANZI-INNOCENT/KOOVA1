@@ -56,8 +56,14 @@ class AiUsageEvent(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["feature", "-created_at"]),
-            models.Index(fields=["business", "-created_at"]),
+            models.Index(
+                fields=["feature", "-created_at"],
+                name="kova_ai_aiu_feature_7c2a1b_idx",
+            ),
+            models.Index(
+                fields=["business", "-created_at"],
+                name="kova_ai_aiu_busines_3e9d4c_idx",
+            ),
         ]
 
     def __str__(self) -> str:

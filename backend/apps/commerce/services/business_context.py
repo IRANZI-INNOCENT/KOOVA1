@@ -11,9 +11,11 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
+from uuid import UUID
 
 from django.apps import apps
 from django.db import models as django_models
+from django.db.models.fields.files import FieldFile
 
 from apps.commerce.models import CommercePage, Product
 
@@ -127,7 +129,13 @@ class CommerceBusinessContextService:
                     field.name,
                 )
 
-            if isinstance(value, Decimal):
+            if isinstance(value, FieldFile):
+                value = value.name or ""
+
+            elif isinstance(value, Decimal):
+                value = str(value)
+
+            elif isinstance(value, UUID):
                 value = str(value)
 
             elif isinstance(
@@ -136,8 +144,11 @@ class CommerceBusinessContextService:
             ):
                 value = value.isoformat()
 
-            elif hasattr(value, "pk"):
-                value = value.pk
+            elif isinstance(value, (bytes, memoryview)):
+                value = ""
+
+            elif value is not None and not isinstance(value, (str, int, float, bool, list, dict)):
+                value = str(value)
 
             result[field.name] = value
 

@@ -297,9 +297,9 @@ Return exactly this structure:
         text = (
             "Polish this product for the public store page.\n\n"
             "CURRENT LISTING:\n"
-            f"{json.dumps(listing, ensure_ascii=False)}\n\n"
+            f"{json.dumps(listing, ensure_ascii=False, default=str)}\n\n"
             "BUSINESS CONTEXT:\n"
-            f"{json.dumps(business_context, ensure_ascii=False)}\n\n"
+            f"{json.dumps(business_context, ensure_ascii=False, default=str)}\n\n"
             "Use the photos to make the listing specific. "
             "Leave commercial facts as they are."
         )
@@ -400,9 +400,9 @@ Also put those colors in visual_attributes.color.
                 "text": (
                     "Analyze this product for a small business.\n\n"
                     "OWNER-PROVIDED FACTS:\n"
-                    f"{json.dumps(owner_facts, ensure_ascii=False)}\n\n"
+                    f"{json.dumps(owner_facts, ensure_ascii=False, default=str)}\n\n"
                     "BUSINESS CONTEXT:\n"
-                    f"{json.dumps(business_context, ensure_ascii=False)}\n\n"
+                    f"{json.dumps(business_context, ensure_ascii=False, default=str)}\n\n"
                     "Use the images together with these facts. "
                     "Do not invent unsupported facts."
                 ),

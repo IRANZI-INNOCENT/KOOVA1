@@ -121,3 +121,23 @@ class ProductVisionTests(SimpleTestCase):
 
         self.assertEqual(result["name"], "Jacket")
         self.assertEqual(mock_provider.chat.call_count, 2)
+
+    def test_store_logo_in_context_does_not_break_the_prompt(self):
+        from django.db import models
+        from django.db.models.fields.files import FieldFile
+
+        logo_field = models.ImageField(name="logo")
+
+        class Page:
+            pass
+
+        page = Page()
+        logo = FieldFile(page, logo_field, "commerce/storefront/logo.jpg")
+        content = ProductVisionService()._build_user_content(
+            images=[("hat.jpg", b"image")],
+            owner_facts={"price": "1200"},
+            business_context={"commerce_page": {"logo": logo, "title": "KOVA"}},
+        )
+        text = content[0]["text"]
+        self.assertIn("logo.jpg", text)
+        self.assertIn("KOVA", text)
