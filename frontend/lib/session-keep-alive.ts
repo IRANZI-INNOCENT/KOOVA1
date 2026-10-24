@@ -14,7 +14,7 @@ export async function renewSession(): Promise<RenewSessionResult> {
   try {
     const response = await apiRequest<{ access: string }>(
       "/auth/refresh/",
-      { method: "POST" },
+      { method: "POST", timeoutMs: 8000 },
     );
 
     if (!response?.access) {

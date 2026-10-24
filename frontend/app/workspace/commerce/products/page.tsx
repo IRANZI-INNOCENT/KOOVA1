@@ -108,13 +108,13 @@ export default function ProductsPage() {
             disabled={broadcastBusy}
             className="inline-flex h-10 items-center rounded-lg border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark disabled:opacity-60"
           >
-            {broadcastBusy ? "Building…" : "Share today’s stock"}
+            {broadcastBusy ? "Building…" : "Share today’s list"}
           </button>
           <Link
             href="/workspace/commerce/snap-to-sell"
             className="inline-flex h-10 items-center rounded-lg bg-kova-orange px-4 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e]"
           >
-            Snap product
+            Add listing
           </Link>
           {storePath ? (
             <a
@@ -213,7 +213,8 @@ export default function ProductsPage() {
                         {product.name}
                       </p>
                       <p className="truncate text-xs text-gray-500">
-                        {product.category || "Uncategorized"}
+                        {product.offering_kind === "service" ? "Service" : "Product"}
+                        {product.category ? ` · ${product.category}` : ""}
                       </p>
                       <p className="mt-1 text-sm text-kova-dark md:hidden">
                         {product.price
@@ -249,7 +250,7 @@ export default function ProductsPage() {
               href="/workspace/commerce/snap-to-sell"
               className="mt-3 inline-flex h-10 items-center rounded-md bg-kova-orange px-5 text-sm font-bold text-kova-dark hover:bg-[#f0a46e]"
             >
-              Snap product
+              Add listing
             </Link>
           </div>
         )}

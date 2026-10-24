@@ -48,6 +48,7 @@ export interface Product {
   size: string;
   color: string;
   condition: string;
+  offering_kind?: "product" | "service";
 
   short_description: string;
   description: string;

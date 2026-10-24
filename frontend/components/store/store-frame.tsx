@@ -22,7 +22,6 @@ export function StoreFrame({ page, slug, children }: StoreFrameProps) {
   const shopHref = `/store/${slug}`;
   const logoSrc = resolveStoreImage(page.logo_url);
   const name = page.title?.trim() || page.business_name;
-  const showAbout = page.show_about !== false;
 
   return (
     <div
@@ -65,36 +64,16 @@ export function StoreFrame({ page, slug, children }: StoreFrameProps) {
             </span>
           </Link>
 
-          <nav
-            className="order-3 flex w-full items-center gap-5 text-[15px] font-medium lg:order-none lg:ml-auto lg:w-auto lg:justify-end lg:gap-7"
-            aria-label="Store"
-          >
-            <Link href={shopHref} style={{ color: GOLD }} className="font-semibold">
-              Home
-            </Link>
-            {showAbout && (
-              <Link href={`${shopHref}#about`} style={{ color: INK }}>
-                About
-              </Link>
-            )}
-            <Link href={`${shopHref}#gallery`} style={{ color: INK }}>
-              Gallery
-            </Link>
-            <Link href={`${shopHref}#contact`} style={{ color: INK }}>
-              Contact
-            </Link>
-          </nav>
-
           {page.whatsapp ? (
             <a
               href={whatsappLink(page.whatsapp)}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-auto inline-flex h-11 shrink-0 items-center gap-2 rounded-lg px-4 text-sm font-semibold text-white lg:ml-2"
+              className="ml-auto inline-flex h-11 shrink-0 items-center gap-2 rounded-lg px-4 text-sm font-semibold text-white"
               style={{ backgroundColor: GREEN }}
             >
               <WhatsAppGlyph />
-              Order Via WhatsApp
+              WhatsApp
             </a>
           ) : null}
         </div>

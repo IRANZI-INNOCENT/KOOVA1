@@ -419,9 +419,14 @@ class SnapToSellService:
             or str(analysis.get("color") or "").strip()
             or ProductVisionService._visible_color(analysis)
         )
+        offering_kind = (
+            str(owner_facts.get("offering_kind") or "product").strip().lower()
+        )
+        if offering_kind not in {"product", "service"}:
+            offering_kind = "product"
         condition = (
             str(owner_facts.get("condition") or "").strip()
-            or "New"
+            or ("" if offering_kind == "service" else "New")
         )
 
         return Product.objects.create(
@@ -434,7 +439,7 @@ class SnapToSellService:
             currency=str(
                 owner_facts.get("currency") or "KES"
             ).strip().upper()[:10],
-            stock=owner_facts.get("stock") or None,
+            stock=None if offering_kind == "service" else (owner_facts.get("stock") or None),
             sku=str(owner_facts.get("sku") or "")[:100],
             brand=str(
                 owner_facts.get("brand") or ""
@@ -447,6 +452,7 @@ class SnapToSellService:
             ).strip()[:160],
             color=color[:160],
             condition=condition[:100],
+            offering_kind=offering_kind,
 
             # Kova intelligence
             short_description=(

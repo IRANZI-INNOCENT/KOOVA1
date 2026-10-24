@@ -119,16 +119,24 @@ async function readErrorResponse(
 
 async function refreshAccessToken(): Promise<string | null> {
   try {
-    const response = await fetch(
-      `${apiUrl()}/auth/refresh/`,
-      {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    let response: Response;
+    try {
+      response = await fetch(
+        `${apiUrl()}/auth/refresh/`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          signal: controller.signal,
         },
-      },
-    );
+      );
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (!response.ok) {
       return null;
@@ -171,10 +179,15 @@ function cloneRequestBody(body: BodyInit | null | undefined): BodyInit | null | 
 }
 
 
+const DEFAULT_TIMEOUT_MS = 20000;
+
+type ApiRequestInit = RequestInit & { timeoutMs?: number };
+
 export async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {},
+  options: ApiRequestInit = {},
 ): Promise<T> {
+  const { timeoutMs = DEFAULT_TIMEOUT_MS, ...requestInit } = options;
 
   async function makeRequest(
     requestOptions: RequestInit,
@@ -205,20 +218,56 @@ export async function apiRequest<T>(
       );
     }
 
-    return fetch(
-      `${apiUrl()}${endpoint}`,
-      {
-        ...requestOptions,
-        body: cloneRequestBody(requestOptions.body),
-        credentials: "include",
-        headers,
-      },
+    const controller = new AbortController();
+    const timer = setTimeout(
+      () => controller.abort(),
+      timeoutMs,
     );
+    if (requestOptions.signal) {
+      if (requestOptions.signal.aborted) {
+        controller.abort();
+      } else {
+        requestOptions.signal.addEventListener(
+          "abort",
+          () => controller.abort(),
+          { once: true },
+        );
+      }
+    }
+
+    try {
+      return await fetch(
+        `${apiUrl()}${endpoint}`,
+        {
+          ...requestOptions,
+          body: cloneRequestBody(requestOptions.body),
+          credentials: "include",
+          headers,
+          signal: controller.signal,
+        },
+      );
+    } catch (error) {
+      if (
+        error instanceof DOMException &&
+        error.name === "AbortError"
+      ) {
+        throw new ApiError(
+          "Kova took too long to respond. Refresh and try again.",
+          408,
+        );
+      }
+      throw new ApiError(
+        "We could not reach Kova. Check your connection and try again.",
+        0,
+      );
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
 
   let response =
-    await makeRequest(options);
+    await makeRequest(requestInit);
 
 
   if (
@@ -230,10 +279,10 @@ export async function apiRequest<T>(
 
     if (newAccessToken) {
       response = await makeRequest({
-        ...options,
+        ...requestInit,
 
         headers: {
-          ...(options.headers || {}),
+          ...(requestInit.headers || {}),
           Authorization:
             `Bearer ${newAccessToken}`,
         },
@@ -273,7 +322,7 @@ export async function apiRequest<T>(
 export async function authenticatedApiRequest<T>(
   endpoint: string,
   accessToken: string,
-  options: RequestInit = {},
+  options: ApiRequestInit = {},
 ): Promise<T> {
   return apiRequest<T>(
     endpoint,

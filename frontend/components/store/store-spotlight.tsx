@@ -17,6 +17,7 @@ export function StoreSpotlight({
   accent,
   subtitle,
   menuHref,
+  menuLabel = "See offerings",
   whatsappHref,
   whatsappLabel,
 }: {
@@ -25,6 +26,7 @@ export function StoreSpotlight({
   accent: string;
   subtitle: string;
   menuHref: string;
+  menuLabel?: string;
   whatsappHref: string;
   whatsappLabel: string;
 }) {
@@ -88,7 +90,7 @@ export function StoreSpotlight({
             className="inline-flex h-11 items-center rounded-md px-5 text-sm font-semibold text-white"
             style={{ backgroundColor: "#C9973A" }}
           >
-            View Menu →
+            {menuLabel} →
           </a>
           {whatsappHref ? (
             <a

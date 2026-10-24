@@ -38,6 +38,7 @@ type Step =
   | "live";
 
 type SnapMode = "single" | "batch";
+type OfferingKind = "product" | "service";
 type BatchPriceMode = "shared" | "individual";
 
 interface ImagePreview {
@@ -99,6 +100,9 @@ export default function SnapToSellModal({
   const [snapMode, setSnapMode] =
     useState<SnapMode>("single");
 
+  const [offeringKind, setOfferingKind] =
+    useState<OfferingKind>("product");
+
   const [batchProducts, setBatchProducts] = useState<
     Product[]
   >([]);
@@ -146,6 +150,7 @@ export default function SnapToSellModal({
     setError("");
     setProduct(null);
     setSnapMode("single");
+    setOfferingKind("product");
     setBatchProducts([]);
     setBatchErrors([]);
     setBatchPriceMode("shared");
@@ -445,7 +450,11 @@ export default function SnapToSellModal({
     }
 
     if (!images.length) {
-      setError("Take at least one product photo.");
+      setError(
+        offeringKind === "service"
+          ? "Add at least one photo of the service."
+          : "Take at least one product photo.",
+      );
       return;
     }
 
@@ -471,6 +480,7 @@ export default function SnapToSellModal({
       }
 
       formData.append("currency", currency);
+      formData.append("offering_kind", offeringKind);
 
       if (useBatch) {
         const batchResult = await snapToSellBatch(
@@ -566,10 +576,11 @@ export default function SnapToSellModal({
               price,
               currency,
               brand: brand.trim(),
-              material: material.trim(),
-              size: size.trim(),
+              material: offeringKind === "service" ? "" : material.trim(),
+              size: offeringKind === "service" ? "" : size.trim(),
               color: color.trim(),
-              condition: condition.trim(),
+              condition: offeringKind === "service" ? "" : condition.trim(),
+              offering_kind: offeringKind,
               status: "draft",
             }),
           },
@@ -669,7 +680,7 @@ export default function SnapToSellModal({
             id="snap-to-sell-title"
             className="text-lg font-semibold tracking-tight text-kova-dark sm:text-xl"
           >
-            Snap product
+            {offeringKind === "service" ? "Snap a service" : "Snap a product"}
           </h1>
           <p className="mt-0.5 text-xs text-gray-500 sm:text-sm">
             Photo, price, then Kova drafts the listing.
@@ -696,6 +707,35 @@ export default function SnapToSellModal({
   function renderCaptureStep() {
     return (
       <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setOfferingKind("product")}
+            className={`h-11 rounded-md border text-sm font-semibold ${
+              offeringKind === "product"
+                ? "border-[#176B4D] bg-[#176B4D] text-white"
+                : "border-[#E5E7E5] bg-white text-[#17211D]"
+            }`}
+          >
+            Product
+          </button>
+          <button
+            type="button"
+            onClick={() => setOfferingKind("service")}
+            className={`h-11 rounded-md border text-sm font-semibold ${
+              offeringKind === "service"
+                ? "border-[#176B4D] bg-[#176B4D] text-white"
+                : "border-[#E5E7E5] bg-white text-[#17211D]"
+            }`}
+          >
+            Service
+          </button>
+        </div>
+        <p className="text-xs leading-5 text-gray-500">
+          {offeringKind === "service"
+            ? "Photograph the work, the space, or the result. Kova writes a service people can book."
+            : "Photograph the item. Kova writes a product people can order."}
+        </p>
 
         {/* Camera input */}
         <input
@@ -1113,8 +1153,12 @@ export default function SnapToSellModal({
               className="mb-2 block text-sm font-medium text-[#17211D]"
             >
               {isBatchPricing
-                ? "Shared selling price"
-                : "Selling price"}
+                ? offeringKind === "service"
+                  ? "Shared price"
+                  : "Shared selling price"
+                : offeringKind === "service"
+                  ? "Price"
+                  : "Selling price"}
             </label>
 
             <input
@@ -1476,7 +1520,7 @@ export default function SnapToSellModal({
                   htmlFor="manual-price"
                   className="block text-sm font-medium text-[#17211D]"
                 >
-                  Selling price *
+                  {offeringKind === "service" ? "Price *" : "Selling price *"}
                 </label>
 
                 <div className="mt-2 flex">
@@ -1544,6 +1588,8 @@ export default function SnapToSellModal({
                 />
               </div>
 
+              {offeringKind === "product" ? (
+              <>
               {/* Material */}
               <div>
                 <label
@@ -1627,6 +1673,8 @@ export default function SnapToSellModal({
                   className="mt-2 h-12 w-full border border-[#E5E7E5] px-4 text-sm text-[#17211D] outline-none focus:border-[#176B4D]"
                 />
               </div>
+              </>
+              ) : null}
             </div>
           </div>
         </section>
@@ -1964,6 +2012,8 @@ export default function SnapToSellModal({
                 />
               </div>
 
+              {offeringKind === "product" ? (
+              <>
               <div>
                 <label
                   htmlFor="product-material"
@@ -2039,6 +2089,8 @@ export default function SnapToSellModal({
                   className="mt-2 h-12 w-full border border-[#E5E7E5] px-4 text-sm text-[#17211D] outline-none focus:border-[#176B4D]"
                 />
               </div>
+              </>
+              ) : null}
             </div>
           </div>
         </section>

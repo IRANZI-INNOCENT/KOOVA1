@@ -49,7 +49,7 @@ export const INTENT_PAGES: IntentPage[] = [
       {
         heading: "What you can do",
         body: [
-          "Snap product photos into a draft listing, set your KES price, and publish when ready.",
+          "Snap a product or a service, set your KES price, and publish when the listing is ready.",
           "Share the store or a single product. Customers browse, then tap through to WhatsApp to order with you.",
           "Use Autopilot and content tools when you want help posting — without inventing stock or prices you did not enter.",
         ],

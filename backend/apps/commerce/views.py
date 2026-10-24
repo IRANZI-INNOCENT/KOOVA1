@@ -53,6 +53,13 @@ def _collect_snap_to_sell_images(request):
     return uploaded_images
 
 
+def _offering_kind(request) -> str:
+    raw = (request.data.get("offering_kind") or "product").strip().lower()
+    if raw == "service":
+        return "service"
+    return "product"
+
+
 def _parse_snap_to_sell_owner_facts(request):
     raw_price = request.data.get("price")
 
@@ -90,6 +97,7 @@ def _parse_snap_to_sell_owner_facts(request):
         "size": (request.data.get("size") or "").strip(),
         "color": (request.data.get("color") or "").strip(),
         "condition": (request.data.get("condition") or "").strip(),
+        "offering_kind": _offering_kind(request),
     }
 
     return owner_facts, None
@@ -130,6 +138,7 @@ def _parse_snap_to_sell_batch_pricing(request, *, image_count: int):
         "size": (request.data.get("size") or "").strip(),
         "color": (request.data.get("color") or "").strip(),
         "condition": (request.data.get("condition") or "").strip(),
+        "offering_kind": _offering_kind(request),
     }
 
     raw_prices = request.data.get("prices")

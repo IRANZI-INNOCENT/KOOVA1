@@ -66,7 +66,12 @@ export default function OverviewPage() {
   const [brief, setBrief] = useState<MorningBrief | null>(null);
 
   useEffect(() => {
-    if (workspaceLoading || !businessId || !accessToken) {
+    if (workspaceLoading) {
+      return;
+    }
+
+    if (!businessId || !accessToken) {
+      setLoading(false);
       return;
     }
 
@@ -79,10 +84,19 @@ export default function OverviewPage() {
         setLoading(true);
         setError("");
 
-        const [prods, page, contentList, leadList, orderList, plans, channels, social, dailyBrief] =
+        const [prods, page] = await Promise.all([
+          getProducts(bizId, token),
+          getCommercePage(bizId, token),
+        ]);
+
+        if (cancelled) return;
+
+        setProducts(prods);
+        setCommercePage(page);
+        setLoading(false);
+
+        const [contentList, leadList, orderList, plans, channels, social, dailyBrief] =
           await Promise.all([
-            getProducts(bizId, token),
-            getCommercePage(bizId, token),
             getContents(bizId, token).catch(() => [] as Content[]),
             getLeads(bizId, token).catch(() => [] as Lead[]),
             getOrders(bizId, token).catch(() => [] as OrderRecord[]),
@@ -96,8 +110,6 @@ export default function OverviewPage() {
 
         if (cancelled) return;
 
-        setProducts(prods);
-        setCommercePage(page);
         setContents(contentList);
         setLeads(leadList);
         setOrders(orderList);
@@ -403,7 +415,7 @@ export default function OverviewPage() {
                 href="/workspace/commerce/snap-to-sell"
                 className="mt-4 inline-flex h-10 items-center justify-center rounded-md bg-kova-orange px-5 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e]"
               >
-                Snap product
+                Add listing
               </Link>
             </section>
           )}

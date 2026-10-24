@@ -94,6 +94,7 @@ export default function ProductDetailPage() {
     try {
       const updated = await updateProduct(businessId, product.id, accessToken, {
         name: product.name,
+        offering_kind: product.offering_kind === "service" ? "service" : "product",
         category: product.category,
         price: product.price,
         currency: product.currency,
@@ -110,7 +111,7 @@ export default function ProductDetailPage() {
         status: product.status,
       });
       setProduct(updated);
-      setSuccess("Product saved.");
+      setSuccess("Listing saved.");
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "Could not save the product.",
@@ -381,14 +382,34 @@ export default function ProductDetailPage() {
             {/* Right: editable fields */}
             <div className="space-y-5">
               <section className="rounded-lg border border-kova-border bg-white p-6">
-                <h2 className="font-bold text-kova-dark">Product Details</h2>
+                <h2 className="font-bold text-kova-dark">
+                  {product.offering_kind === "service" ? "Service details" : "Product details"}
+                </h2>
                 <p className="mt-0.5 text-xs text-gray-400">
                   Owner-provided facts. These are authoritative.
                 </p>
                 <div className="mt-5 grid gap-5 sm:grid-cols-2">
                   <div className="sm:col-span-2">
+                    <label className="mb-2 block text-sm font-medium text-kova-dark">
+                      What is this
+                    </label>
+                    <select
+                      value={product.offering_kind === "service" ? "service" : "product"}
+                      onChange={(e) =>
+                        setProduct({
+                          ...product,
+                          offering_kind: e.target.value === "service" ? "service" : "product",
+                        })
+                      }
+                      className="h-11 w-full rounded-md border border-kova-border bg-white px-3 text-sm text-kova-dark"
+                    >
+                      <option value="product">Product to order</option>
+                      <option value="service">Service to book</option>
+                    </select>
+                  </div>
+                  <div className="sm:col-span-2">
                   <Input
-                    label="Product name"
+                    label={product.offering_kind === "service" ? "Service name" : "Product name"}
                     value={product.name}
                     onChange={(e) =>
                       setProduct({ ...product, name: e.target.value })
@@ -419,6 +440,7 @@ export default function ProductDetailPage() {
                       setProduct({ ...product, currency: e.target.value })
                     }
                   />
+                  {product.offering_kind === "service" ? null : (
                   <Input
                     label="Stock"
                     type="number"
@@ -430,6 +452,7 @@ export default function ProductDetailPage() {
                       })
                     }
                   />
+                  )}
                   <Input
                     label="SKU"
                     value={product.sku}
@@ -440,9 +463,10 @@ export default function ProductDetailPage() {
                 </div>
               </section>
 
+              {product.offering_kind === "service" ? null : (
               <section className="rounded-lg border border-kova-border bg-white p-6">
                 <h2 className="font-bold text-kova-dark">
-                  Physical Attributes
+                  Physical attributes
                 </h2>
                 <p className="mt-0.5 text-xs text-gray-400">
                   Correct anything the AI got wrong.
@@ -485,6 +509,7 @@ export default function ProductDetailPage() {
                   />
                 </div>
               </section>
+              )}
 
               <section className="rounded-lg border border-kova-border bg-white p-6">
                 <h2 className="font-bold text-kova-dark">Description</h2>

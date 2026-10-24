@@ -118,6 +118,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "size",
             "color",
             "condition",
+            "offering_kind",
 
             # Kova intelligence
             "short_description",

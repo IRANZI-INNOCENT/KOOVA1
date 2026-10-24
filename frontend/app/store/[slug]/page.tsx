@@ -17,8 +17,6 @@ import { formatPrice, whatsappLink } from "@/lib/storefront";
 
 type Params = { slug: string };
 
-const ABOUT_ICONS = ["fork", "tag", "pin", "people", "star"] as const;
-
 export async function generateMetadata({
   params,
 }: {
@@ -77,21 +75,15 @@ function headlineParts(page: CommercePage) {
   return { lead: raw, accent: "" };
 }
 
-function aboutPoints(page: CommercePage): string[] {
-  const description = page.description?.trim() || "";
-  const sentences = description
-    .split(/\n+|(?<=[.!?])\s+/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 2 && line.length < 90);
-  if (sentences.length >= 2) return sentences.slice(0, 5);
+function heroSubtitle(page: CommercePage) {
+  const text = (page.description || page.tagline || "").trim();
+  if (!text) return "";
+  const sentence = text.split(/(?<=[.!?])\s+/)[0] || text;
+  return sentence.length > 180 ? `${sentence.slice(0, 177).trim()}…` : sentence;
+}
 
-  const points: string[] = [];
-  if (page.tagline?.trim()) points.push(page.tagline.trim());
-  if (description && description.length < 90) points.push(description);
-  if (page.location?.trim()) points.push(page.location.trim());
-  if (page.phone?.trim()) points.push(page.phone.trim());
-  if (page.whatsapp?.trim()) points.push("Order on WhatsApp");
-  return points.slice(0, 5);
+function isService(product: Product) {
+  return product.offering_kind === "service";
 }
 
 function displayPhone(raw: string) {
@@ -102,7 +94,7 @@ function displayPhone(raw: string) {
   return raw.trim();
 }
 
-function DishCard({
+function OfferingCard({
   product,
   slug,
   whatsapp,
@@ -112,10 +104,11 @@ function DishCard({
   whatsapp: string;
 }) {
   const image = productImage(product);
+  const service = isService(product);
   return (
-    <article className="flex flex-col overflow-hidden rounded-xl bg-white shadow-[0_8px_24px_rgba(107,62,22,0.08)]">
-      <Link href={`/store/${slug}/${product.slug}`} className="block px-3 pt-3">
-        <div className="aspect-[4/3] overflow-hidden rounded-lg bg-[#F3E6D4]">
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#E7D7C3] bg-white">
+      <Link href={`/store/${slug}/${product.slug}`} className="block">
+        <div className="aspect-[4/5] overflow-hidden bg-[#F6EFE4]">
           {image?.url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -124,33 +117,38 @@ function DishCard({
               className="h-full w-full object-cover"
               loading="lazy"
             />
-          ) : null}
+          ) : (
+            <div className="flex h-full items-center justify-center text-xs font-semibold uppercase tracking-wide text-[#6B3E16]/50">
+              {service ? "Service" : "Product"}
+            </div>
+          )}
         </div>
-        <h3
-          className="px-1 pb-3 pt-3 text-center text-sm font-semibold"
-          style={{ color: "#3F3A34" }}
-        >
-          {product.name}
-        </h3>
       </Link>
-      {whatsapp ? (
-        <div className="mt-auto flex justify-center px-3 pb-4">
-          <StoreOrderButton
-            slug={slug}
-            productSlug={product.slug}
-            productName={product.name}
-            whatsapp={whatsapp}
-            className="inline-flex h-9 min-w-[7.5rem] items-center justify-center rounded-md px-4 text-xs font-semibold text-white disabled:opacity-70"
-            style={{ backgroundColor: "#C9973A" }}
-          >
-            Order Now
-          </StoreOrderButton>
-        </div>
-      ) : (
-        <div className="px-3 pb-4 text-center text-xs font-semibold" style={{ color: "#C9973A" }}>
+      <div className="flex flex-1 flex-col px-4 pb-4 pt-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#C9973A]">
+          {service ? "Service" : product.category || "Product"}
+        </p>
+        <h3 className="mt-1 text-[15px] font-semibold leading-5 text-[#3F3A34]">
+          <Link href={`/store/${slug}/${product.slug}`}>{product.name}</Link>
+        </h3>
+        <p className="mt-1 text-sm font-medium text-[#6B3E16]">
           {formatPrice(product.currency, product.price)}
-        </div>
-      )}
+        </p>
+        {whatsapp ? (
+          <div className="mt-auto pt-3">
+            <StoreOrderButton
+              slug={slug}
+              productSlug={product.slug}
+              productName={product.name}
+              whatsapp={whatsapp}
+              className="inline-flex h-10 w-full items-center justify-center rounded-md text-sm font-semibold text-white disabled:opacity-70"
+              style={{ backgroundColor: "#C9973A" }}
+            >
+              {service ? "Book" : "Order"}
+            </StoreOrderButton>
+          </div>
+        ) : null}
+      </div>
     </article>
   );
 }
@@ -176,7 +174,7 @@ export default async function PublicStorePage({
 
   const { page, products } = data;
   const { lead, accent } = headlineParts(page);
-  const subtitle = (page.description || "").trim();
+  const subtitle = heroSubtitle(page);
   const bannerSlides =
     page.banners && page.banners.length > 0
       ? page.banners
@@ -198,11 +196,8 @@ export default async function PublicStorePage({
             ]
           : [];
   const popular = products.slice(0, 4);
-  const points = page.show_about === false ? [] : aboutPoints(page);
-  const aboutPhoto =
-    resolveStoreImage(
-      products[1] ? productImage(products[1])?.url : page.cover_url,
-    ) || resolveStoreImage(page.cover_url || page.logo_url);
+  const aboutCopy = (page.description || "").trim();
+  const aboutPhoto = resolveStoreImage(page.cover_url || page.logo_url);
   const phoneLabel = page.whatsapp ? displayPhone(page.whatsapp) : "";
 
   const storeLd = {
@@ -235,25 +230,26 @@ export default async function PublicStorePage({
           lead={lead}
           accent={accent}
           subtitle={subtitle}
-          menuHref="#menu"
+          menuHref="#offerings"
+          menuLabel="See offerings"
           whatsappHref={page.whatsapp ? whatsappLink(page.whatsapp) : ""}
           whatsappLabel={
-            phoneLabel ? `Order on WhatsApp  ${phoneLabel}` : "Order on WhatsApp"
+            phoneLabel ? `WhatsApp  ${phoneLabel}` : "WhatsApp"
           }
         />
       ) : null}
 
       <section className="mx-auto grid max-w-6xl gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:py-12">
-        <div id="menu">
+        <div id="popular">
           <SectionTitle>Popular</SectionTitle>
           {popular.length === 0 ? (
             <p className="mt-6 text-sm text-[#6B3E16]/70">
-              No products listed yet. Check back soon.
+              Offerings will appear here once they are published.
             </p>
           ) : (
             <div className="mt-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
               {popular.map((product) => (
-                <DishCard
+                <OfferingCard
                   key={product.id}
                   product={product}
                   slug={slug}
@@ -269,16 +265,19 @@ export default async function PublicStorePage({
             <SectionTitle>
               About {page.title?.trim() || page.business_name}
             </SectionTitle>
-            {points.length > 0 ? (
-              <ul className="mt-6 space-y-3">
-                {points.map((point, index) => (
-                  <li key={point} className="flex items-start gap-3 text-sm text-[#3F3A34]">
-                    <AboutIcon name={ABOUT_ICONS[index % ABOUT_ICONS.length]} />
-                    <span>{point}</span>
-                  </li>
-                ))}
-              </ul>
+            {aboutCopy ? (
+              <p className="mt-5 text-sm leading-6 text-[#3F3A34]">{aboutCopy}</p>
             ) : null}
+            <div className="mt-4 space-y-1 text-sm text-[#3F3A34]">
+              {page.location ? <p>{page.location}</p> : null}
+              {page.phone ? (
+                <p>
+                  <a href={`tel:${page.phone}`} className="hover:underline">
+                    {displayPhone(page.phone)}
+                  </a>
+                </p>
+              ) : null}
+            </div>
             {aboutPhoto ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -291,84 +290,59 @@ export default async function PublicStorePage({
         ) : null}
       </section>
 
-      <section id="gallery" className="mx-auto max-w-6xl px-4 pb-12 sm:px-6">
-        <SectionTitle>Gallery</SectionTitle>
+      <section id="offerings" className="mx-auto max-w-6xl px-4 pb-14 sm:px-6">
+        <SectionTitle>Offerings</SectionTitle>
+        <p className="mt-3 max-w-xl text-sm leading-6 text-[#3F3A34]/80">
+          Products to order and services to book, in one list.
+        </p>
         {products.length === 0 ? (
-          <p className="mt-6 text-sm text-[#6B3E16]/70">Photos will appear here.</p>
+          <p className="mt-6 text-sm text-[#6B3E16]/70">
+            Nothing is listed yet.
+          </p>
         ) : (
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <ul className="mt-6 divide-y divide-[#E7D7C3] overflow-hidden rounded-2xl border border-[#E7D7C3] bg-white">
             {products.map((product) => {
               const image = productImage(product);
+              const service = isService(product);
+              const blurb = (product.short_description || product.category || "").trim();
               return (
-                <Link
-                  key={product.id}
-                  href={`/store/${slug}/${product.slug}`}
-                  className="group overflow-hidden rounded-xl bg-white shadow-[0_8px_24px_rgba(107,62,22,0.06)]"
-                >
-                  <div className="aspect-[4/3] overflow-hidden bg-[#F3E6D4]">
-                    {image?.url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={mediaSrc(image.url)}
-                        alt={product.name}
-                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                        loading="lazy"
-                      />
-                    ) : null}
-                  </div>
-                  <p className="px-3 py-3 text-center text-sm font-semibold text-[#3F3A34]">
-                    {product.name}
-                  </p>
-                </Link>
+                <li key={product.id}>
+                  <Link
+                    href={`/store/${slug}/${product.slug}`}
+                    className="flex items-center gap-4 px-4 py-3 transition hover:bg-[#FFF3E4] sm:px-5"
+                  >
+                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-[#F6EFE4]">
+                      {image?.url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={mediaSrc(image.url)}
+                          alt=""
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : null}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#C9973A]">
+                        {service ? "Service" : "Product"}
+                      </p>
+                      <p className="truncate text-sm font-semibold text-[#3F3A34]">
+                        {product.name}
+                      </p>
+                      {blurb ? (
+                        <p className="truncate text-xs text-[#3F3A34]/70">{blurb}</p>
+                      ) : null}
+                    </div>
+                    <p className="shrink-0 text-sm font-semibold text-[#6B3E16]">
+                      {formatPrice(product.currency, product.price)}
+                    </p>
+                  </Link>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
       </section>
     </StoreFrame>
-  );
-}
-
-function AboutIcon({ name }: { name: (typeof ABOUT_ICONS)[number] }) {
-  const common = {
-    width: 16,
-    height: 16,
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "#C9973A",
-    strokeWidth: 1.8,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    "aria-hidden": true,
-  };
-  return (
-    <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center">
-      {name === "fork" ? (
-        <svg {...common}>
-          <path d="M8 3v8M12 3v8M10 11v10M16 3c2 3 2 6 0 8v10" />
-        </svg>
-      ) : name === "tag" ? (
-        <svg {...common}>
-          <path d="M20 12l-8 8-9-9V4h7l10 8z" />
-          <circle cx="7.5" cy="7.5" r="1" fill="#C9973A" />
-        </svg>
-      ) : name === "pin" ? (
-        <svg {...common}>
-          <path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z" />
-          <circle cx="12" cy="10" r="2" />
-        </svg>
-      ) : name === "people" ? (
-        <svg {...common}>
-          <circle cx="9" cy="8" r="3" />
-          <path d="M3 19c1-3 3.5-4.5 6-4.5S14 16 15 19" />
-          <circle cx="17" cy="9" r="2" />
-          <path d="M16 14.5c2.2.3 4 1.8 5 4.5" />
-        </svg>
-      ) : (
-        <svg {...common}>
-          <path d="M12 3l2.4 5.2L20 9l-4 3.8.9 5.7L12 16.8 7.1 18.5 8 12.8 4 9l5.6-.8L12 3z" />
-        </svg>
-      )}
-    </span>
   );
 }

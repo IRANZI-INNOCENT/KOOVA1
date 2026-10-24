@@ -349,10 +349,7 @@ class ConnectedChannelsView(APIView):
         business = get_object_or_404(
             Business, id=business_id, owner=request.user,
         )
-        from apps.social.services.connection import backfill_missing_profiles
-
         accounts = list(get_connected_channels(business))
-        backfill_missing_profiles(accounts)
         return Response({
             "connected": len(accounts) > 0,
             "accounts": [

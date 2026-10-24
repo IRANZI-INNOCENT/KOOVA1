@@ -336,6 +336,16 @@ class Product(models.Model):
         blank=True,
     )
 
+    class OfferingKind(models.TextChoices):
+        PRODUCT = "product", "Product"
+        SERVICE = "service", "Service"
+
+    offering_kind = models.CharField(
+        max_length=16,
+        choices=OfferingKind.choices,
+        default=OfferingKind.PRODUCT,
+    )
+
     # ------------------------------------------------------------------
     # KOVA AI PRODUCT INTELLIGENCE
     # ------------------------------------------------------------------

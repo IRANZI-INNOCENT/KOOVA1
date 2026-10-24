@@ -48,7 +48,12 @@ export default function SocialOverviewPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (workspaceLoading || !businessId || !accessToken) {
+    if (workspaceLoading) {
+      return;
+    }
+
+    if (!businessId || !accessToken) {
+      setLoading(false);
       return;
     }
 
@@ -58,15 +63,13 @@ export default function SocialOverviewPage() {
 
     async function load() {
       try {
-        const data = await getSocialOverview(bizId, token);
+        const [data, policy] = await Promise.all([
+          getSocialOverview(bizId, token),
+          getBusinessPolicy(bizId, token).catch(() => null),
+        ]);
         if (cancelled) return;
         setOverview(data);
-        try {
-          const policy = await getBusinessPolicy(bizId, token);
-          if (!cancelled) setMode(policy.social_operating_mode);
-        } catch {
-          /* overview still usable */
-        }
+        if (policy) setMode(policy.social_operating_mode);
       } catch (err) {
         if (cancelled) return;
         setError(

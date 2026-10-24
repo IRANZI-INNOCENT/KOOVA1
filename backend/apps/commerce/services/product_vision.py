@@ -286,6 +286,7 @@ CRITICAL RULES:
 9. Do not wrap the JSON in markdown.
 10. Do not include explanations outside the JSON object.
 11. Keep every string on one line. Do not put line breaks or quotation marks inside a value.
+12. If offering_kind is service, describe a service a customer can book. Name the service, who it is for, and what the photo shows. Do not invent stock, sizes, materials, or product condition.
 
 Return exactly this structure:
 
