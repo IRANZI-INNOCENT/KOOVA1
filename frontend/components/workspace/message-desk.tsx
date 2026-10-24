@@ -228,7 +228,7 @@ export function MessageDesk({
             role="tab"
             aria-selected={filter === value}
             onClick={() => setFilter(value)}
-            className={`inline-flex h-9 items-center gap-2 border-b-2 px-3 text-xs font-semibold transition-colors ${
+            className={`inline-flex h-11 items-center gap-2 border-b-2 px-3 text-xs font-semibold transition-colors ${
               filter === value
                 ? "border-kova-dark text-kova-dark"
                 : "border-transparent text-gray-500 hover:text-kova-dark"
@@ -335,12 +335,12 @@ export function MessageDesk({
                     placeholder="Kova’s reply"
                     className="w-full rounded-md border border-kova-border px-3 py-2 text-sm"
                   />
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                     <button
                       type="button"
                       onClick={() => onDraft(message.id)}
                       disabled={busyId === message.id}
-                      className="inline-flex h-9 items-center rounded-md border border-kova-border px-3 text-xs font-bold text-kova-dark disabled:opacity-60"
+                      className="inline-flex h-11 w-full items-center justify-center rounded-md border border-kova-border px-3 text-xs font-bold text-kova-dark disabled:opacity-60 sm:w-auto"
                     >
                       {busyId === message.id ? "Reading…" : "Draft with Kova"}
                     </button>
@@ -348,7 +348,7 @@ export function MessageDesk({
                       type="button"
                       onClick={() => onReply(message)}
                       disabled={busyId === message.id}
-                      className="inline-flex h-9 items-center rounded-md bg-kova-green px-3 text-xs font-bold text-white disabled:opacity-60"
+                      className="inline-flex h-11 w-full items-center justify-center rounded-md bg-kova-green px-3 text-xs font-bold text-white disabled:opacity-60 sm:w-auto"
                     >
                       {canSend ? "Send reply" : "Save reply"}
                     </button>
@@ -413,7 +413,7 @@ export function MessageDesk({
             />
             <button
               type="submit"
-              className="inline-flex h-9 items-center rounded-md bg-kova-green px-4 text-xs font-bold text-white"
+              className="inline-flex h-12 w-full items-center justify-center rounded-md bg-kova-green px-4 text-xs font-bold text-white sm:h-11 sm:w-auto"
             >
               Let Kova read it
             </button>

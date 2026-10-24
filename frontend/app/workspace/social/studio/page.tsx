@@ -283,7 +283,7 @@ export default function ContentStudioPage() {
             </p>
             <Link
               href="/workspace/social/channels"
-              className="mt-4 inline-flex h-10 items-center justify-center rounded-md bg-kova-orange px-5 text-sm font-bold text-kova-dark hover:bg-[#f0a46e]"
+              className="mt-4 inline-flex h-12 w-full items-center justify-center rounded-md bg-kova-orange px-5 text-sm font-bold text-kova-dark hover:bg-[#f0a46e] sm:h-10 sm:w-auto"
             >
               Connect
             </Link>
@@ -352,7 +352,7 @@ export default function ContentStudioPage() {
         {mode !== "autopilot" && (
         <div className="overflow-hidden rounded-lg border border-kova-border bg-white">
           <div className="space-y-4 p-4 sm:p-5">
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {(
                 [
                   ["product", "Product"],
@@ -364,7 +364,7 @@ export default function ContentStudioPage() {
                   key={key}
                   type="button"
                   onClick={() => setCampaignMode(key)}
-                  className={`rounded-md px-3.5 py-2 text-xs font-semibold transition ${
+                  className={`h-11 rounded-md px-2 text-xs font-semibold transition ${
                     campaignMode === key
                       ? "bg-kova-green text-white"
                       : "bg-kova-background text-kova-dark hover:bg-kova-green/10"
@@ -511,7 +511,7 @@ export default function ContentStudioPage() {
               type="button"
               onClick={generateCampaign}
               disabled={generating}
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-kova-orange px-5 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e] disabled:opacity-60"
+              className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-kova-orange px-5 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e] disabled:opacity-60 sm:h-11 sm:w-auto"
             >
               {generating ? (
                 <>

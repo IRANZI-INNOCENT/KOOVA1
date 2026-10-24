@@ -128,7 +128,7 @@ export default function SocialOverviewPage() {
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-gray-500">{MODE_META[mode].description}</p>
-          <div className="flex shrink-0 rounded-lg border border-kova-border bg-white p-0.5">
+          <div className="grid w-full grid-cols-3 rounded-lg border border-kova-border bg-white p-0.5 sm:flex sm:w-auto sm:shrink-0">
             {MODES.map((m) => {
               const active = m === mode;
               return (
@@ -137,7 +137,7 @@ export default function SocialOverviewPage() {
                   type="button"
                   disabled={modeUpdating}
                   onClick={() => handleModeChange(m)}
-                  className={`rounded-md px-3.5 py-1.5 text-xs font-semibold transition ${
+                  className={`h-11 rounded-md px-2 text-xs font-semibold transition sm:h-9 sm:px-3.5 ${
                     active
                       ? m === "autopilot"
                         ? "bg-kova-orange text-kova-dark"
@@ -194,7 +194,7 @@ export default function SocialOverviewPage() {
             <p>{o.command.pause_reason || "Scheduled publishing is paused."}</p>
             <button
               type="button"
-              className="inline-flex h-9 items-center rounded-md bg-kova-green px-4 text-xs font-bold text-white"
+              className="inline-flex h-11 w-full items-center justify-center rounded-md bg-kova-green px-4 text-xs font-bold text-white sm:h-9 sm:w-auto"
               onClick={() => {
                 if (!businessId || !accessToken) return;
                 resumeScheduledPublishing(businessId, accessToken)
@@ -292,7 +292,7 @@ export default function SocialOverviewPage() {
             </p>
             <Link
               href="/workspace/social/channels"
-              className="mt-4 inline-flex h-10 items-center justify-center rounded-md bg-kova-orange px-5 text-sm font-bold text-kova-dark hover:bg-[#f0a46e]"
+              className="mt-4 inline-flex h-12 w-full items-center justify-center rounded-md bg-kova-orange px-5 text-sm font-bold text-kova-dark hover:bg-[#f0a46e] sm:h-10 sm:w-auto"
             >
               Connect
             </Link>

@@ -141,7 +141,7 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={() => void setActiveBusinessId(item.id)}
-                        className="rounded-md bg-kova-orange/15 px-3 py-1.5 text-xs font-bold text-kova-dark"
+                        className="inline-flex h-11 items-center rounded-md bg-kova-orange/15 px-3 text-xs font-bold text-kova-dark"
                       >
                         Switch
                       </button>

@@ -117,12 +117,12 @@ export function LeadsPanel() {
                   {lead.follow_up_draft || lead.interest}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex w-full gap-2 sm:w-auto">
                 {lead.follow_up_draft ? (
                   <button
                     type="button"
                     onClick={() => copyDraft(lead)}
-                    className="inline-flex h-8 items-center rounded-md border border-kova-border px-3 text-xs font-semibold text-kova-dark"
+                    className="inline-flex h-11 flex-1 items-center justify-center rounded-md border border-kova-border px-3 text-xs font-semibold text-kova-dark sm:flex-none"
                   >
                     Copy draft
                   </button>
@@ -130,7 +130,7 @@ export function LeadsPanel() {
                 <button
                   type="button"
                   onClick={() => markDone(lead)}
-                  className="inline-flex h-8 items-center rounded-md bg-kova-green px-3 text-xs font-bold text-white"
+                  className="inline-flex h-11 flex-1 items-center justify-center rounded-md bg-kova-green px-3 text-xs font-bold text-white sm:flex-none"
                 >
                   Done
                 </button>
@@ -148,7 +148,30 @@ export function LeadsPanel() {
           </p>
         </div>
       ) : (
-        <div className="mt-4 overflow-x-auto rounded-xl border border-kova-border bg-white">
+        <>
+        <ul className="mt-4 space-y-2 md:hidden">
+          {leads.map((lead) => (
+            <li key={lead.id} className="rounded-lg border border-kova-border bg-white p-4">
+              <p className="text-sm font-semibold text-kova-dark">
+                {lead.customer_name || "Lead"}
+              </p>
+              <p className="mt-1 break-all text-sm text-gray-600">
+                {lead.customer_id || "No contact"}
+              </p>
+              <p className="mt-2 text-xs text-gray-500">
+                <span className={lead.status === "new" ? "font-semibold text-kova-green" : ""}>
+                  {lead.status}
+                </span>
+                {" · "}
+                {lead.source}
+                {lead.created_by_ai ? " · AI" : ""}
+                {" · "}
+                {new Date(lead.created_at).toLocaleDateString()}
+              </p>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-4 hidden overflow-x-auto rounded-xl border border-kova-border bg-white md:block">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead>
               <tr className="border-b border-kova-border bg-kova-background text-xs font-medium text-gray-500">
@@ -193,6 +216,7 @@ export function LeadsPanel() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );

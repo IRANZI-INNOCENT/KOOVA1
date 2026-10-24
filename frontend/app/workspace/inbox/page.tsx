@@ -39,7 +39,7 @@ function InboxInner() {
             key={id}
             type="button"
             onClick={() => select(id)}
-            className={`border-b-2 px-3.5 py-2.5 text-sm font-medium transition ${
+            className={`h-11 border-b-2 px-3.5 text-sm font-medium transition ${
               tab === id
                 ? "border-kova-orange text-kova-dark"
                 : "border-transparent text-gray-400 hover:text-kova-dark"

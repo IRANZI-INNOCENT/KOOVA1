@@ -206,13 +206,13 @@ export default function KovaChatPage() {
 
         <div className="border-t border-kova-border bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div className="mx-auto max-w-3xl">
-            <div className="mb-2 flex flex-wrap gap-2">
+            <div className="mb-2 flex touch-pan-x gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {TASK_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => setTask(opt.value)}
-                  className={`rounded-md border px-3 py-1 text-xs font-medium transition-colors ${
+                  className={`h-10 shrink-0 rounded-md border px-3 text-xs font-medium whitespace-nowrap transition-colors ${
                     task === opt.value
                       ? "border-kova-dark bg-kova-dark text-white"
                       : "border-kova-border bg-white text-gray-600 hover:border-kova-dark"
@@ -232,7 +232,7 @@ export default function KovaChatPage() {
                 placeholder="Ask Kova anything about your business..."
                 rows={1}
                 disabled={sending}
-                className="w-full resize-none rounded-md border border-kova-orange/40 bg-white px-4 py-2.5 pr-12 text-sm text-kova-dark placeholder:text-gray-400 focus:border-kova-green focus:outline-none focus:ring-1 focus:ring-kova-green disabled:bg-gray-50 disabled:text-gray-400"
+                className="w-full resize-none rounded-md border border-kova-orange/40 bg-white px-4 py-2.5 pr-14 text-base text-kova-dark placeholder:text-gray-400 focus:border-kova-green focus:outline-none focus:ring-1 focus:ring-kova-green disabled:bg-gray-50 disabled:text-gray-400 sm:text-sm"
                 style={{ minHeight: 44, maxHeight: 120 }}
                 onInput={(e) => {
                   const el = e.currentTarget;
@@ -243,7 +243,7 @@ export default function KovaChatPage() {
               <button
                 type="submit"
                 disabled={!input.trim() || sending}
-                className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-md bg-kova-green text-white transition-colors hover:bg-[#12583f] disabled:bg-gray-200 disabled:text-gray-400"
+                className="absolute bottom-1.5 right-1.5 flex h-11 w-11 items-center justify-center rounded-md bg-kova-green text-white transition-colors hover:bg-[#12583f] disabled:bg-gray-200 disabled:text-gray-400"
                 aria-label="Send message"
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">

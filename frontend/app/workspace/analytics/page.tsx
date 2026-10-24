@@ -104,12 +104,12 @@ export default function AnalyticsPage() {
         <PageHeader
           title="Reports"
           actions={
-            <div className="flex flex-wrap gap-2">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <button
                 type="button"
                 disabled={busy !== null}
                 onClick={() => void refreshDaily(Boolean(brief))}
-                className="rounded-lg bg-[#176B4D] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#12563D] disabled:opacity-60"
+                className="rounded-lg bg-[#176B4D] px-4 text-sm font-medium text-white transition hover:bg-[#12563D] disabled:opacity-60"
               >
                 {busy === "daily"
                   ? "Writing…"
@@ -133,7 +133,7 @@ export default function AnalyticsPage() {
           }
         />
 
-        <div className="mt-6 flex gap-1 border-b border-[#E5E7E5]">
+        <div className="mt-6 flex touch-pan-x gap-1 overflow-x-auto border-b border-[#E5E7E5] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {(
             [
               ["daily", "Daily brief"],
@@ -145,7 +145,7 @@ export default function AnalyticsPage() {
               key={id}
               type="button"
               onClick={() => setTab(id)}
-              className={`border-b-2 px-3.5 py-2.5 text-sm font-medium transition ${
+              className={`shrink-0 border-b-2 px-3.5 py-3 text-sm font-medium whitespace-nowrap transition ${
                 tab === id
                   ? "border-[#C45C26] text-[#17211D]"
                   : "border-transparent text-gray-400 hover:text-[#17211D]"

@@ -224,7 +224,7 @@ export default function OverviewPage() {
             }
             description={business?.name && user?.first_name ? business.name : undefined}
             actions={
-              <div className="flex flex-wrap gap-2">
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
                 <Link
                   href="/workspace/kova"
                   className="inline-flex h-10 items-center rounded-lg bg-kova-orange px-4 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e]"
@@ -413,7 +413,7 @@ export default function OverviewPage() {
               </p>
               <Link
                 href="/workspace/commerce/snap-to-sell"
-                className="mt-4 inline-flex h-10 items-center justify-center rounded-md bg-kova-orange px-5 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e]"
+                className="mt-4 inline-flex h-12 w-full items-center justify-center rounded-md bg-kova-orange px-5 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e] sm:h-10 sm:w-auto"
               >
                 Add listing
               </Link>
