@@ -641,7 +641,7 @@ class LinkedInOAuthCallbackView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        front = linkedin_service.frontend_redirect_base()
+        front = linkedin_service.frontend_redirect_base(request)
 
         def finish(**kwargs):
             return redirect(linkedin_service.connect_page_url(front, **kwargs))

@@ -98,6 +98,24 @@ class LinkedInOAuthFlowTests(SimpleTestCase):
         self.assertIn("error=access_denied", url)
         self.assertTrue(url.startswith("https://ai.kcova.com/workspace/linkedin/connect?"))
 
+    def test_bind_address_is_not_a_browser_redirect(self):
+        self.assertFalse(linkedin_service.is_public_origin("https://0.0.0.0:8080"))
+        self.assertFalse(linkedin_service.is_public_origin("http://localhost:3000"))
+        self.assertTrue(linkedin_service.is_public_origin("https://ai.kcova.com"))
+
+    def test_redirect_uses_the_public_site_when_frontend_url_is_the_bind_address(self):
+        from django.test import RequestFactory, override_settings
+
+        request = RequestFactory().get(
+            "/api/professional/linkedin/callback/",
+            HTTP_X_KOVA_SITE_ORIGIN="https://ai.kcova.com",
+        )
+        with override_settings(FRONTEND_URL="https://0.0.0.0:8080"):
+            self.assertEqual(
+                linkedin_service.frontend_redirect_base(request),
+                "https://ai.kcova.com",
+            )
+
     def test_past_expiry_reads_as_expired_without_a_write(self):
         connection = LinkedInConnection(
             connection_status=LinkedInConnection.Status.CONNECTED,

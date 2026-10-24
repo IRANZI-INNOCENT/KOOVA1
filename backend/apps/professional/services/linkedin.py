@@ -414,5 +414,40 @@ def ensure_access_token(connection: LinkedInConnection) -> str:
     return token
 
 
-def frontend_redirect_base() -> str:
-    return getattr(settings, "FRONTEND_URL", "http://localhost:3000").rstrip("/")
+_BIND_HOSTS = {"0.0.0.0", "127.0.0.1", "localhost", "::1"}
+
+
+def is_public_origin(value: str) -> bool:
+    """True when a URL is a host a browser can open. Bind addresses are not."""
+    candidate = (value or "").strip()
+    if not candidate:
+        return False
+    parsed = urlparse(candidate if "://" in candidate else f"https://{candidate}")
+    host = (parsed.hostname or "").lower()
+    if not host or host in _BIND_HOSTS:
+        return False
+    return parsed.scheme in {"http", "https"}
+
+
+def frontend_redirect_base(request=None) -> str:
+    """
+    Where the browser should land after LinkedIn returns.
+
+    FRONTEND_URL wins when it is a real public site. A container bind address
+    such as https://0.0.0.0:8080 is ignored, and the site origin forwarded by
+    the Next callback is used instead.
+    """
+    configured = (getattr(settings, "FRONTEND_URL", "") or "").strip().rstrip("/")
+    if is_public_origin(configured):
+        return configured
+
+    if request is not None:
+        hinted = (
+            request.META.get("HTTP_X_KOVA_SITE_ORIGIN", "") or ""
+        ).strip().rstrip("/")
+        if is_public_origin(hinted):
+            return hinted
+
+    if configured:
+        return configured
+    return "http://localhost:3000"
