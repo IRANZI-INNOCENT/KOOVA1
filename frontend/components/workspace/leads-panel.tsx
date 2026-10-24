@@ -4,14 +4,15 @@ import { useEffect, useState } from "react";
 
 import { useAuth } from "@/lib/auth-context";
 import {
-  getBusiness,
   getLeads,
   markLeadFollowedUp,
   type Lead,
 } from "@/lib/commerce";
+import { useWorkspace } from "@/lib/workspace-context";
 
 export function LeadsPanel() {
   const { accessToken } = useAuth();
+  const { businessId: workspaceBusinessId, workspaceLoading } = useWorkspace();
   const [businessId, setBusinessId] = useState<number | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,15 +20,19 @@ export function LeadsPanel() {
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    if (!accessToken) return;
+    if (workspaceLoading) return;
+    if (!accessToken || !workspaceBusinessId) {
+      setLoading(false);
+      return;
+    }
     const token = accessToken;
+    const bizId = workspaceBusinessId;
     let cancelled = false;
     async function load() {
       try {
-        const biz = await getBusiness(token);
-        const leadList = await getLeads(biz.id, token);
+        const leadList = await getLeads(bizId, token);
         if (!cancelled) {
-          setBusinessId(biz.id);
+          setBusinessId(bizId);
           setLeads(leadList);
         }
       } catch {
@@ -40,7 +45,7 @@ export function LeadsPanel() {
     return () => {
       cancelled = true;
     };
-  }, [accessToken]);
+  }, [accessToken, workspaceBusinessId, workspaceLoading]);
 
   const now = Date.now();
   const dueLeads = leads.filter((lead) => {

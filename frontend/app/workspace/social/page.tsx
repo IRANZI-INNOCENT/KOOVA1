@@ -8,7 +8,6 @@ import { PlatformAvatar } from "@/components/social/platform-avatar";
 import { ActivityColumns } from "@/components/ui/activity-columns";
 import { MetricStrip } from "@/components/ui/metric-strip";
 import { WORKSPACE_PAGE } from "@/components/ui/page-header";
-import { PageSkeleton } from "@/components/workspace/page-skeleton";
 import { useWorkspace } from "@/lib/workspace-context";
 import {
   getBusinessPolicy,
@@ -106,8 +105,34 @@ export default function SocialOverviewPage() {
     }
   }
 
-  if (workspaceLoading || loading) {
-    return <PageSkeleton />;
+  if ((workspaceLoading || loading) && !overview) {
+    return (
+      <div className={WORKSPACE_PAGE}>
+        <div className="space-y-6">
+          <p className="text-sm text-gray-500">{MODE_META[mode].description}</p>
+          <div className="grid w-full grid-cols-3 rounded-lg border border-kova-border bg-white p-0.5 sm:flex sm:w-auto">
+            {MODES.map((m) => (
+              <span
+                key={m}
+                className="inline-flex h-11 items-center justify-center px-2 text-xs font-semibold text-gray-400 sm:h-9 sm:px-3.5"
+              >
+                {MODE_META[m].label}
+              </span>
+            ))}
+          </div>
+          {error ? (
+            <div
+              role="alert"
+              className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+              {error}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">Loading posts…</p>
+          )}
+        </div>
+      </div>
+    );
   }
 
   if (error && !overview) {

@@ -12,7 +12,7 @@ import { ApiError } from "@/lib/api";
 import {
   getBusiness,
   deleteProduct,
-  getProducts,
+  getProduct,
   getProductContentPlans,
   polishProduct,
   updateProduct,
@@ -58,17 +58,12 @@ export default function ProductDetailPage() {
     async function load() {
       try {
         const business = await getBusiness(token);
-        const [products, plans] = await Promise.all([
-          getProducts(business.id, token),
+        const [found, plans] = await Promise.all([
+          getProduct(business.id, Number(params.id), token),
           getProductContentPlans(business.id, token).catch(
             () => [] as ProductContentPlan[],
           ),
         ]);
-        const found = products.find((item) => item.id === Number(params.id));
-        if (!found) {
-          router.replace("/workspace/commerce/products");
-          return;
-        }
         setBusinessId(business.id);
         setProduct(found);
         setContentPlan(

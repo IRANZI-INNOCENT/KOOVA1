@@ -2,6 +2,7 @@ import { authenticatedApiRequest } from "@/lib/api";
 import {
   cachedResource,
   invalidateResourceCache,
+  peekResourceCache,
 } from "@/lib/resource-cache";
 
 const BUSINESS_CACHE_TTL_MS = 10 * 60 * 1000;
@@ -179,6 +180,10 @@ export async function getBusiness(
 /**
  * Get all products belonging to a business.
  */
+export function peekProducts(businessId: number): Product[] | undefined {
+  return peekResourceCache<Product[]>(`products:${businessId}`);
+}
+
 export async function getProducts(
   businessId: number,
   token: string,
@@ -191,8 +196,21 @@ export async function getProducts(
       authenticatedApiRequest<Product[]>(
         `/commerce/${businessId}/products/`,
         token,
+        { timeoutMs: 8000 },
       ),
     { revalidate: options?.revalidate },
+  );
+}
+
+export async function getProduct(
+  businessId: number,
+  productId: number,
+  token: string,
+): Promise<Product> {
+  return authenticatedApiRequest<Product>(
+    `/commerce/${businessId}/products/${productId}/`,
+    token,
+    { timeoutMs: 8000 },
   );
 }
 

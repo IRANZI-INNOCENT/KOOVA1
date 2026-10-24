@@ -223,6 +223,32 @@ class ProductSerializer(serializers.ModelSerializer):
         return f"/store/{slug}/{obj.slug}"
 
 
+class ProductListSerializer(ProductSerializer):
+    """Catalog row. Omits analysis history and long copy so Shop opens quickly."""
+
+    class Meta(ProductSerializer.Meta):
+        fields = [
+            "id",
+            "business",
+            "name",
+            "slug",
+            "category",
+            "price",
+            "currency",
+            "stock",
+            "offering_kind",
+            "short_description",
+            "ai_generated",
+            "status",
+            "images",
+            "store_path",
+            "product_path",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
 class ProductCreateSerializer(serializers.ModelSerializer):
     """
     Serializer for owner-controlled product information.

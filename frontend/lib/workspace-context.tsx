@@ -20,7 +20,6 @@ import {
   type Business as BrainBusiness,
 } from "@/lib/business";
 import {
-  getBusiness,
   getCommercePage,
   getProducts,
   invalidateCommerceCaches,
@@ -103,16 +102,18 @@ export function WorkspaceProvider({
       const list = await getBusinesses(accessToken);
       setBusinesses(list);
       const picked = pickActiveBusiness(list);
-      const current = await getBusiness(accessToken, {
-        userId: user.id,
-        businessId: picked.id,
-        revalidate: true,
+      setBusiness({
+        id: picked.id,
+        name: picked.name,
+        description: picked.description,
+        industry: picked.industry,
+        location: picked.location,
+        email: picked.email,
+        phone: picked.phone,
+        created_at: picked.created_at,
+        updated_at: picked.updated_at,
       });
-      setBusiness(current);
-      prefetchWorkspaceData(
-        current.id,
-        accessToken,
-      );
+      prefetchWorkspaceData(picked.id, accessToken);
     } catch (error) {
       setBusiness(null);
       setWorkspaceError(
@@ -167,7 +168,6 @@ export function WorkspaceProvider({
       return;
     }
 
-    const userId = user.id;
     let cancelled = false;
 
     async function loadWorkspace() {
@@ -186,21 +186,23 @@ export function WorkspaceProvider({
           return;
         }
         setBusinesses(list);
-        const picked = pickActiveBusiness(list);
-        const current = await getBusiness(token, {
-          userId,
-          businessId: picked.id,
-        });
-
-        if (cancelled) {
+        if (!list.length) {
+          setBusiness(null);
           return;
         }
-
-        setBusiness(current);
-        prefetchWorkspaceData(
-          current.id,
-          token,
-        );
+        const picked = pickActiveBusiness(list);
+        setBusiness({
+          id: picked.id,
+          name: picked.name,
+          description: picked.description,
+          industry: picked.industry,
+          location: picked.location,
+          email: picked.email,
+          phone: picked.phone,
+          created_at: picked.created_at,
+          updated_at: picked.updated_at,
+        });
+        prefetchWorkspaceData(picked.id, token);
       } catch (error) {
         if (cancelled) {
           return;

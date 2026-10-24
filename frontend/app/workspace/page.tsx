@@ -7,7 +7,6 @@ import Link from "next/link";
 import { MetricStrip } from "@/components/ui/metric-strip";
 import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { KovaStepsGuide } from "@/components/workspace/kova-steps-guide";
-import { PageSkeleton } from "@/components/workspace/page-skeleton";
 import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
 import {
   OverviewActionPanel,
@@ -81,7 +80,7 @@ export default function OverviewPage() {
 
     async function loadOverview() {
       try {
-        setLoading(true);
+        if (products.length === 0) setLoading(true);
         setError("");
 
         const [prods, page] = await Promise.all([
@@ -210,10 +209,7 @@ export default function OverviewPage() {
     !socialConnected || products.length === 0 || publishedContent.length === 0;
 
   return (
-    <WorkspacePageFrame
-      loading={workspaceLoading || loading}
-      skeleton={<PageSkeleton />}
-    >
+    <WorkspacePageFrame loading={false}>
       <div className={WORKSPACE_PAGE}>
         <div className="space-y-6">
           <PageHeader
@@ -254,7 +250,7 @@ export default function OverviewPage() {
             }
           />
 
-          {showSetup ? (
+          {showSetup && !loading ? (
             <KovaStepsGuide
               title="Get started"
               steps={[
@@ -405,7 +401,7 @@ export default function OverviewPage() {
                 })}
               </div>
             </section>
-          ) : (
+          ) : loading ? null : (
             <section className="border border-kova-border bg-white px-5 py-6">
               <p className="font-semibold text-kova-dark">No products yet</p>
               <p className="mt-1 text-sm text-gray-500">

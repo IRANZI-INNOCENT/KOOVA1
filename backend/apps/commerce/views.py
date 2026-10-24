@@ -33,6 +33,7 @@ from .serializers import (
     OrderSerializer,
     ProductCreateSerializer,
     ProductImageSerializer,
+    ProductListSerializer,
     ProductSerializer,
 )
 from .services.product_vision import (
@@ -240,13 +241,10 @@ class ProductListCreateView(BusinessOwnedAPIView):
         products = (
             Product.objects
             .filter(business=business)
-            .prefetch_related(
-                "images",
-                "ai_analyses",
-            )
+            .prefetch_related("images")
         )
 
-        serializer = ProductSerializer(
+        serializer = ProductListSerializer(
             products,
             many=True,
             context={"request": request},

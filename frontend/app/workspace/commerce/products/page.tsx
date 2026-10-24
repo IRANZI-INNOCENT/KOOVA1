@@ -10,6 +10,7 @@ import {
   createBroadcastPack,
   deleteProduct,
   getProducts,
+  peekProducts,
   type BroadcastPack,
   type Product,
 } from "@/lib/commerce";
@@ -23,8 +24,12 @@ const STATUS_BADGE: Record<string, { bg: string; text: string }> = {
 
 export default function ProductsPage() {
   const { businessId, accessToken, workspaceLoading } = useWorkspace();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(
+    () => (businessId ? peekProducts(businessId) : undefined) ?? [],
+  );
+  const [loading, setLoading] = useState(
+    () => !(businessId && peekProducts(businessId)),
+  );
   const [error, setError] = useState("");
   const [broadcast, setBroadcast] = useState<BroadcastPack | null>(null);
   const [broadcastBusy, setBroadcastBusy] = useState(false);
@@ -32,12 +37,21 @@ export default function ProductsPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
-    if (workspaceLoading || !businessId || !accessToken) {
+    if (workspaceLoading) {
+      return;
+    }
+    if (!businessId || !accessToken) {
+      setLoading(false);
       return;
     }
 
     const token = accessToken;
     const bizId = businessId;
+    const cached = peekProducts(bizId);
+    if (cached) {
+      setProducts(cached);
+      setLoading(false);
+    }
     let cancelled = false;
 
     async function load() {
@@ -110,14 +124,6 @@ export default function ProductsPage() {
     } catch {
       setError("Could not copy.");
     }
-  }
-
-  if (workspaceLoading || loading) {
-    return (
-      <div className={WORKSPACE_PAGE}>
-        <ListSkeleton rows={8} />
-      </div>
-    );
   }
 
   return (
@@ -201,7 +207,9 @@ export default function ProductsPage() {
           </div>
         ) : null}
 
-        {products.length ? (
+        {loading && products.length === 0 ? (
+          <ListSkeleton rows={4} />
+        ) : products.length ? (
           <div className="overflow-hidden rounded-lg border border-kova-border bg-white">
             <div className="hidden grid-cols-[minmax(0,1fr)_140px_120px_120px_88px] gap-4 border-b border-kova-border px-5 py-3 text-xs font-medium text-gray-500 md:grid">
               <span>Product</span>

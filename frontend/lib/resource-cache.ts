@@ -7,6 +7,11 @@ const store = new Map<string, CacheEntry<unknown>>();
 
 const inflight = new Map<string, Promise<unknown>>();
 
+export function peekResourceCache<T>(key: string): T | undefined {
+  const cached = store.get(key) as CacheEntry<T> | undefined;
+  return cached?.value;
+}
+
 export function invalidateResourceCache(prefix: string): void {
   for (const key of store.keys()) {
     if (key.startsWith(prefix)) {
@@ -24,8 +29,9 @@ export async function cachedResource<T>(
   const now = Date.now();
   const cached = store.get(key) as CacheEntry<T> | undefined;
 
-  if (cached && cached.expiresAt > now) {
-    if (options?.revalidate) {
+  if (cached && (cached.expiresAt > now || !options?.revalidate)) {
+    const fresh = cached.expiresAt > now;
+    if (!fresh || options?.revalidate) {
       void fetcher()
         .then((value) => {
           store.set(key, {

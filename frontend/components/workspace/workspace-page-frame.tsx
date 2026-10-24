@@ -24,19 +24,16 @@ export function WorkspacePageFrame({
   children,
   loading = false,
   skeleton,
-  requireBusiness = true,
   embedded = false,
 }: WorkspacePageFrameProps) {
   const {
     authLoading,
     isAuthenticated,
-    workspaceLoading,
   } = useWorkspace();
 
   const showSkeleton =
     authLoading ||
     !isAuthenticated ||
-    (requireBusiness && workspaceLoading) ||
     loading;
 
   const body = showSkeleton ? skeleton ?? <PageSkeleton /> : children;

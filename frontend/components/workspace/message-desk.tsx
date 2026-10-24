@@ -7,7 +7,7 @@ import {
   channelToPlatformBrand,
 } from "@/components/social/platform-brand";
 import { useAuth } from "@/lib/auth-context";
-import { getBusiness } from "@/lib/commerce";
+import { useWorkspace } from "@/lib/workspace-context";
 import {
   draftReply,
   getMessages,
@@ -68,6 +68,7 @@ export function MessageDesk({
   intro?: string;
 }) {
   const { accessToken, isAuthenticated } = useAuth();
+  const { businessId: workspaceBusinessId, workspaceLoading } = useWorkspace();
   const [businessId, setBusinessId] = useState<number | null>(null);
   const [messages, setMessages] = useState<SocialMessageRecord[]>([]);
   const [body, setBody] = useState("");
@@ -96,15 +97,13 @@ export function MessageDesk({
   }
 
   useEffect(() => {
-    if (!isAuthenticated || !accessToken) return;
+    if (!isAuthenticated || !accessToken || workspaceLoading) return;
+    if (!workspaceBusinessId) return;
     const token = accessToken;
-    getBusiness(token)
-      .then(async (business) => {
-        setBusinessId(business.id);
-        await load(token, business.id);
-      })
-      .catch(() => setError("Could not load the inbox."));
-  }, [accessToken, isAuthenticated]);
+    const bizId = workspaceBusinessId;
+    setBusinessId(bizId);
+    load(token, bizId).catch(() => setError("Could not load the inbox."));
+  }, [accessToken, isAuthenticated, workspaceBusinessId, workspaceLoading]);
 
   async function onLog(event: FormEvent) {
     event.preventDefault();
