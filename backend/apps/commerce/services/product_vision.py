@@ -33,6 +33,69 @@ class ProductVisionError(Exception):
     """Raised when Kova cannot obtain valid product intelligence."""
 
 
+_PLACEHOLDER_COPY = {
+    "one sentence",
+    "one sentence about the item",
+    "clear product description",
+    "three to five sentences about what the photo shows",
+    "seo title",
+    "seo description",
+    "short useful product name",
+    "unnamed product",
+}
+
+
+def _listing_copy(value: Any) -> str:
+    """Turn model copy into one readable paragraph."""
+
+    if isinstance(value, (list, tuple)):
+        parts = [str(item).strip() for item in value if str(item).strip()]
+        text = " ".join(parts)
+    else:
+        text = str(value or "")
+    text = text.replace("\\n", " ").replace("\r", " ").replace("\n", " ")
+    text = re.sub(r"\s+", " ", text).strip().strip('"').strip()
+    if text.lower() in _PLACEHOLDER_COPY:
+        return ""
+    return text
+
+
+def _listing_description(
+    value: Any,
+    *,
+    name: str,
+    category: str,
+    color: str,
+    short_description: str,
+    service: bool = False,
+) -> str:
+    """Keep a real description, or write one from the facts Kova already has."""
+
+    text = _listing_copy(value)
+    if len(text) >= 40:
+        return text
+
+    title = name.strip() or category.strip() or ("This service" if service else "This item")
+    kind = "service" if service else "item"
+    sentence = title
+    if category and category.lower() not in title.lower():
+        sentence = f"{title} is a {category.lower()}"
+    if color and color.lower() not in sentence.lower():
+        sentence = f"{sentence} in {color.lower()}"
+    if not sentence.endswith("."):
+        sentence = f"{sentence}."
+    parts = [sentence]
+    short = short_description.strip()
+    if short and short.lower() not in sentence.lower():
+        parts.append(short if short.endswith(".") else f"{short}.")
+    parts.append(
+        f"The photo shows this {kind}. Message the shop on WhatsApp to order."
+        if not service
+        else f"The photo shows this {kind}. Message the shop on WhatsApp to book."
+    )
+    return " ".join(parts)
+
+
 class ProductVisionService:
     """
     Analyze product images using Kova's multimodal AI layer.
@@ -127,7 +190,10 @@ class ProductVisionService:
                     "Kova received an invalid product analysis response."
                 ) from exc
 
-        return self._normalize_result(result)
+        return self._normalize_result(
+            result,
+            service=str(owner_facts.get("offering_kind") or "").strip().lower() == "service",
+        )
 
     def polish(
         self,
@@ -190,8 +256,8 @@ RULES:
 3. Fill category with a specific type a shopper would search for, such as Sectional sofas.
 4. Fill color from the colors you can see. If the owner already set a color, keep that color.
 5. Fill material only when the photo or the owner facts make it clear. Otherwise leave material empty.
-6. Write short_description as one or two sentences a visitor reads first.
-7. Write description as two short paragraphs. Be concrete. Describe shape, color, and use.
+6. Write short_description as one sentence a visitor reads first.
+7. Write description as three to five sentences on a single line. Say what the item is, what the photo shows, and how someone would use it. Do not use line breaks or quotation marks inside the value.
 8. Do not claim premium, luxury, original, certified, waterproof, or a warranty unless the supplied facts say so.
 9. Do not invent measurements, ingredients, or specifications.
 10. selling_points: 3 to 5 short points grounded in the photo or the supplied facts.
@@ -199,6 +265,7 @@ RULES:
 12. alt_text: one sentence describing the main photo for someone who cannot see it.
 13. Write clear English for a shopper in Kenya.
 14. Return one JSON object only. No markdown.
+15. Keep every string on one line.
 
 Return exactly this structure:
 
@@ -287,6 +354,7 @@ CRITICAL RULES:
 10. Do not include explanations outside the JSON object.
 11. Keep every string on one line. Do not put line breaks or quotation marks inside a value.
 12. If offering_kind is service, describe a service a customer can book. Name the service, who it is for, and what the photo shows. Do not invent stock, sizes, materials, or product condition.
+13. short_description is one sentence. description is three to five sentences about what the photo shows and how a customer uses it. Do not copy the example words from this prompt.
 
 Return exactly this structure:
 
@@ -294,8 +362,8 @@ Return exactly this structure:
   "name": "short useful product name",
   "category": "specific product type a shopper would search for",
   "color": "visible colors, such as Grey and teal",
-  "short_description": "one sentence",
-  "description": "clear product description",
+  "short_description": "one sentence about the item",
+  "description": "three to five sentences about what the photo shows",
   "seo_title": "SEO title",
   "seo_description": "SEO description",
   "selling_points": [],
@@ -747,6 +815,8 @@ Also put those colors in visual_attributes.color.
     def _normalize_result(
         self,
         result: dict[str, Any],
+        *,
+        service: bool = False,
     ) -> dict[str, Any]:
         """
         Normalize and validate the model's output before it reaches
@@ -789,17 +859,18 @@ Also put those colors in visual_attributes.color.
 
             "color": self._visible_color(result),
 
-            "short_description": str(
-                result.get(
-                    "short_description"
-                )
-                or ""
-            ).strip(),
+            "short_description": _listing_copy(
+                result.get("short_description")
+            ),
 
-            "description": str(
-                result.get("description")
-                or ""
-            ).strip(),
+            "description": _listing_description(
+                result.get("description"),
+                name=str(result.get("name") or "").strip(),
+                category=str(result.get("category") or "").strip(),
+                color=self._visible_color(result),
+                short_description=_listing_copy(result.get("short_description")),
+                service=service,
+            ),
 
             "seo_title": str(
                 result.get("seo_title")

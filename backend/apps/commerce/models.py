@@ -18,7 +18,9 @@ business facts.
 
 from __future__ import annotations
 
-from django.db import models
+import uuid
+
+from django.db import IntegrityError, models, transaction
 from django.utils.text import slugify
 
 from apps.businesses.models import Business
@@ -438,21 +440,20 @@ class Product(models.Model):
         the public Commerce Page already identifies the business.
         """
 
-        if not self.slug:
-            self.slug = self._generate_slug()
-
-        elif (
-            Product.objects
-            .filter(
-                business=self.business,
-                slug=self.slug,
-            )
-            .exclude(pk=self.pk)
-            .exists()
-        ):
-            self.slug = self._generate_slug()
-
-        super().save(*args, **kwargs)
+        for attempt in range(4):
+            if not self.slug or attempt:
+                self.slug = self._generate_slug()
+            if attempt:
+                base = (self.slug or "product")[:200]
+                self.slug = f"{base}-{uuid.uuid4().hex[:6]}"
+            try:
+                with transaction.atomic():
+                    super().save(*args, **kwargs)
+                return
+            except IntegrityError:
+                self.slug = ""
+                if attempt == 3:
+                    raise
 
     def _generate_slug(self) -> str:
         """

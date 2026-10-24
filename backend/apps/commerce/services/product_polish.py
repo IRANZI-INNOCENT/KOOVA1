@@ -73,6 +73,7 @@ def _listing(product: Product) -> dict[str, Any]:
         "size": product.size,
         "color": product.color,
         "condition": product.condition,
+        "offering_kind": product.offering_kind,
         "short_description": product.short_description,
         "description": product.description,
         "seo_title": product.seo_title,
@@ -107,7 +108,12 @@ def _apply(product: Product, result: dict[str, Any]) -> None:
         ("seo_description", None),
         ("ai_summary", None),
     ):
-        value = str(result.get(field) or "").strip()
+        raw = result.get(field)
+        if isinstance(raw, (list, tuple)):
+            value = " ".join(str(item).strip() for item in raw if str(item).strip())
+        else:
+            value = str(raw or "")
+        value = " ".join(value.replace("\\n", " ").split()).strip().strip('"')
         if value:
             setattr(product, field, value[:limit] if limit else value)
 
