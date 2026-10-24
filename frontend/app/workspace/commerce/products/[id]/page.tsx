@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import {
   getBusiness,
+  deleteProduct,
   getProducts,
   getProductContentPlans,
   polishProduct,
@@ -43,6 +44,7 @@ export default function ProductDetailPage() {
   const [saving, setSaving] = useState(false);
   const [polishing, setPolishing] = useState(false);
   const [statusAction, setStatusAction] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [contentPlan, setContentPlan] = useState<ProductContentPlan | null>(
@@ -140,6 +142,26 @@ export default function ProductDetailPage() {
       );
     } finally {
       setPolishing(false);
+    }
+  }
+
+  async function removeProduct() {
+    if (!product || !businessId || !accessToken || deleting) return;
+    const confirmed = window.confirm(
+      `Delete ${product.name}? It will be removed from your shop.`,
+    );
+    if (!confirmed) return;
+    setDeleting(true);
+    setError("");
+    setSuccess("");
+    try {
+      await deleteProduct(businessId, product.id, accessToken);
+      router.replace("/workspace/commerce/products");
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "Could not delete this product.",
+      );
+      setDeleting(false);
     }
   }
 
@@ -278,6 +300,15 @@ export default function ProductDetailPage() {
                   Restore to Draft
                 </Button>
               )}
+              <Button
+                variant="outline"
+                onClick={() => void removeProduct()}
+                loading={deleting}
+                disabled={!!statusAction || deleting}
+                className="border-red-200 text-red-700 hover:border-red-400 hover:text-red-700"
+              >
+                Delete
+              </Button>
             </div>
           </div>
 

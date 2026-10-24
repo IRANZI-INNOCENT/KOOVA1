@@ -400,6 +400,19 @@ export async function updateProduct(
   );
 }
 
+export async function deleteProduct(
+  businessId: number,
+  productId: number,
+  token: string,
+): Promise<void> {
+  await authenticatedApiRequest(
+    `/commerce/${businessId}/products/${productId}/`,
+    token,
+    { method: "DELETE" },
+  );
+  invalidateCommerceCaches(businessId);
+}
+
 /* ------------------------------------------------------------------ */
 /* Content                                                             */
 /* ------------------------------------------------------------------ */

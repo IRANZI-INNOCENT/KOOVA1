@@ -8,6 +8,7 @@ import { ListSkeleton } from "@/components/workspace/page-skeleton";
 import { ApiError } from "@/lib/api";
 import {
   createBroadcastPack,
+  deleteProduct,
   getProducts,
   type BroadcastPack,
   type Product,
@@ -28,6 +29,7 @@ export default function ProductsPage() {
   const [broadcast, setBroadcast] = useState<BroadcastPack | null>(null);
   const [broadcastBusy, setBroadcastBusy] = useState(false);
   const [broadcastNotice, setBroadcastNotice] = useState("");
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
     if (workspaceLoading || !businessId || !accessToken) {
@@ -78,6 +80,26 @@ export default function ProductsPage() {
       );
     } finally {
       setBroadcastBusy(false);
+    }
+  }
+
+  async function removeProduct(product: Product) {
+    if (!businessId || !accessToken || deletingId != null) return;
+    const confirmed = window.confirm(
+      `Delete ${product.name}? It will be removed from your shop.`,
+    );
+    if (!confirmed) return;
+    setDeletingId(product.id);
+    setError("");
+    try {
+      await deleteProduct(businessId, product.id, accessToken);
+      setProducts((current) => current.filter((item) => item.id !== product.id));
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "Could not delete this product.",
+      );
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -181,11 +203,12 @@ export default function ProductsPage() {
 
         {products.length ? (
           <div className="overflow-hidden rounded-lg border border-kova-border bg-white">
-            <div className="hidden grid-cols-[minmax(0,1fr)_140px_120px_120px] gap-4 border-b border-kova-border px-5 py-3 text-xs font-medium text-gray-500 md:grid">
+            <div className="hidden grid-cols-[minmax(0,1fr)_140px_120px_120px_88px] gap-4 border-b border-kova-border px-5 py-3 text-xs font-medium text-gray-500 md:grid">
               <span>Product</span>
               <span>Price</span>
               <span>Status</span>
               <span>AI</span>
+              <span />
             </div>
             {products.map((product) => {
               const image =
@@ -193,12 +216,15 @@ export default function ProductsPage() {
                 product.images[0];
               const badge = STATUS_BADGE[product.status] ?? STATUS_BADGE.draft;
               return (
-                <Link
+                <div
                   key={product.id}
-                  href={`/workspace/commerce/products/${product.id}`}
-                  className="grid grid-cols-1 items-center gap-3 border-b border-kova-border px-4 py-4 last:border-b-0 transition hover:bg-kova-background md:grid-cols-[minmax(0,1fr)_140px_120px_120px] md:gap-4 md:px-5"
+                  className="grid grid-cols-1 items-center gap-3 border-b border-kova-border px-4 py-4 last:border-b-0 md:grid-cols-[minmax(0,1fr)_140px_120px_120px_88px] md:gap-4 md:px-5"
                 >
-                  <div className="flex min-w-0 items-center gap-4">
+                <Link
+                  href={`/workspace/commerce/products/${product.id}`}
+                  className="contents"
+                >
+                  <div className="flex min-w-0 items-center gap-4 transition hover:opacity-80">
                     <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-kova-background">
                       {image?.url ? (
                         <img
@@ -240,6 +266,15 @@ export default function ProductsPage() {
                     {product.ai_generated ? "Understood" : "Manual"}
                   </span>
                 </Link>
+                  <button
+                    type="button"
+                    onClick={() => void removeProduct(product)}
+                    disabled={deletingId === product.id}
+                    className="inline-flex h-11 items-center justify-center rounded-lg px-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60 md:h-9"
+                  >
+                    {deletingId === product.id ? "Deleting…" : "Delete"}
+                  </button>
+                </div>
               );
             })}
           </div>
