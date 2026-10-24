@@ -138,6 +138,21 @@ class LinkedInOAuthFlowTests(SimpleTestCase):
             "Requested version 20240501 is not active",
         )
 
+    def test_parenthesis_does_not_cut_the_rest_of_a_post(self):
+        source = (
+            "1. Translating chaotic human inputs into clean, typed data "
+            "(e.g., extracting SKU details from a handwritten scan).\n"
+            "2. Ambiguous intent classification."
+        )
+        escaped = linkedin_service.commentary_for_linkedin(source)
+        self.assertIn(r"\(e.g., extracting SKU details", escaped)
+        self.assertIn("2. Ambiguous intent classification.", escaped)
+        self.assertNotIn("data (e.g.", escaped)
+
+    def test_plain_post_is_unchanged_when_it_has_no_reserved_characters(self):
+        source = "Keep the core deterministic. Use AI only where ambiguity demands it."
+        self.assertEqual(linkedin_service.escape_little_text(source), source)
+
     def test_past_expiry_reads_as_expired_without_a_write(self):
         connection = LinkedInConnection(
             connection_status=LinkedInConnection.Status.CONNECTED,

@@ -321,6 +321,42 @@ def _upload_image(access_token: str, owner_urn: str, image_url: str) -> str:
     return str(image_urn)
 
 
+# LinkedIn stores commentary as "little" text. An unescaped reserved character
+# ends the post at that character, which is why a "(" drops the rest of the body.
+_LITTLE_RESERVED = frozenset("\\|{}@[]()<>#*_~")
+LINKEDIN_COMMENTARY_LIMIT = 3000
+
+
+def escape_little_text(text: str) -> str:
+    """Backslash-escape reserved little-text characters so they publish as written."""
+    pieces: list[str] = []
+    for char in text or "":
+        if char in _LITTLE_RESERVED:
+            pieces.append("\\")
+        pieces.append(char)
+    return "".join(pieces)
+
+
+def commentary_for_linkedin(text: str, limit: int = LINKEDIN_COMMENTARY_LIMIT) -> str:
+    """Plain post text, escaped, and kept inside LinkedIn's commentary limit."""
+    plain = (text or "").strip()
+    escaped = escape_little_text(plain)
+    if len(escaped) <= limit:
+        return escaped
+    low = 0
+    high = len(plain)
+    best = ""
+    while low <= high:
+        mid = (low + high) // 2
+        candidate = escape_little_text(plain[:mid].rstrip())
+        if len(candidate) <= limit:
+            best = candidate
+            low = mid + 1
+        else:
+            high = mid - 1
+    return best
+
+
 def publish_text_post(connection: LinkedInConnection, post: ProfessionalPost) -> str:
     """Publish a text (and optional multi-image) post. Returns post id/urn if available."""
     access_token = ensure_access_token(connection)
@@ -332,7 +368,7 @@ def publish_text_post(connection: LinkedInConnection, post: ProfessionalPost) ->
     author = f"urn:li:person:{member_id}"
     payload: dict = {
         "author": author,
-        "commentary": post.body[:3000],
+        "commentary": commentary_for_linkedin(post.body),
         "visibility": "PUBLIC",
         "lifecycleState": "PUBLISHED",
         "distribution": {
