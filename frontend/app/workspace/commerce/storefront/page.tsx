@@ -717,7 +717,7 @@ export default function StorefrontPage() {
                         event.target.value,
                       )
                     }
-                    placeholder="Short line under your title"
+                    placeholder="Headline on the banner"
                     className="mt-1.5 w-full border border-kova-border px-3 py-2.5 text-sm outline-none focus:border-kova-green"
                   />
                 </div>
@@ -737,7 +737,7 @@ export default function StorefrontPage() {
                       )
                     }
                     rows={3}
-                    placeholder="What you sell"
+                    placeholder="Shown on the banner and in About"
                     className="mt-1.5 w-full resize-y border border-kova-border px-3 py-2.5 text-sm leading-6 outline-none focus:border-kova-green"
                   />
                 </div>
@@ -784,7 +784,7 @@ export default function StorefrontPage() {
                     </button>
                 </div>
 
-                  <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                  <div className="mt-4 grid gap-4 lg:grid-cols-3">
                     <div>
                       <label className="block text-sm font-medium text-kova-dark">
                         Primary
@@ -1241,7 +1241,7 @@ export default function StorefrontPage() {
                           updateField("show_featured", e.target.checked)
                         }
                       />
-                      Show featured products strip
+                      Show Popular on the shop
                     </label>
                     <label className="flex items-center gap-2 text-kova-dark">
                       <input
@@ -1251,7 +1251,7 @@ export default function StorefrontPage() {
                           updateField("show_about", e.target.checked)
                         }
                       />
-                      Show about text in the footer
+                      Show About, with phone, email, and location
                     </label>
                   </div>
                 </div>
@@ -1276,6 +1276,7 @@ export default function StorefrontPage() {
                       placeholder="+254..."
                       className="mt-1.5 w-full border border-kova-border px-3 py-2.5 text-sm outline-none focus:border-kova-green"
                     />
+                    <p className="mt-1 text-[11px] text-gray-500">Header button and banner.</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-kova-dark">
@@ -1290,6 +1291,7 @@ export default function StorefrontPage() {
                       placeholder="+254..."
                       className="mt-1.5 w-full border border-kova-border px-3 py-2.5 text-sm outline-none focus:border-kova-green"
                     />
+                    <p className="mt-1 text-[11px] text-gray-500">Banner, About, and footer.</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-kova-dark">
@@ -1301,9 +1303,10 @@ export default function StorefrontPage() {
                       onChange={(event) =>
                         updateField("email", event.target.value)
                       }
-                      placeholder="business@example.com"
+                      placeholder="hello@shop.com"
                       className="mt-1.5 w-full border border-kova-border px-3 py-2.5 text-sm outline-none focus:border-kova-green"
                     />
+                    <p className="mt-1 text-[11px] text-gray-500">About and footer.</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-kova-dark">
@@ -1318,14 +1321,15 @@ export default function StorefrontPage() {
                       placeholder="Nairobi, Kenya"
                       className="mt-1.5 w-full border border-kova-border px-3 py-2.5 text-sm outline-none focus:border-kova-green"
                     />
+                    <p className="mt-1 text-[11px] text-gray-500">Accent line on the banner, About, and footer.</p>
                   </div>
                 </div>
 
-                <div className="flex justify-end border-t border-kova-border pt-5">
+                <div className="flex border-t border-kova-border pt-5 sm:justify-end">
                   <button
                     type="submit"
                     disabled={saving}
-                    className="rounded-md border border-kova-green bg-kova-green px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className="h-12 w-full rounded-md border border-kova-green bg-kova-green px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:h-auto sm:w-auto sm:py-2.5"
                   >
                     {saving ? "Saving…" : "Save"}
                   </button>
@@ -1440,6 +1444,16 @@ export default function StorefrontPage() {
                     >
                       KES 1,200
                     </p>
+                    {form.location.trim() ? (
+                      <p className="mt-2 text-xs font-semibold" style={{ color: "var(--store-accent)" }}>
+                        {form.location.trim()}
+                      </p>
+                    ) : null}
+                    {form.phone.trim() ? (
+                      <p className="mt-1 text-xs" style={{ color: "var(--store-secondary)" }}>
+                        {form.phone.trim()}
+                      </p>
+                    ) : null}
                     <p className="mt-2 text-[11px] text-gray-500">
                       Layout:{" "}
                       {LAYOUT_PRESETS.find((p) => p.id === form.layout_preset)

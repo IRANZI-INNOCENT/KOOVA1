@@ -26,6 +26,7 @@ export function ProductGallery({
             src={mediaSrc(image.url)}
             alt={image.alt_text || productName}
             className="h-full w-full object-cover"
+            decoding="async"
           />
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-gray-400">
@@ -34,13 +35,13 @@ export function ProductGallery({
         )}
       </div>
       {sorted.length > 1 && (
-        <div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-5 sm:gap-3">
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
           {sorted.map((item, index) => (
             <button
               key={item.id}
               type="button"
               onClick={() => setActiveImage(index)}
-              className={`aspect-square overflow-hidden rounded-lg border bg-white transition ${
+              className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border bg-white transition ${
                 index === activeImage
                   ? "border-kova-orange ring-1 ring-kova-orange/30"
                   : "border-kova-border hover:border-kova-orange/40"
@@ -51,6 +52,8 @@ export function ProductGallery({
                   src={mediaSrc(item.url)}
                   alt=""
                   className="h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
                 />
               )}
             </button>

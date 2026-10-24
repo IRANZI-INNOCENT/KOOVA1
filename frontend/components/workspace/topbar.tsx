@@ -116,9 +116,26 @@ export function Topbar() {
             type="button"
             onClick={handleLogout}
             disabled={loggingOut}
-            className="rounded-md px-3 py-2 text-xs font-medium text-white/90 hover:text-kova-orange disabled:opacity-60"
+            aria-label={loggingOut ? "Signing out" : "Sign out"}
+            className="inline-flex h-11 items-center rounded-md px-2 text-xs font-medium text-white/90 hover:text-kova-orange disabled:opacity-60 sm:px-3"
           >
-            {loggingOut ? "Signing out" : "Sign out"}
+            <svg
+              className="sm:hidden"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M9 6H6a2 2 0 00-2 2v8a2 2 0 002 2h3" />
+              <path d="M14 16l4-4-4-4" />
+              <path d="M18 12H9" />
+            </svg>
+            <span className="hidden sm:inline">{loggingOut ? "Signing out" : "Sign out"}</span>
           </button>
         </div>
       </header>
@@ -127,6 +144,7 @@ export function Topbar() {
       {mobileMenuOpen && (
         <div className="max-h-[min(75dvh,32rem)] overflow-y-auto border-b border-kova-border bg-white px-4 py-4 lg:hidden">
           <p className="mb-2 px-3 text-xs font-medium text-gray-400">More</p>
+          <BusinessSwitcher compact />
           <MobileNavMenu
             pathname={pathname}
             onNavigate={() => setMobileMenuOpen(false)}

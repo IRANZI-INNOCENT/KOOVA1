@@ -101,27 +101,27 @@ export default function ProductsPage() {
   return (
     <div className={WORKSPACE_PAGE}>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+          <Link
+            href="/workspace/commerce/snap-to-sell"
+            className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-kova-orange px-4 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e] sm:h-10 sm:w-auto"
+          >
+            Add listing
+          </Link>
           <button
             type="button"
             onClick={() => void shareTodaysStock()}
             disabled={broadcastBusy}
-            className="inline-flex h-10 items-center rounded-lg border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark disabled:opacity-60"
+            className="inline-flex h-12 w-full items-center justify-center rounded-lg border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark disabled:opacity-60 sm:h-10 sm:w-auto"
           >
             {broadcastBusy ? "Building…" : "Share today’s list"}
           </button>
-          <Link
-            href="/workspace/commerce/snap-to-sell"
-            className="inline-flex h-10 items-center rounded-lg bg-kova-orange px-4 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e]"
-          >
-            Add listing
-          </Link>
           {storePath ? (
             <a
               href={storePath}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-10 items-center rounded-lg border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark transition hover:border-kova-orange/50"
+              className="inline-flex h-12 w-full items-center justify-center rounded-lg border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark transition hover:border-kova-orange/50 sm:h-10 sm:w-auto"
             >
               View store
             </a>
@@ -248,7 +248,7 @@ export default function ProductsPage() {
             <p className="font-semibold text-kova-dark">No products yet</p>
             <Link
               href="/workspace/commerce/snap-to-sell"
-              className="mt-3 inline-flex h-10 items-center rounded-md bg-kova-orange px-5 text-sm font-bold text-kova-dark hover:bg-[#f0a46e]"
+              className="mt-3 inline-flex h-12 w-full items-center justify-center rounded-md bg-kova-orange px-5 text-sm font-bold text-kova-dark hover:bg-[#f0a46e] sm:h-10 sm:w-auto"
             >
               Add listing
             </Link>

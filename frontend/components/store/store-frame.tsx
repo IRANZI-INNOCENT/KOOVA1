@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 
 import type { CommercePage } from "@/lib/commerce";
-import { resolveStoreImage } from "@/lib/store-theme";
+import { resolveStoreImage, storeThemeStyle } from "@/lib/store-theme";
 import { whatsappLink } from "@/lib/storefront";
 
 interface StoreFrameProps {
@@ -11,55 +11,34 @@ interface StoreFrameProps {
   children: ReactNode;
 }
 
-/** Public shop palette taken from the Nyawira-style store template. */
-const CREAM = "#FFF8EE";
-const BROWN = "#6B3E16";
-const GOLD = "#C9973A";
-const GREEN = "#1B7A34";
-const INK = "#3F3A34";
-
 export function StoreFrame({ page, slug, children }: StoreFrameProps) {
   const shopHref = `/store/${slug}`;
   const logoSrc = resolveStoreImage(page.logo_url);
   const name = page.title?.trim() || page.business_name;
 
   return (
-    <div
-      className="min-h-screen"
-      style={{
-        backgroundColor: CREAM,
-        color: INK,
-        ["--store-cream" as string]: CREAM,
-        ["--store-brown" as string]: BROWN,
-        ["--store-gold" as string]: GOLD,
-        ["--store-green" as string]: GREEN,
-        ["--store-ink" as string]: INK,
-        fontFamily: "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif",
-      }}
-    >
+    <div className="min-h-screen" style={storeThemeStyle(page)}>
       <header
-        className="sticky top-0 z-40 border-b pt-[env(safe-area-inset-top)]"
-        style={{ backgroundColor: CREAM, borderColor: "rgba(107,62,22,0.08)" }}
+        className="sticky top-0 z-40 pt-[env(safe-area-inset-top)]"
+        style={{ backgroundColor: "var(--store-primary)", color: "var(--store-on-primary)" }}
       >
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3.5 sm:px-6 lg:h-[76px] lg:flex-nowrap lg:py-0">
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-3 py-3 sm:px-6 lg:h-[76px] lg:py-0">
           <Link
             href={shopHref}
-            className="flex min-w-0 items-center gap-2.5"
+            className="flex min-w-0 flex-1 items-center gap-2"
+            style={{ color: "var(--store-on-primary)" }}
           >
             {logoSrc ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={logoSrc}
                 alt=""
-                className="h-10 w-10 shrink-0 rounded-md object-cover"
+                className="h-9 w-9 shrink-0 rounded-md object-cover sm:h-10 sm:w-10"
               />
             ) : (
               <StoreMark />
             )}
-            <span
-              className="truncate text-[1.35rem] font-bold tracking-tight"
-              style={{ color: BROWN }}
-            >
+            <span className="truncate text-lg font-bold tracking-tight sm:text-[1.35rem]">
               {name}
             </span>
           </Link>
@@ -69,10 +48,13 @@ export function StoreFrame({ page, slug, children }: StoreFrameProps) {
               href={whatsappLink(page.whatsapp)}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-auto inline-flex h-11 shrink-0 items-center gap-2 rounded-lg px-4 text-sm font-semibold text-white"
-              style={{ backgroundColor: GREEN }}
+              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-semibold sm:px-4"
+              style={{
+                backgroundColor: "var(--store-accent)",
+                color: "var(--store-on-accent)",
+              }}
             >
-              <WhatsAppGlyph />
+              <WhatsAppGlyph light={false} />
               WhatsApp
             </a>
           ) : null}
@@ -81,17 +63,11 @@ export function StoreFrame({ page, slug, children }: StoreFrameProps) {
 
       {children}
 
-      <footer
-        id="contact"
-        className="border-t"
-        style={{ borderColor: "rgba(107,62,22,0.1)", backgroundColor: CREAM }}
-      >
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-end sm:justify-between sm:px-6">
+      <footer id="contact" style={{ backgroundColor: "var(--store-primary)", color: "var(--store-on-primary)" }}>
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-end sm:justify-between sm:px-6">
           <div>
-            <p className="text-lg font-bold" style={{ color: BROWN }}>
-              {name}
-            </p>
-            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm" style={{ color: INK }}>
+            <p className="text-lg font-bold">{name}</p>
+            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
               {page.location ? <span>{page.location}</span> : null}
               {page.phone ? (
                 <a href={`tel:${page.phone}`} className="hover:underline">
@@ -105,9 +81,7 @@ export function StoreFrame({ page, slug, children }: StoreFrameProps) {
               ) : null}
             </div>
           </div>
-          <p className="text-xs" style={{ color: "rgba(63,58,52,0.55)" }}>
-            Powered by KCOVA
-          </p>
+          <p className="text-xs opacity-70">Powered by KCOVA</p>
         </div>
       </footer>
     </div>
@@ -117,10 +91,10 @@ export function StoreFrame({ page, slug, children }: StoreFrameProps) {
 function StoreMark() {
   return (
     <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden className="shrink-0">
-      <rect x="4" y="8" width="28" height="20" rx="6" fill="#6B3E16" />
+      <rect x="4" y="8" width="28" height="20" rx="6" fill="currentColor" />
       <path
         d="M10 14h16M12 18h12M14 22h8"
-        stroke="#FFF8EE"
+        stroke="var(--store-primary)"
         strokeWidth="1.6"
         strokeLinecap="round"
       />
@@ -129,7 +103,7 @@ function StoreMark() {
 }
 
 export function WhatsAppGlyph({ light = true }: { light?: boolean }) {
-  const fill = light ? "#FFFFFF" : "#1B7A34";
+  const fill = light ? "#FFFFFF" : "currentColor";
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
       <path

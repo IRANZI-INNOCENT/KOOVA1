@@ -152,7 +152,7 @@ export default function ExpensesPage() {
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex h-10 items-center rounded-md bg-kova-green px-4 text-sm font-semibold text-white disabled:opacity-60"
+            className="inline-flex h-12 w-full items-center justify-center rounded-md bg-kova-green px-4 text-sm font-semibold text-white disabled:opacity-60 sm:h-10 sm:w-auto"
           >
             {saving ? "Saving…" : "Add expense"}
           </button>
@@ -182,7 +182,7 @@ export default function ExpensesPage() {
                 <button
                   type="button"
                   onClick={() => onDelete(expense)}
-                  className="text-xs font-semibold text-gray-500 hover:text-red-600"
+                  className="inline-flex h-11 shrink-0 items-center px-2 text-xs font-semibold text-gray-500 hover:text-red-600"
                 >
                   Delete
                 </button>

@@ -39,7 +39,7 @@ export function WorkspaceSectionNav({
       className="shrink-0 border-b border-kova-border bg-white px-4 sm:px-8"
     >
       <div className={`mx-auto ${maxWidthClass}`}>
-        <ul className="-mb-px flex gap-0.5 overflow-x-auto">
+        <ul className="-mb-px flex touch-pan-x gap-0.5 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {tabs.map((tab) => {
             const active = tabActive(pathname, tab);
             return (

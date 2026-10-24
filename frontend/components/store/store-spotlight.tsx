@@ -20,6 +20,7 @@ export function StoreSpotlight({
   menuLabel = "See offerings",
   whatsappHref,
   whatsappLabel,
+  phoneLabel = "",
 }: {
   slides: SpotlightSlide[];
   lead: string;
@@ -29,6 +30,7 @@ export function StoreSpotlight({
   menuLabel?: string;
   whatsappHref: string;
   whatsappLabel: string;
+  phoneLabel?: string;
 }) {
   const [index, setIndex] = useState(0);
   const count = slides.length;
@@ -42,7 +44,7 @@ export function StoreSpotlight({
   }, [count]);
 
   return (
-    <section className="relative min-h-[340px] overflow-hidden sm:min-h-[420px] lg:min-h-[460px]">
+    <section className="relative min-h-[260px] overflow-hidden sm:min-h-[420px] lg:min-h-[460px]">
       {count > 0 ? (
         slides.map((slide, i) => (
           // eslint-disable-next-line @next/next/no-img-element
@@ -57,26 +59,25 @@ export function StoreSpotlight({
           />
         ))
       ) : (
-        <div className="absolute inset-0" style={{ backgroundColor: "#6B3E16" }} />
+        <div className="absolute inset-0" style={{ backgroundColor: "var(--store-secondary)" }} />
       )}
 
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(90deg, rgba(92,46,12,0.94) 0%, rgba(92,46,12,0.82) 34%, rgba(92,46,12,0.45) 58%, rgba(92,46,12,0.12) 100%)",
+            "linear-gradient(90deg, color-mix(in srgb, var(--store-secondary) 92%, black) 0%, color-mix(in srgb, var(--store-secondary) 72%, transparent) 38%, color-mix(in srgb, var(--store-secondary) 28%, transparent) 62%, transparent 100%)",
         }}
       />
 
-      <div className="relative mx-auto flex min-h-[340px] max-w-6xl items-center px-4 py-12 sm:min-h-[420px] sm:px-6 lg:min-h-[460px]">
-        <div className="max-w-xl">
-        <h1 className="text-[2rem] font-bold leading-[1.05] tracking-tight text-white sm:text-5xl">
+      <div className="relative mx-auto flex min-h-[260px] max-w-6xl items-center px-4 py-8 sm:min-h-[420px] sm:px-6 sm:py-12 lg:min-h-[460px]">
+        <div className="w-full max-w-xl">
+        <h1 className="text-[1.7rem] font-bold leading-[1.08] tracking-tight text-white sm:text-5xl">
           {lead}
           {accent ? (
-            <>
-              {" "}
-              <span style={{ color: "#E0B15A" }}>{accent}</span>
-            </>
+            <span className="mt-1 block" style={{ color: "var(--store-accent)" }}>
+              {accent}
+            </span>
           ) : null}
         </h1>
         {subtitle ? (
@@ -84,11 +85,14 @@ export function StoreSpotlight({
             {subtitle}
           </p>
         ) : null}
-        <div className="mt-6 flex flex-wrap items-center gap-3">
+        {phoneLabel ? (
+          <p className="mt-3 text-sm font-semibold text-white">{phoneLabel}</p>
+        ) : null}
+        <div className="mt-6 flex flex-col gap-3 min-[480px]:flex-row min-[480px]:flex-wrap">
           <a
             href={menuHref}
-            className="inline-flex h-11 items-center rounded-md px-5 text-sm font-semibold text-white"
-            style={{ backgroundColor: "#C9973A" }}
+            className="inline-flex h-12 w-full items-center justify-center rounded-md px-5 text-sm font-semibold min-[480px]:w-auto"
+            style={{ backgroundColor: "var(--store-accent)", color: "var(--store-on-accent)" }}
           >
             {menuLabel} →
           </a>
@@ -97,7 +101,7 @@ export function StoreSpotlight({
               href={whatsappHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-11 items-center gap-2 rounded-md px-4 text-sm font-semibold text-white"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-md px-4 text-center text-sm font-semibold leading-tight text-white min-[480px]:w-auto"
               style={{ backgroundColor: "#1B7A34" }}
             >
               <WhatsAppGlyph />

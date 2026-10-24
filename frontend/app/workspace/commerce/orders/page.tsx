@@ -109,8 +109,8 @@ export default function OrdersPage() {
                 key={order.id}
                 className="rounded-lg border border-kova-border bg-white p-4"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
                     <p className="text-sm font-semibold text-kova-dark">
                       {order.product_name || "Product"} · {order.quantity}
                     </p>
@@ -135,7 +135,7 @@ export default function OrdersPage() {
                     <button
                       type="button"
                       onClick={() => advance(order)}
-                      className="inline-flex h-8 items-center rounded-md bg-kova-green px-3 text-xs font-bold text-white"
+                      className="inline-flex h-11 items-center rounded-md bg-kova-green px-3 text-xs font-bold text-white"
                     >
                       Mark {LABEL[NEXT[order.status]!] || NEXT[order.status]}
                     </button>
@@ -146,7 +146,7 @@ export default function OrdersPage() {
                     <button
                       type="button"
                       onClick={() => cancel(order)}
-                      className="inline-flex h-8 items-center rounded-md border border-kova-border px-3 text-xs font-semibold text-kova-dark"
+                      className="inline-flex h-11 items-center rounded-md border border-kova-border px-3 text-xs font-semibold text-kova-dark"
                     >
                       Cancel
                     </button>
@@ -155,7 +155,7 @@ export default function OrdersPage() {
                     <button
                       type="button"
                       onClick={() => copyReview(order)}
-                      className="inline-flex h-8 items-center rounded-md border border-kova-border px-3 text-xs font-semibold text-kova-dark"
+                      className="inline-flex h-11 items-center rounded-md border border-kova-border px-3 text-xs font-semibold text-kova-dark"
                     >
                       Copy review ask
                     </button>
