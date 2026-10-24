@@ -225,12 +225,12 @@ export default async function PublicProductPage({
       </section>
 
       {related.length > 0 && (
-        <section className="border-t border-kova-border bg-white">
+        <section>
           <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
             <h2 className="text-xl font-bold" style={{ color: "var(--store-secondary)" }}>
               More from {page.business_name}
             </h2>
-            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="mt-6 grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-8 lg:grid-cols-4">
               {related.map((item) => {
                 const thumb =
                   item.images.find((img) => img.is_primary) ?? item.images[0];
@@ -238,28 +238,29 @@ export default async function PublicProductPage({
                   <Link
                     key={item.id}
                     href={`/store/${slug}/${item.slug}`}
-                    className="group overflow-hidden rounded-lg border border-kova-border bg-white transition hover:border-kova-orange/50 hover:shadow-sm"
+                    className="block"
                   >
-                    <div className="aspect-square overflow-hidden bg-kova-background">
+                    <div className="aspect-square overflow-hidden bg-[var(--store-secondary-soft)]">
                       {thumb?.url && (
                         <img
                           src={mediaSrc(thumb.url)}
                           alt={item.name}
-                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          className="h-full w-full object-cover"
                         />
                       )}
                     </div>
-                    <div className="p-3.5">
-                      <p className="line-clamp-2 text-sm font-semibold text-kova-dark">
-                        {item.name}
-                      </p>
-                      <p
-                        className="mt-1.5 text-sm font-bold"
-                        style={{ color: "var(--store-accent)" }}
-                      >
-                        {formatPrice(item.currency, item.price)}
-                      </p>
-                    </div>
+                    <p
+                      className="mt-2.5 line-clamp-2 text-sm font-semibold leading-snug"
+                      style={{ color: "var(--store-secondary)" }}
+                    >
+                      {item.name}
+                    </p>
+                    <p
+                      className="mt-1 text-sm font-bold"
+                      style={{ color: "var(--store-accent)" }}
+                    >
+                      {formatPrice(item.currency, item.price)}
+                    </p>
                   </Link>
                 );
               })}

@@ -88,33 +88,28 @@ function OfferingCard({
 }) {
   const image = productImage(product);
   return (
-    <Link
-      href={`/store/${slug}/${product.slug}`}
-      className="group block overflow-hidden rounded-xl border bg-white transition hover:shadow-sm"
-      style={{ borderColor: "var(--store-border)" }}
-    >
-      <div className="p-2.5 pb-0">
-        <div className="aspect-square overflow-hidden rounded-lg bg-[#F6EFE4]">
-          {image?.url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={mediaSrc(image.url)}
-              alt={image.alt_text || product.name}
-              className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-              loading="lazy"
-              decoding="async"
-            />
-          ) : null}
-        </div>
+    <Link href={`/store/${slug}/${product.slug}`} className="group block">
+      <div className="aspect-square overflow-hidden bg-[var(--store-secondary-soft)]">
+        {image?.url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={mediaSrc(image.url)}
+            alt={image.alt_text || product.name}
+            className="h-full w-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        ) : null}
       </div>
-      <div className="px-3.5 pb-3.5 pt-3">
-        <p className="line-clamp-2 text-sm font-semibold" style={{ color: "var(--store-secondary)" }}>
-          {product.name}
-        </p>
-        <p className="mt-1.5 text-sm font-bold" style={{ color: "var(--store-accent)" }}>
-          {formatPrice(product.currency, product.price)}
-        </p>
-      </div>
+      <p
+        className="mt-2.5 line-clamp-2 text-sm font-semibold leading-snug"
+        style={{ color: "var(--store-secondary)" }}
+      >
+        {product.name}
+      </p>
+      <p className="mt-1 text-sm font-bold" style={{ color: "var(--store-accent)" }}>
+        {formatPrice(product.currency, product.price)}
+      </p>
     </Link>
   );
 }
@@ -227,7 +222,7 @@ export default async function PublicStorePage({
               Offerings will appear here once they are published.
             </p>
           ) : (
-            <div className={`mt-6 grid gap-3 sm:gap-4 ${offeringGrid}`}>
+            <div className={`mt-6 grid gap-x-3 gap-y-7 sm:gap-x-5 sm:gap-y-8 ${offeringGrid}`}>
               {popular.map((product) => (
                 <OfferingCard key={product.id} product={product} slug={slug} />
               ))}
@@ -252,7 +247,7 @@ export default async function PublicStorePage({
               Nothing is listed yet.
             </p>
           ) : (
-            <div className={`mt-6 grid gap-3 sm:gap-4 ${offeringGrid}`}>
+            <div className={`mt-6 grid gap-x-3 gap-y-7 sm:gap-x-5 sm:gap-y-8 ${offeringGrid}`}>
               {products.map((product) => (
                 <OfferingCard key={product.id} product={product} slug={slug} />
               ))}
