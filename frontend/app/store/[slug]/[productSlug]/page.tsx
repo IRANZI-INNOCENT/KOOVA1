@@ -157,6 +157,19 @@ export default async function PublicProductPage({
               productSlug={productSlug}
               productName={product.name}
               whatsapp={page.whatsapp}
+              imageUrl={
+                mediaSrc(
+                  product.images.find((image) => image.is_primary)?.url ||
+                    product.images[0]?.url ||
+                    "",
+                ) || undefined
+              }
+              priceLabel={
+                product.price
+                  ? formatPrice(product.currency, product.price)
+                  : undefined
+              }
+              service={product.offering_kind === "service"}
               className="mt-6 inline-flex h-12 items-center justify-center rounded-md px-6 text-sm font-semibold disabled:opacity-70"
               style={{ backgroundColor: "var(--store-accent)", color: "var(--store-on-accent)" }}
             >
