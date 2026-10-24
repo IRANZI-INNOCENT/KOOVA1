@@ -251,11 +251,32 @@ def fetch_member_profile(access_token: str) -> dict:
     return response.json()
 
 
+def linkedin_api_version() -> str:
+    """Active Marketing API version. 202405 was sunset and now returns 426."""
+    raw = os.getenv("LINKEDIN_API_VERSION", "").strip()
+    if len(raw) == 6 and raw.isdigit():
+        return raw
+    return "202610"
+
+
+def linkedin_error_text(response: requests.Response, fallback: str) -> str:
+    try:
+        body = response.json()
+    except ValueError:
+        body = None
+    if isinstance(body, dict):
+        message = body.get("message") or body.get("error_description") or body.get("error")
+        if message:
+            return str(message)[:400]
+    text = (response.text or "").strip()
+    return (text[:400] if text else "") or fallback
+
+
 def _api_headers(access_token: str) -> dict[str, str]:
     return {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
-        "LinkedIn-Version": "202405",
+        "LinkedIn-Version": linkedin_api_version(),
         "X-Restli-Protocol-Version": "2.0.0",
     }
 
@@ -280,7 +301,7 @@ def _upload_image(access_token: str, owner_urn: str, image_url: str) -> str:
         raise LinkedInError("LinkedIn image upload failed.") from exc
     if not init.ok:
         raise LinkedInError(
-            str(payload.get("message") or init.text[:400] or "LinkedIn image upload failed."),
+            linkedin_error_text(init, "LinkedIn image upload failed."),
         )
     value = payload.get("value") or {}
     upload_url = value.get("uploadUrl") or ""
@@ -344,7 +365,7 @@ def publish_text_post(connection: LinkedInConnection, post: ProfessionalPost) ->
         _mark_expired(connection)
         raise LinkedInError("LinkedIn access expired. Reconnect LinkedIn.")
     if not response.ok:
-        raise LinkedInError(response.text[:400] or "LinkedIn publish failed.")
+        raise LinkedInError(linkedin_error_text(response, "LinkedIn publish failed."))
 
     post_id = response.headers.get("x-restli-id", "")
     return post_id

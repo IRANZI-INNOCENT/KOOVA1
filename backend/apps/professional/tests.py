@@ -116,6 +116,28 @@ class LinkedInOAuthFlowTests(SimpleTestCase):
                 "https://ai.kcova.com",
             )
 
+    def test_publish_uses_an_active_linkedin_version(self):
+        version = linkedin_service.linkedin_api_version()
+        self.assertEqual(len(version), 6)
+        self.assertNotEqual(version, "202405")
+        self.assertGreaterEqual(version, "202601")
+
+    def test_linkedin_error_text_reads_the_message(self):
+        class Response:
+            text = '{"status":426,"code":"NONEXISTENT_VERSION","message":"Requested version 20240501 is not active"}'
+
+            def json(self):
+                return {
+                    "status": 426,
+                    "code": "NONEXISTENT_VERSION",
+                    "message": "Requested version 20240501 is not active",
+                }
+
+        self.assertEqual(
+            linkedin_service.linkedin_error_text(Response(), "LinkedIn publish failed."),
+            "Requested version 20240501 is not active",
+        )
+
     def test_past_expiry_reads_as_expired_without_a_write(self):
         connection = LinkedInConnection(
             connection_status=LinkedInConnection.Status.CONNECTED,
