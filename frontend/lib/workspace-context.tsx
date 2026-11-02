@@ -36,6 +36,7 @@ const WORKSPACE_PREFETCH_ROUTES = [
   "/workspace/commerce/snap-to-sell",
   "/workspace/linkedin",
   "/workspace/linkedin/topic-week",
+  "/workspace/linkedin/event",
   "/workspace/linkedin/calendar",
 ] as const;
 

@@ -388,3 +388,105 @@ def plan_event_arc(
     posts = plan.get("posts") or []
     plan["posts"] = posts[:arc_length]
     return plan
+
+
+OCCASION_LABELS = {
+    "event": "an event",
+    "conference": "a conference",
+    "training": "a training",
+    "workshop": "a training",
+    "course": "a course",
+    "graduation": "a course",
+    "networking": "an event",
+}
+
+
+def occasion_label(event_type: str) -> str:
+    return OCCASION_LABELS.get((event_type or "").strip().lower(), "an event")
+
+
+def event_share_note(event_type: str, event_title: str, note: str) -> str:
+    """What Kova should write from, even when the member only sends a photo."""
+    written = (note or "").strip()
+    title = (event_title or "").strip()
+    where = occasion_label(event_type)
+    if title:
+        where = f"{where} called {title}"
+    if written:
+        return (
+            f"{written}\n\n"
+            f"This was {where}. "
+            "Write exactly one LinkedIn text post in my voice for the photo. "
+            "Do not invent quotes, sponsors, or details I did not give you."
+        )
+    return (
+        f"I want to share that I was at {where}. "
+        "Write exactly one LinkedIn text post in my voice for the photo. "
+        "Do not invent quotes, sponsors, or details I did not give you."
+    )
+
+
+def plain_event_body(event_type: str, event_title: str, note: str) -> str:
+    written = (note or "").strip()
+    title = (event_title or "").strip()
+    if written and title:
+        return f"{written}\n\n{title}"
+    if written:
+        return written
+    if title:
+        return f"Glad I made time for {title}."
+    return f"Glad I made time for {occasion_label(event_type)}."
+
+
+def fallback_event_plan(event_type: str, event_title: str, note: str) -> dict[str, Any]:
+    title = (event_title or "").strip() or occasion_label(event_type)
+    return {
+        "title": title[:240],
+        "posts": [
+            {
+                "arc_index": 1,
+                "post_role": ProfessionalPost.PostRole.EVENT,
+                "format": ProfessionalPost.Format.TEXT,
+                "title": title[:200],
+                "summary": "Photo post",
+                "suggested_timing": "same day",
+            }
+        ],
+    }
+
+
+def keep_single_photo_post(
+    program: ProfessionalProgram,
+    posts: list[ProfessionalPost],
+    *,
+    event_type: str,
+    event_title: str,
+    note: str,
+) -> list[ProfessionalPost]:
+    """A moment is one photo post, ready to publish."""
+    if not posts:
+        posts = [
+            ProfessionalPost.objects.create(
+                profile=program.profile,
+                program=program,
+                arc_index=1,
+                post_role=ProfessionalPost.PostRole.EVENT,
+                format=ProfessionalPost.Format.TEXT,
+                title=((event_title or program.title or "Moment")[:200]),
+                body=plain_event_body(event_type, event_title, note),
+                status=ProfessionalPost.Status.DRAFT,
+            )
+        ]
+    primary = posts[0]
+    extra_ids = [post.pk for post in posts[1:] if post.pk]
+    if extra_ids:
+        ProfessionalPost.objects.filter(pk__in=extra_ids).delete()
+    primary.post_role = ProfessionalPost.PostRole.EVENT
+    primary.format = ProfessionalPost.Format.TEXT
+    primary.carousel_slides = []
+    if not (primary.body or "").strip():
+        primary.body = plain_event_body(event_type, event_title, note)
+    primary.save()
+    program.status = ProfessionalProgram.Status.READY
+    program.save(update_fields=["status", "updated_at"])
+    return [primary]

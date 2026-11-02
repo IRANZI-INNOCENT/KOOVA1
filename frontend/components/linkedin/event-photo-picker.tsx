@@ -34,6 +34,7 @@ export function EventPhotoPicker({
 }: EventPhotoPickerProps) {
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
+  const selfieRef = useRef<HTMLInputElement>(null);
 
   function removeAt(index: number) {
     const copy = [...photos];
@@ -48,7 +49,7 @@ export function EventPhotoPicker({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-medium text-kova-ink">
-          Event photos{" "}
+          Photo or selfie{" "}
           <span className="font-normal text-kova-muted">
             (up to {MAX_EVENT_PHOTOS})
           </span>
@@ -109,13 +110,27 @@ export function EventPhotoPicker({
             e.target.value = "";
           }}
         />
+        <input
+          ref={selfieRef}
+          type="file"
+          accept="image/*"
+          capture="user"
+          className="hidden"
+          disabled={disabled || photos.length >= MAX_EVENT_PHOTOS}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            onChange(mergeFiles(photos, [file]));
+            e.target.value = "";
+          }}
+        />
         <Button
           type="button"
           variant="outline"
           disabled={disabled || photos.length >= MAX_EVENT_PHOTOS}
-          onClick={() => galleryRef.current?.click()}
+          onClick={() => selfieRef.current?.click()}
         >
-          Upload photos
+          Selfie
         </Button>
         <Button
           type="button"
@@ -123,12 +138,19 @@ export function EventPhotoPicker({
           disabled={disabled || photos.length >= MAX_EVENT_PHOTOS}
           onClick={() => cameraRef.current?.click()}
         >
-          Snap a photo
+          Snap
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={disabled || photos.length >= MAX_EVENT_PHOTOS}
+          onClick={() => galleryRef.current?.click()}
+        >
+          Photos
         </Button>
       </div>
       <p className="text-xs text-kova-muted">
-        Photos publish with your main event post. Kova drafts copy tuned for
-        LinkedIn&apos;s feed (strong hook, scannable lines, authentic detail).
+        The photo goes on the post. Kova writes the caption.
       </p>
     </div>
   );

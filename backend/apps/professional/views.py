@@ -9,17 +9,17 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.businesses.models import Business
+from apps.kova_ai.services.openrouter import OpenRouterError
 
 from .models import (
     ContentPillar,
     LinkedInConnection,
-    ProfessionalEventImage,
     ProfessionalPost,
     ProfessionalProfile,
     ProfessionalProgram,
     ProfessionalWeeklyBrief,
 )
-from .services.event_media import assign_event_media_to_posts
+from .services.event_media import assign_event_media_to_posts, attach_event_uploads
 from .serializers import (
     ContentPillarSerializer,
     ProfessionalPostSerializer,
@@ -33,6 +33,9 @@ from .services.programs import (
     create_topic_week_program,
     current_topic_week_program,
     generate_drafts_for_program,
+    event_share_note,
+    fallback_event_plan,
+    keep_single_photo_post,
     plan_event_arc,
     run_topic_week_pipeline,
     schedule_topic_week_posts,
@@ -315,15 +318,7 @@ class EventMomentStartView(APIView):
                 topic=event_label or "professional event",
             ),
         )
-        if uploads:
-            program.event_image = uploads[0]
-            program.save(update_fields=["event_image", "updated_at"])
-            for index, upload in enumerate(uploads):
-                ProfessionalEventImage.objects.create(
-                    program=program,
-                    image=upload,
-                    sort_order=index,
-                )
+        attach_event_uploads(program, uploads)
 
         payload = ProfessionalProgramSerializer(
             program,
@@ -331,6 +326,101 @@ class EventMomentStartView(APIView):
         ).data
         payload["question"] = question_data["question"]
         return Response(payload, status=status.HTTP_201_CREATED)
+
+
+class EventMomentShareView(APIView):
+    """One step: photo plus an optional note becomes a single LinkedIn post."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        profile = get_profile(request.user)
+        event_type = (request.data.get("event_type") or "event").strip().lower()
+        if event_type not in {
+            "event",
+            "conference",
+            "training",
+            "workshop",
+            "course",
+            "graduation",
+            "networking",
+        }:
+            event_type = "event"
+        event_title = (request.data.get("event_title") or "").strip()
+        note = (
+            request.data.get("note") or request.data.get("image_hint") or ""
+        ).strip()
+        uploads = list(request.FILES.getlist("images") or [])
+        legacy = request.FILES.get("image")
+        if legacy is not None:
+            uploads.insert(0, legacy)
+        uploads = uploads[:5]
+        if not uploads and not note and not event_title:
+            return Response(
+                {"detail": "Add a photo or a line about what you want to share."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        answer = event_share_note(event_type, event_title, note)
+        title = event_title or "Moment"
+        program = ProfessionalProgram.objects.create(
+            profile=profile,
+            program_type=ProfessionalProgram.ProgramType.EVENT_MOMENT,
+            status=ProfessionalProgram.Status.DRAFTING,
+            title=title[:240],
+            input_data=attach_brain_to_program_input(
+                profile,
+                {
+                    "event_type": event_type,
+                    "event_title": event_title,
+                    "note": note,
+                    "answer": answer,
+                    "arc_length": 1,
+                    "image_hint": note,
+                },
+                topic=event_title or "professional moment",
+            ),
+        )
+        attach_event_uploads(program, uploads)
+
+        try:
+            plan = plan_event_arc(
+                profile,
+                event_title=event_title or title,
+                answer=answer,
+                arc_length=1,
+            )
+        except (OpenRouterError, ValueError):
+            plan = fallback_event_plan(event_type, event_title, note)
+
+        program.plan = plan
+        program.title = str(plan.get("title") or program.title)[:240]
+        program.save()
+
+        try:
+            posts = generate_drafts_for_program(program)
+        except ValueError:
+            posts = []
+        posts = keep_single_photo_post(
+            program,
+            list(posts),
+            event_type=event_type,
+            event_title=event_title,
+            note=note,
+        )
+        assign_event_media_to_posts(program, posts, request=request)
+        program.refresh_from_db()
+        posts = list(program.posts.all())
+        return Response(
+            {
+                "program": ProfessionalProgramSerializer(
+                    program,
+                    context={"request": request},
+                ).data,
+                "posts": ProfessionalPostSerializer(posts, many=True).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class EventMomentAnswerView(APIView):

@@ -156,6 +156,12 @@ export default function LinkedInHomePage() {
 
           <div className="flex flex-wrap gap-x-5 gap-y-2 border-y border-kova-border/60 py-3 text-sm">
             <Link
+              href="/workspace/linkedin/event"
+              className="font-semibold text-kova-dark hover:text-kova-green"
+            >
+              Share a moment
+            </Link>
+            <Link
               href="/workspace/linkedin/topic-week"
               className="font-semibold text-kova-dark hover:text-kova-green"
             >
@@ -175,7 +181,7 @@ export default function LinkedInHomePage() {
             </h2>
             {posts.length === 0 ? (
               <p className="mt-2 text-sm text-gray-500">
-                No drafts yet. Start with Topic week above.
+                No drafts yet. Share a moment, or start a week of posts.
               </p>
             ) : (
               <ul className="mt-2 divide-y divide-kova-border border-y border-kova-border">

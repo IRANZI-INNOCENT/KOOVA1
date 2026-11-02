@@ -29,6 +29,11 @@ urlpatterns = [
     ),
     path("programs/event-moment/", views.EventMomentStartView.as_view(), name="event-start"),
     path(
+        "programs/event-moment/share/",
+        views.EventMomentShareView.as_view(),
+        name="event-share",
+    ),
+    path(
         "programs/<int:program_id>/event-answer/",
         views.EventMomentAnswerView.as_view(),
         name="event-answer",

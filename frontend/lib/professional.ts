@@ -280,6 +280,20 @@ export async function generateProgramDrafts(
   );
 }
 
+export async function shareEventMoment(
+  token: string,
+  form: FormData,
+): Promise<{ program: ProfessionalProgram; posts: ProfessionalPost[] }> {
+  return authenticatedApiRequest<{
+    program: ProfessionalProgram;
+    posts: ProfessionalPost[];
+  }>("/professional/programs/event-moment/share/", token, {
+    method: "POST",
+    body: form,
+    timeoutMs: 90000,
+  });
+}
+
 export async function startEventMoment(
   token: string,
   form: FormData,

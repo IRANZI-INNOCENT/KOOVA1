@@ -9,6 +9,7 @@ import { AppShell } from "@/components/workspace/app-shell";
 
 const tabs = [
   { href: "/workspace/linkedin/topic-week", label: "Posts" },
+  { href: "/workspace/linkedin/event", label: "Moment" },
   { href: "/workspace/linkedin/calendar", label: "Calendar" },
   { href: "/workspace/linkedin/connect", label: "Connect" },
 ];

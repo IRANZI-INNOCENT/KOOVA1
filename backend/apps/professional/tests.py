@@ -12,6 +12,7 @@ from .models import (
     ProfessionalProfile,
 )
 from .services import linkedin as linkedin_service
+from .services.programs import event_share_note, occasion_label, plain_event_body
 
 
 class ProfessionalProfileTests(TestCase):
@@ -178,3 +179,22 @@ class LinkedInOAuthFlowTests(SimpleTestCase):
         self.assertIn("Architecting pragmatic agents.", text)
         self.assertIn("Typed tool calls", text)
         self.assertIn("A confidence threshold", text)
+
+
+class EventShareNoteTests(SimpleTestCase):
+    def test_a_photo_only_moment_still_has_writing_instructions(self):
+        note = event_share_note("course", "Agent systems", "")
+        self.assertIn("a course called Agent systems", note)
+        self.assertIn("exactly one", note)
+        self.assertEqual(occasion_label("training"), "a training")
+
+    def test_the_members_line_is_kept(self):
+        note = event_share_note("conference", "", "The keynote was about evals.")
+        self.assertTrue(note.startswith("The keynote was about evals."))
+        self.assertIn("a conference", note)
+
+    def test_plain_body_uses_what_they_typed(self):
+        self.assertEqual(
+            plain_event_body("event", "Kigali meetup", "Met three founders."),
+            "Met three founders.\n\nKigali meetup",
+        )

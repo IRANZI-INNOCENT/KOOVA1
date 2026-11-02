@@ -7,6 +7,23 @@ from apps.commerce.services.storefront import absolute_media_url
 from ..models import ProfessionalProgram
 
 
+def attach_event_uploads(program: ProfessionalProgram, uploads: list) -> None:
+    """Store up to five photos on the moment. The first is also the legacy image."""
+    uploads = list(uploads or [])[:5]
+    if not uploads:
+        return
+    program.event_image = uploads[0]
+    program.save(update_fields=["event_image", "updated_at"])
+    from ..models import ProfessionalEventImage
+
+    for index, upload in enumerate(uploads):
+        ProfessionalEventImage.objects.create(
+            program=program,
+            image=upload,
+            sort_order=index,
+        )
+
+
 def event_image_urls(
     program: ProfessionalProgram,
     request: HttpRequest | None = None,
