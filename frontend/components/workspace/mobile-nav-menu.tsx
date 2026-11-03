@@ -14,7 +14,7 @@ type MobileNavItem = {
 /** Secondary destinations — primary five live in the bottom nav. */
 export const MOBILE_MORE_LINKS: MobileNavItem[] = [
   { href: "/workspace/analytics", label: "Reports" },
-  { href: "/workspace/kova", label: "Talk to Kova" },
+  { href: "/workspace/kova", label: "Talk to KCOVA" },
   { href: "/workspace/linkedin", label: "LinkedIn", brand: "linkedin" },
 ];
 

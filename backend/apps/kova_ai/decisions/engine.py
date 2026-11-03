@@ -1,7 +1,7 @@
 """
-Kova Decision Engine.
+KCOVA Decision Engine.
 
-The Decision Engine determines what Kova should do for a supported task.
+The Decision Engine determines what KCOVA should do for a supported task.
 
 V1 is intentionally deterministic. It does not call an AI model.
 
@@ -20,7 +20,7 @@ from .types import (
 
 class DecisionEngine:
     """
-    Determines Kova's intended action from business context.
+    Determines KCOVA's intended action from business context.
 
     The engine does not execute actions and does not communicate with
     external services.
@@ -70,7 +70,7 @@ class DecisionEngine:
         return Decision(
             action=action,
             status=DecisionStatus.READY,
-            reason="Autopilot is on. Kova runs this part of the business.",
+            reason="Autopilot is on. KCOVA runs this part of the business.",
             inputs=context.task_context or {},
         )
 
@@ -78,7 +78,7 @@ class DecisionEngine:
     def _decide_content_creation(
         context: BusinessContext,
     ) -> Decision:
-        """Determine whether Kova can proceed with content creation."""
+        """Determine whether KCOVA can proceed with content creation."""
 
         if not context.policy:
             return Decision(
@@ -106,7 +106,7 @@ class DecisionEngine:
     def _decide_customer_response(
         context: BusinessContext,
     ) -> Decision:
-        """Determine whether Kova can respond to a customer."""
+        """Determine whether KCOVA can respond to a customer."""
 
         if not context.policy:
             return Decision(
@@ -137,7 +137,7 @@ class DecisionEngine:
     def _decide_commerce(
         context: BusinessContext,
     ) -> Decision:
-        """Determine whether Kova can proceed with a commerce operation."""
+        """Determine whether KCOVA can proceed with a commerce operation."""
 
         if not context.policy:
             return Decision(

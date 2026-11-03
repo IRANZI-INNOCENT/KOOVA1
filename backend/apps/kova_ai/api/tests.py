@@ -1,5 +1,5 @@
 """
-Tests for the Kova Agent API.
+Tests for the KCOVA Agent API.
 """
 
 from unittest.mock import patch
@@ -15,7 +15,7 @@ from apps.kova_ai.agents.types import AgentResult, AgentToolCall
 
 
 class KovaAgentAPITests(TestCase):
-    """Test the authenticated Kova Agent API."""
+    """Test the authenticated KCOVA Agent API."""
 
     def setUp(self):
         self.client = APIClient()
@@ -63,7 +63,7 @@ class KovaAgentAPITests(TestCase):
         self,
         mock_run,
     ):
-        """A business owner should be able to invoke Kova."""
+        """A business owner should be able to invoke KCOVA."""
 
         self.authenticate()
 
@@ -102,7 +102,7 @@ class KovaAgentAPITests(TestCase):
         self.assertEqual(history.data["turns"][0]["response"], "Your primary goal is growth.")
 
     def test_unauthenticated_user_is_rejected(self):
-        """Unauthenticated requests must not invoke Kova."""
+        """Unauthenticated requests must not invoke KCOVA."""
 
         response = self.client.post(
             self.url,
@@ -179,7 +179,7 @@ class KovaAgentAPITests(TestCase):
         self,
         mock_run,
     ):
-        """Unknown Kova tasks must fail validation."""
+        """Unknown KCOVA tasks must fail validation."""
 
         self.authenticate()
 

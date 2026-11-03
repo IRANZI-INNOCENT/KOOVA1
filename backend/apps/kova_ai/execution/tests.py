@@ -1,5 +1,5 @@
 """
-Tests for the Kova Action Executor.
+Tests for the KCOVA Action Executor.
 """
 
 from django.test import TestCase
@@ -96,7 +96,7 @@ class RaisingTool(Tool):
 
 
 class ActionExecutorTests(TestCase):
-    """Test the Kova action execution lifecycle."""
+    """Test the KCOVA action execution lifecycle."""
 
     def setUp(self):
         self.user = User.objects.create_user(

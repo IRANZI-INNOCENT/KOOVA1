@@ -18,7 +18,7 @@ class ContextRequirement(StrEnum):
 
 @dataclass(frozen=True)
 class TaskDefinition:
-    """Defines the business information required for a Kova task."""
+    """Defines the business information required for a KCOVA task."""
 
     task: ContextTask
     requirements: frozenset[ContextRequirement]

@@ -35,11 +35,11 @@ export function InstagramProfessionalGuide({
       >
         {isError
           ? "Instagram is not linked to your Facebook Page yet"
-          : "Finish Instagram setup before connecting in Kova"}
+          : "Finish Instagram setup before connecting in KCOVA"}
       </p>
 
       <p className="mt-2 text-sm leading-6 text-gray-600">
-        Kova connects Instagram through Meta the same way Meta Business Suite
+        KCOVA connects Instagram through Meta the same way Meta Business Suite
         does: your Instagram must be a{" "}
         <span className="font-semibold text-kova-dark">
           Professional account
@@ -91,7 +91,7 @@ export function InstagramProfessionalGuide({
           </a>
         </li>
         <li>
-          <span className="font-semibold">Back in Kova</span>
+          <span className="font-semibold">Back in KCOVA</span>
           <span className="mt-1 block text-gray-600">
             Wait a minute for Meta to sync, then click{" "}
             <span className="font-medium">Connect Instagram</span> again. Use

@@ -27,12 +27,12 @@
     <tr><th>WhatsApp</th><td>{{ dossier.whatsapp|default:"—" }}</td></tr>
   </table>
 
-  <h2>How Kova is allowed to work</h2>
+  <h2>How KCOVA is allowed to work</h2>
   <ul>
     {% for line in dossier.policy_lines %}<li>{{ line }}</li>{% endfor %}
   </ul>
 
-  <h2>What Kova knows about this business</h2>
+  <h2>What KCOVA knows about this business</h2>
   {% if dossier.brain %}
   <table>
     {% for item in dossier.brain %}
@@ -195,7 +195,7 @@
   <p class="muted">No morning brief has been generated.</p>
   {% endif %}
 
-  <h2>Ask Kova</h2>
+  <h2>Ask KCOVA</h2>
   {% if dossier.exchanges %}
   <table>
     {% for turn in dossier.exchanges %}
@@ -212,7 +212,7 @@
     {% endfor %}
   </table>
   {% else %}
-  <p class="muted">No one has talked to Kova for this business yet. New conversations are stored from here on.</p>
+  <p class="muted">No one has talked to KCOVA for this business yet. New conversations are stored from here on.</p>
   {% endif %}
 
   <h2>Action log</h2>
@@ -226,7 +226,7 @@
     {% endfor %}
   </table>
   {% else %}
-  <p class="muted">Kova has no recorded actions for this business.</p>
+  <p class="muted">KCOVA has no recorded actions for this business.</p>
   {% endif %}
 </div>
 {% endif %}

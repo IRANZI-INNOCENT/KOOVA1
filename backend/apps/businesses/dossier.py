@@ -1,4 +1,4 @@
-"""One business, as Kova has actually been running it."""
+"""One business, as KCOVA has actually been running it."""
 
 from __future__ import annotations
 
@@ -88,7 +88,7 @@ def brief_blocks(sections):
             if item:
                 action_lines.append(f"{label}: {item}")
     if action_lines:
-        blocks.append({"title": "What Kova did and plans", "lines": action_lines})
+        blocks.append({"title": "What KCOVA did and plans", "lines": action_lines})
 
     return blocks
 

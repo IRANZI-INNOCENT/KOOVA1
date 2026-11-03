@@ -3,7 +3,7 @@ from django.apps import AppConfig
 
 class CommerceConfig(AppConfig):
     """
-    Application configuration for Kova Commerce.
+    Application configuration for KCOVA Commerce.
 
     Commerce contains the business's products, product media,
     storefront, and other commerce-related business assets.

@@ -147,7 +147,7 @@ def generate_organic_seeds(business: Business) -> list[dict]:
     themes = organic_themes_for_business(business)
     theme_keys = [t["key"] for t in themes]
     system = (
-        "You are Kova, a social media strategist for small businesses. "
+        "You are KCOVA, a social media strategist for small businesses. "
         "Suggest organic (non-promotional) post ideas. "
         "Do not invent products, prices, or URLs. "
         "Reply with JSON only."

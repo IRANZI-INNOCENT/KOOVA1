@@ -1,5 +1,5 @@
 """
-Kova Learning Engine.
+KCOVA Learning Engine.
 
 The Learning Engine extracts structured learning from verified action
 outcomes.
@@ -36,7 +36,7 @@ from .types import LearningResult, LearningType
 
 
 class LearningEngine:
-    """Extract structured learning from verified Kova actions."""
+    """Extract structured learning from verified KCOVA actions."""
 
     def learn(
         self,

@@ -3,7 +3,7 @@ from django.apps import AppConfig
 
 class BusinessesConfig(AppConfig):
     """
-    Configuration for the Kova Businesses application.
+    Configuration for the KCOVA Businesses application.
     """
 
     default_auto_field = "django.db.models.BigAutoField"

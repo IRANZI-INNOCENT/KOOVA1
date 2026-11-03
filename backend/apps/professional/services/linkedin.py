@@ -75,7 +75,7 @@ def linkedin_oauth_redirect_uri(request=None) -> str:
 
 
 def linkedin_connect_config(request=None) -> dict:
-    """Non-secret OAuth setup Kova uses (for Connect UI and ops)."""
+    """Non-secret OAuth setup KCOVA uses (for Connect UI and ops)."""
     redirect_uri = linkedin_oauth_redirect_uri(request)
     front = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
     explicit = bool(os.getenv("LINKEDIN_REDIRECT_URI", "").strip())

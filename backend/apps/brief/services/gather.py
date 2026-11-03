@@ -114,7 +114,7 @@ def _business_context(business: Business) -> dict:
             "address_as": first_name or manager_name or "Manager",
         },
         "tone": (
-            "Write as Kova, the business's social and commerce teammate, "
+            "Write as KCOVA, the business's social and commerce teammate, "
             "reporting personally to this manager — not as a generic dashboard."
         ),
     }

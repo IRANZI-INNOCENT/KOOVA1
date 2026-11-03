@@ -4,7 +4,7 @@ import type {
 
 
 /**
- * Props supported by the Kova Input component.
+ * Props supported by the KCOVA Input component.
  */
 interface InputProps
   extends InputHTMLAttributes<HTMLInputElement> {
@@ -15,7 +15,7 @@ interface InputProps
 
 
 /**
- * Reusable Kova form input.
+ * Reusable KCOVA form input.
  *
  * The component owns the visual treatment of labels, inputs,
  * validation errors and supporting text so forms remain consistent

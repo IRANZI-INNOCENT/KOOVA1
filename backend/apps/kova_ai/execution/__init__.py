@@ -1,1 +1,1 @@
-"""Kova Action Execution package."""
+"""KCOVA Action Execution package."""

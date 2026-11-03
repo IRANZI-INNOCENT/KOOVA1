@@ -188,7 +188,7 @@ class ContentCampaignView(APIView):
     """
     Generate adapted content for every connected channel simultaneously.
 
-    Kova acts as a social media manager: one brief produces content
+    KCOVA acts as a social media manager: one brief produces content
     for Instagram post + carousel + reel + story, Facebook post +
     carousel, etc., all adapted to each platform.
     """
@@ -220,7 +220,7 @@ class ContentCampaignView(APIView):
                     {
                         "detail": (
                             "This product already has posts on the calendar or fresh drafts. "
-                            "Kova will feature a different product on the next shift."
+                            "KCOVA will feature a different product on the next shift."
                         ),
                     },
                     status=400,
@@ -283,7 +283,7 @@ class ContentCampaignView(APIView):
 
 
 class ContentScheduleView(APIView):
-    """Ask Kova when to publish a set of drafted posts."""
+    """Ask KCOVA when to publish a set of drafted posts."""
 
     permission_classes = [IsAuthenticated]
 
@@ -297,11 +297,11 @@ class ContentScheduleView(APIView):
         )
         raw_ids = request.data.get("content_ids") or []
         if not isinstance(raw_ids, list) or not raw_ids:
-            return Response({"detail": "Choose the posts Kova should schedule."}, status=400)
+            return Response({"detail": "Choose the posts KCOVA should schedule."}, status=400)
         try:
             content_ids = [int(item) for item in raw_ids]
         except (TypeError, ValueError):
-            return Response({"detail": "Choose the posts Kova should schedule."}, status=400)
+            return Response({"detail": "Choose the posts KCOVA should schedule."}, status=400)
         try:
             plan = schedule_posts(business, content_ids)
         except ValueError as exc:

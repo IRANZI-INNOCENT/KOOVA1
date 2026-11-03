@@ -1,5 +1,5 @@
 """
-Kova AI Reasoner.
+KCOVA AI Reasoner.
 
 The AI Reasoner translates business context and a user/task request
 into a structured proposed action.
@@ -22,7 +22,7 @@ from .types import AIReasoningResult
 
 
 class AIReasoningError(Exception):
-    """Raised when Kova cannot produce valid structured reasoning."""
+    """Raised when KCOVA cannot produce valid structured reasoning."""
 
 
 class AIReasoner:
@@ -85,7 +85,7 @@ class AIReasoner:
             data = json.loads(content)
         except json.JSONDecodeError as exc:
             raise AIReasoningError(
-                "Kova received an invalid JSON reasoning response."
+                "KCOVA received an invalid JSON reasoning response."
             ) from exc
 
         return self._parse_result(
@@ -154,7 +154,7 @@ class AIReasoner:
 
         if missing_fields:
             raise AIReasoningError(
-                "Kova reasoning response is missing fields: "
+                "KCOVA reasoning response is missing fields: "
                 + ", ".join(sorted(missing_fields))
             )
 
@@ -162,17 +162,17 @@ class AIReasoner:
 
         if not isinstance(confidence, (int, float)):
             raise AIReasoningError(
-                "Kova reasoning confidence must be numeric."
+                "KCOVA reasoning confidence must be numeric."
             )
 
         if not 0 <= confidence <= 1:
             raise AIReasoningError(
-                "Kova reasoning confidence must be between 0 and 1."
+                "KCOVA reasoning confidence must be between 0 and 1."
             )
 
         if not isinstance(data["inputs"], dict):
             raise AIReasoningError(
-                "Kova reasoning inputs must be an object."
+                "KCOVA reasoning inputs must be an object."
             )
 
         return AIReasoningResult(

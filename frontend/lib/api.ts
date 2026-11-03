@@ -53,10 +53,10 @@ function extractApiErrorMessage(
       trimmed.startsWith("<html") ||
       trimmed.includes("<head>")
     ) {
-      return "Kova could not finish that request. Please try again.";
+      return "KCOVA could not finish that request. Please try again.";
     }
     return trimmed.length > 400
-      ? "Kova could not finish that request. Please try again."
+      ? "KCOVA could not finish that request. Please try again."
       : trimmed;
   }
 
@@ -252,12 +252,12 @@ export async function apiRequest<T>(
         error.name === "AbortError"
       ) {
         throw new ApiError(
-          "Kova took too long to respond. Refresh and try again.",
+          "KCOVA took too long to respond. Refresh and try again.",
           408,
         );
       }
       throw new ApiError(
-        "We could not reach Kova. Check your connection and try again.",
+        "We could not reach KCOVA. Check your connection and try again.",
         0,
       );
     } finally {
@@ -303,7 +303,7 @@ export async function apiRequest<T>(
       message.includes("could not finish")
     ) {
       message =
-        "The Kova API is restarting or unavailable. Wait a minute, then refresh.";
+        "The KCOVA API is restarting or unavailable. Wait a minute, then refresh.";
     }
 
     throw new ApiError(message, response.status, errorData);

@@ -37,7 +37,7 @@ export function TopicWeekAutopilotPanel({
             Continuous topic weeks
           </h2>
           <p className="mt-1 max-w-xl text-sm text-kova-muted">
-            Each calendar week Kova picks a theme (your standing topic or top
+            Each calendar week KCOVA picks a theme (your standing topic or top
             pillar), plans three posts, drafts them, and schedules Tue / Thu /
             Sat slots. Text posts publish on schedule when LinkedIn is connected;
             carousel outlines stay ready to copy.

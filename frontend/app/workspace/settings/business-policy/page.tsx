@@ -594,7 +594,7 @@ export default function BusinessPolicyPage() {
             Rules
           </h1>
           <p className="mt-1.5 text-sm text-gray-500">
-            What Kova may do automatically, and posting limits.
+            What KCOVA may do automatically, and posting limits.
           </p>
         </div>
 

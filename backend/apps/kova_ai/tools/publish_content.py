@@ -1,5 +1,5 @@
 """
-Kova Publish Content Tool.
+KCOVA Publish Content Tool.
 
 Updates a Content record's status to published. The actual platform
 integration (posting to Instagram, etc.) is delegated to the social

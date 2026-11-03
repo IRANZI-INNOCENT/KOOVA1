@@ -1,5 +1,5 @@
 """
-URL routes for the Kova Agent API.
+URL routes for the KCOVA Agent API.
 """
 
 from django.urls import path

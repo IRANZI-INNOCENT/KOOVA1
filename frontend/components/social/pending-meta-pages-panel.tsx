@@ -88,7 +88,7 @@ export function PendingMetaPagesPanel({
           Extra Facebook Pages
         </h2>
         <p className="mt-1 text-sm text-gray-600">
-          Assign each extra Page to its own business before Kova can post for
+          Assign each extra Page to its own business before KCOVA can post for
           it. Your first Page stays on the business you are viewing now.
         </p>
       </div>

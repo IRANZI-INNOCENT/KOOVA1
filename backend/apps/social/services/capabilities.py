@@ -37,7 +37,7 @@ INSTAGRAM_REQUESTED_SCOPES = (
 # Full list when documenting or checking reconnect after scope changes.
 REQUESTED_SCOPES = INSTAGRAM_REQUESTED_SCOPES
 
-# Kova content modes (studio + autopilot) beyond raw Meta scopes.
+# KCOVA content modes (studio + autopilot) beyond raw Meta scopes.
 CONTENT_MODES = (
     ("product_campaign", "Product posts and carousels from your catalog"),
     ("organic_campaign", "Educational and brand posts without a product push"),
@@ -49,7 +49,7 @@ def oauth_scopes_for_platform(platform: str) -> tuple[str, ...]:
     """
     Scopes for the Facebook Login dialog.
 
-    Kova discovers a linked Instagram Professional account from the Page
+    KCOVA discovers a linked Instagram Professional account from the Page
     token after login (see MetaAdapter.exchange_code). Requesting
     instagram_* scopes here makes Meta show \"Invalid Scopes\" until those
     permissions are added to the app (and often until App Review passes).

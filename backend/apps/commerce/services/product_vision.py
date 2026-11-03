@@ -1,7 +1,7 @@
 """
-Kova product vision service.
+KCOVA product vision service.
 
-This service sends product images and owner-provided facts to Kova's
+This service sends product images and owner-provided facts to KCOVA's
 multimodal AI layer through the centralized OpenRouter service.
 
 Important:
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 class ProductVisionError(Exception):
-    """Raised when Kova cannot obtain valid product intelligence."""
+    """Raised when KCOVA cannot obtain valid product intelligence."""
 
 
 _PLACEHOLDER_COPY = {
@@ -69,7 +69,7 @@ def _listing_description(
     short_description: str,
     service: bool = False,
 ) -> str:
-    """Keep a real description, or write one from the facts Kova already has."""
+    """Keep a real description, or write one from the facts KCOVA already has."""
 
     text = _listing_copy(value)
     if len(text) >= 40:
@@ -98,7 +98,7 @@ def _listing_description(
 
 class ProductVisionService:
     """
-    Analyze product images using Kova's multimodal AI layer.
+    Analyze product images using KCOVA's multimodal AI layer.
 
     This service is intentionally independent of Django models so it can
     later be reused by batch snapping, WhatsApp commerce, receipt scanning,
@@ -164,7 +164,7 @@ class ProductVisionService:
                     self._response_hint(payload),
                 )
                 raise ProductVisionError(
-                    "Kova received an invalid product analysis response."
+                    "KCOVA received an invalid product analysis response."
                 ) from first_error
             logger.warning(
                 "Product analysis truncated (%s). Retrying. %s",
@@ -187,7 +187,7 @@ class ProductVisionService:
                     self._response_hint(payload),
                 )
                 raise ProductVisionError(
-                    "Kova received an invalid product analysis response."
+                    "KCOVA received an invalid product analysis response."
                 ) from exc
 
         return self._normalize_result(
@@ -236,7 +236,7 @@ class ProductVisionService:
             json.JSONDecodeError,
         ) as exc:
             raise ProductVisionError(
-                "Kova received an invalid product polish response."
+                "KCOVA received an invalid product polish response."
             ) from exc
 
         polished = self._normalize_result(result)
@@ -332,7 +332,7 @@ Return exactly this structure:
         """Return the strict product-understanding instructions."""
 
         return """
-You are Kova's product intelligence engine.
+You are KCOVA's product intelligence engine.
 
 Your job is to understand a product from its image and the facts supplied
 by the business owner.
@@ -370,7 +370,7 @@ Return exactly this structure:
   "keywords": [],
   "visual_attributes": {},
   "uncertain_attributes": [],
-  "ai_summary": "short explanation of what Kova understood",
+  "ai_summary": "short explanation of what KCOVA understood",
   "confidence": 0.0
 }
 

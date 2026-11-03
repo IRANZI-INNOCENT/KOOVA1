@@ -25,7 +25,7 @@ class CommerceAPITests(APITestCase):
         )
         self.business = Business.objects.create(
             owner=self.user,
-            name="Kova Boutique",
+            name="KCOVA Boutique",
             description="Affordable fashion.",
         )
         # Provisioning signal creates a CommercePage automatically.
@@ -259,7 +259,7 @@ class CommerceAPITests(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.data["business_name"],
-            "Kova Boutique",
+            "KCOVA Boutique",
         )
 
     def test_commerce_page_publish_flow(self):

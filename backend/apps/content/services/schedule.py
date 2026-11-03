@@ -1,5 +1,5 @@
 """
-Ask Kova when each drafted post should go out, then clamp to
+Ask KCOVA when each drafted post should go out, then clamp to
 BusinessPolicy posting cadence (Meta-aligned day/week/gap limits).
 """
 
@@ -134,7 +134,7 @@ def _ask_for_times(
             {
                 "role": "system",
                 "content": (
-                    "You are Kova, scheduling social posts for a business in Kenya. "
+                    "You are KCOVA, scheduling social posts for a business in Kenya. "
                     "Spread the posts across the next 7–14 days. Prefer late afternoon and "
                     "evening in Nairobi, when shoppers are likely to see them. "
                     "Respect these hard cadence caps (Meta does not publish a single "
@@ -175,9 +175,9 @@ def _ask_for_times(
     try:
         raw = response["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
-        raise OpenRouterError("Kova could not build a schedule.") from exc
+        raise OpenRouterError("KCOVA could not build a schedule.") from exc
     if not isinstance(raw, str):
-        raise OpenRouterError("Kova could not build a schedule.")
+        raise OpenRouterError("KCOVA could not build a schedule.")
     text = raw.strip()
     start = text.find("{")
     end = text.rfind("}")
@@ -186,8 +186,8 @@ def _ask_for_times(
     try:
         parsed = json.loads(text)
     except json.JSONDecodeError as exc:
-        raise OpenRouterError("Kova could not build a schedule.") from exc
+        raise OpenRouterError("KCOVA could not build a schedule.") from exc
     plan = parsed.get("plan") if isinstance(parsed, dict) else None
     if not isinstance(plan, list):
-        raise OpenRouterError("Kova could not build a schedule.")
+        raise OpenRouterError("KCOVA could not build a schedule.")
     return plan

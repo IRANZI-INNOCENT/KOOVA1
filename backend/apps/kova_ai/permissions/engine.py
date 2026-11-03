@@ -1,5 +1,5 @@
 """
-Permission engine for Kova.
+Permission engine for KCOVA.
 
 The permission engine is the application's hard authorization boundary
 for AI-requested actions.
@@ -19,7 +19,7 @@ from .types import PermissionResult, PermissionStatus
 
 class PermissionEngine:
     """
-    Determine whether Kova is allowed to perform a decision.
+    Determine whether KCOVA is allowed to perform a decision.
 
     The LLM may propose an action, but the application remains responsible
     for enforcing business permissions and approval requirements.
@@ -46,7 +46,7 @@ class PermissionEngine:
                 status=PermissionStatus.REQUIRES_APPROVAL,
                 reason=(
                     "No business policy is available. "
-                    "Owner approval is required before Kova can act."
+                    "Owner approval is required before KCOVA can act."
                 ),
             )
 
@@ -54,7 +54,7 @@ class PermissionEngine:
             return PermissionResult(
                 status=PermissionStatus.ALLOWED,
                 reason=(
-                    "The owner handed Kova the business. "
+                    "The owner handed KCOVA the business. "
                     "Autopilot runs content, replies, products, and reports."
                 ),
             )
@@ -73,7 +73,7 @@ class PermissionEngine:
             return PermissionResult(
                 status=PermissionStatus.ALLOWED,
                 reason=(
-                    "Kova may read the business context for the "
+                    "KCOVA may read the business context for the "
                     "current business."
                 ),
             )
@@ -85,13 +85,13 @@ class PermissionEngine:
         if decision.action == DecisionAction.GET_ANALYTICS:
             return PermissionResult(
                 status=PermissionStatus.ALLOWED,
-                reason="Kova may retrieve analytics.",
+                reason="KCOVA may retrieve analytics.",
             )
 
         if decision.action == DecisionAction.GET_SOCIAL_ACTIVITY:
             return PermissionResult(
                 status=PermissionStatus.ALLOWED,
-                reason="Kova may retrieve social activity.",
+                reason="KCOVA may retrieve social activity.",
             )
 
         # ------------------------------------------------------------------
@@ -102,12 +102,12 @@ class PermissionEngine:
             if policy.get("allow_content_creation", False):
                 return PermissionResult(
                     status=PermissionStatus.ALLOWED,
-                    reason="Business policy allows Kova to create content.",
+                    reason="Business policy allows KCOVA to create content.",
                 )
 
             return PermissionResult(
                 status=PermissionStatus.DENIED,
-                reason="Business policy does not allow Kova to create content.",
+                reason="Business policy does not allow KCOVA to create content.",
             )
 
         # ------------------------------------------------------------------
@@ -118,14 +118,14 @@ class PermissionEngine:
             if policy.get("allow_auto_publish", False):
                 return PermissionResult(
                     status=PermissionStatus.ALLOWED,
-                    reason="Business policy allows Kova to publish content.",
+                    reason="Business policy allows KCOVA to publish content.",
                 )
 
             return PermissionResult(
                 status=PermissionStatus.REQUIRES_APPROVAL,
                 reason=(
                     "Business policy requires approval before "
-                    "Kova can publish content."
+                    "KCOVA can publish content."
                 ),
             )
 
@@ -141,7 +141,7 @@ class PermissionEngine:
                     return PermissionResult(
                         status=PermissionStatus.ALLOWED,
                         reason=(
-                            "Business policy allows Kova to reply to "
+                            "Business policy allows KCOVA to reply to "
                             "customer comments."
                         ),
                     )
@@ -149,7 +149,7 @@ class PermissionEngine:
                 return PermissionResult(
                     status=PermissionStatus.DENIED,
                     reason=(
-                        "Business policy does not allow Kova to reply "
+                        "Business policy does not allow KCOVA to reply "
                         "to customer comments."
                     ),
                 )
@@ -159,7 +159,7 @@ class PermissionEngine:
                     return PermissionResult(
                         status=PermissionStatus.ALLOWED,
                         reason=(
-                            "Business policy allows Kova to reply to "
+                            "Business policy allows KCOVA to reply to "
                             "customer direct messages."
                         ),
                     )
@@ -167,7 +167,7 @@ class PermissionEngine:
                 return PermissionResult(
                     status=PermissionStatus.DENIED,
                     reason=(
-                        "Business policy does not allow Kova to reply "
+                        "Business policy does not allow KCOVA to reply "
                         "to customer direct messages."
                     ),
                 )
@@ -188,12 +188,12 @@ class PermissionEngine:
             if policy.get("allow_lead_creation", True):
                 return PermissionResult(
                     status=PermissionStatus.ALLOWED,
-                    reason="Business policy allows Kova to create leads.",
+                    reason="Business policy allows KCOVA to create leads.",
                 )
 
             return PermissionResult(
                 status=PermissionStatus.DENIED,
-                reason="Business policy does not allow Kova to create leads.",
+                reason="Business policy does not allow KCOVA to create leads.",
             )
 
         # ------------------------------------------------------------------
@@ -204,13 +204,13 @@ class PermissionEngine:
             if policy.get("allow_product_management", False):
                 return PermissionResult(
                     status=PermissionStatus.ALLOWED,
-                    reason="Business policy allows Kova to manage products.",
+                    reason="Business policy allows KCOVA to manage products.",
                 )
 
             return PermissionResult(
                 status=PermissionStatus.DENIED,
                 reason=(
-                    "Business policy does not allow Kova to manage "
+                    "Business policy does not allow KCOVA to manage "
                     "products."
                 ),
             )
@@ -223,13 +223,13 @@ class PermissionEngine:
             if policy.get("allow_order_management", False):
                 return PermissionResult(
                     status=PermissionStatus.ALLOWED,
-                    reason="Business policy allows Kova to manage orders.",
+                    reason="Business policy allows KCOVA to manage orders.",
                 )
 
             return PermissionResult(
                 status=PermissionStatus.DENIED,
                 reason=(
-                    "Business policy does not allow Kova to manage "
+                    "Business policy does not allow KCOVA to manage "
                     "orders."
                 ),
             )
@@ -246,7 +246,7 @@ class PermissionEngine:
                     return PermissionResult(
                         status=PermissionStatus.ALLOWED,
                         reason=(
-                            "Business policy allows Kova to manage "
+                            "Business policy allows KCOVA to manage "
                             "products."
                         ),
                     )
@@ -254,7 +254,7 @@ class PermissionEngine:
                 return PermissionResult(
                     status=PermissionStatus.DENIED,
                     reason=(
-                        "Business policy does not allow Kova to manage "
+                        "Business policy does not allow KCOVA to manage "
                         "products."
                     ),
                 )
@@ -264,7 +264,7 @@ class PermissionEngine:
                     return PermissionResult(
                         status=PermissionStatus.ALLOWED,
                         reason=(
-                            "Business policy allows Kova to manage "
+                            "Business policy allows KCOVA to manage "
                             "orders."
                         ),
                     )
@@ -272,7 +272,7 @@ class PermissionEngine:
                 return PermissionResult(
                     status=PermissionStatus.DENIED,
                     reason=(
-                        "Business policy does not allow Kova to manage "
+                        "Business policy does not allow KCOVA to manage "
                         "orders."
                     ),
                 )
@@ -304,7 +304,7 @@ class PermissionEngine:
         return PermissionResult(
             status=PermissionStatus.DENIED,
             reason=(
-                "Kova does not have a registered permission rule for "
+                "KCOVA does not have a registered permission rule for "
                 f"the action '{decision.action}'."
             ),
         )

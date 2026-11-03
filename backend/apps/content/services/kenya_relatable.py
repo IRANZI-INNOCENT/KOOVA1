@@ -1,7 +1,7 @@
 """
 Optional Kenya-relatable content mode.
 
-Off (default): Kova prompts unchanged.
+Off (default): KCOVA prompts unchanged.
 On: locale voice pack + reel/skit film briefs + extra organic themes.
 """
 

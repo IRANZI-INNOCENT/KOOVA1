@@ -1,5 +1,5 @@
 """
-Tests for the Kova Decision Engine.
+Tests for the KCOVA Decision Engine.
 """
 
 from django.test import TestCase
@@ -81,7 +81,7 @@ class DecisionEngineTests(TestCase):
         )
 
     def test_content_creation_is_ready_when_allowed(self):
-        """Kova should be ready when content creation is allowed."""
+        """KCOVA should be ready when content creation is allowed."""
 
         BusinessPolicy.objects.filter(
             business=self.business,

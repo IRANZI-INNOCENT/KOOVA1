@@ -33,7 +33,7 @@ function isIosDevice(): boolean {
 }
 
 /**
- * Registers the Kova service worker and shows an install popup when users
+ * Registers the KCOVA service worker and shows an install popup when users
  * open the app in the browser (once per session until dismissed or installed).
  */
 export function PwaProvider({ children }: PwaProviderProps) {
@@ -195,19 +195,19 @@ export function PwaProvider({ children }: PwaProviderProps) {
             </span>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#176B4D]">
-                Install Kova
+                Install KCOVA
               </p>
               <h2
                 id="kova-install-title"
                 className="text-xl font-semibold text-[#17211D]"
               >
-                Open Kova like an app
+                Open KCOVA like an app
               </h2>
             </div>
           </div>
 
             <p className="mt-2 text-sm leading-6 text-gray-500">
-              Add Kova to your home screen for quick access, full-screen
+              Add KCOVA to your home screen for quick access, full-screen
               workspace, and staying signed in on this device.
             </p>
 

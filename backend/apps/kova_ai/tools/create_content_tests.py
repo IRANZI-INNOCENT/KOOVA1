@@ -1,5 +1,5 @@
 """
-Tests for the Kova Create Content Tool.
+Tests for the KCOVA Create Content Tool.
 
 The tool now writes real Content records to the database.
 """

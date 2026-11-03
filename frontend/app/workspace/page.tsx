@@ -225,7 +225,7 @@ export default function OverviewPage() {
                   href="/workspace/kova"
                   className="inline-flex h-10 items-center rounded-lg bg-kova-orange px-4 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e]"
                 >
-                  Talk to Kova
+                  Talk to KCOVA
                 </Link>
                 {storeIsLive && storeUrl ? (
                   <>

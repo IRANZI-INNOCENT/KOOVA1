@@ -1,14 +1,14 @@
 """
-HTTP API for Kova's AI Agent.
+HTTP API for KCOVA's AI Agent.
 
 This module is the application boundary between authenticated clients
-and the Kova Agent.
+and the KCOVA Agent.
 
 The API:
     - authenticates the user;
     - verifies business ownership;
     - builds authoritative business context;
-    - invokes Kova's Agent;
+    - invokes KCOVA's Agent;
     - returns the final response.
 
 It does not contain AI reasoning logic.
@@ -47,11 +47,11 @@ logger = logging.getLogger(__name__)
 
 class KovaAgentView(APIView):
     """
-    Execute a request through Kova's AI Agent.
+    Execute a request through KCOVA's AI Agent.
 
     This endpoint is intentionally business-scoped.
 
-    A user can only invoke Kova against a business they own.
+    A user can only invoke KCOVA against a business they own.
     """
 
     permission_classes = [IsAuthenticated]
@@ -60,7 +60,7 @@ class KovaAgentView(APIView):
     throttle_scope = "kova_agent"
 
     def post(self, request):
-        """Process an authenticated Kova request."""
+        """Process an authenticated KCOVA request."""
 
         serializer = KovaAgentRequestSerializer(
             data=request.data,
@@ -117,7 +117,7 @@ class KovaAgentView(APIView):
 
         except OpenRouterError:
             logger.exception(
-                "Kova model provider failure.",
+                "KCOVA model provider failure.",
                 extra={
                     "business_id": business.id,
                     "user_id": request.user.id,
@@ -128,7 +128,7 @@ class KovaAgentView(APIView):
             return Response(
                 {
                     "detail": (
-                        "Kova is temporarily unable to process "
+                        "KCOVA is temporarily unable to process "
                         "this request."
                     ),
                 },
@@ -137,18 +137,18 @@ class KovaAgentView(APIView):
 
         except KovaAgentError:
             logger.exception(
-                "Kova agent execution failure.",
+                "KCOVA agent execution failure.",
                 extra={
                     "business_id": business.id,
                     "user_id": request.user.id,
                 },
             )
 
-            keep(KovaExchange.Status.FAILED, error="Kova could not complete this request.")
+            keep(KovaExchange.Status.FAILED, error="KCOVA could not complete this request.")
             return Response(
                 {
                     "detail": (
-                        "Kova could not complete this request."
+                        "KCOVA could not complete this request."
                     ),
                 },
                 status=status.HTTP_502_BAD_GATEWAY,
@@ -156,7 +156,7 @@ class KovaAgentView(APIView):
 
         except ValueError as exc:
             logger.warning(
-                "Invalid Kova request.",
+                "Invalid KCOVA request.",
                 extra={
                     "business_id": business.id,
                     "user_id": request.user.id,
@@ -173,18 +173,18 @@ class KovaAgentView(APIView):
 
         except Exception:
             logger.exception(
-                "Unexpected Kova Agent API failure.",
+                "Unexpected KCOVA Agent API failure.",
                 extra={
                     "business_id": business.id,
                     "user_id": request.user.id,
                 },
             )
 
-            keep(KovaExchange.Status.FAILED, error="Kova encountered an unexpected error.")
+            keep(KovaExchange.Status.FAILED, error="KCOVA encountered an unexpected error.")
             return Response(
                 {
                     "detail": (
-                        "Kova encountered an unexpected error."
+                        "KCOVA encountered an unexpected error."
                     ),
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -225,7 +225,7 @@ class KovaAgentView(APIView):
 
 
 class KovaExchangeListView(APIView):
-    """Recent Ask Kova turns for this business, oldest first."""
+    """Recent Ask KCOVA turns for this business, oldest first."""
 
     permission_classes = [IsAuthenticated]
 

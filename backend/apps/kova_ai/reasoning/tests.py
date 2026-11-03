@@ -1,5 +1,5 @@
 """
-Tests for Kova's AI Reasoning layer.
+Tests for KCOVA's AI Reasoning layer.
 """
 
 import json

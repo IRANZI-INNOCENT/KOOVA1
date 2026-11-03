@@ -55,7 +55,7 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
 class ProductAIAnalysisSerializer(serializers.ModelSerializer):
     """
-    Historical Kova analysis for a product.
+    Historical KCOVA analysis for a product.
     """
 
     class Meta:
@@ -81,7 +81,7 @@ class ProductSerializer(serializers.ModelSerializer):
     """
     Full product representation.
 
-    Owner-provided facts and Kova-generated intelligence remain
+    Owner-provided facts and KCOVA-generated intelligence remain
     separate in the API representation.
     """
 
@@ -120,7 +120,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "condition",
             "offering_kind",
 
-            # Kova intelligence
+            # KCOVA intelligence
             "short_description",
             "description",
             "seo_title",
@@ -158,7 +158,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
 
-            # AI-generated fields are controlled by Kova.
+            # AI-generated fields are controlled by KCOVA.
             "short_description",
             "description",
             "seo_title",
@@ -253,7 +253,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
     """
     Serializer for owner-controlled product information.
 
-    Kova-generated fields are deliberately excluded from this
+    KCOVA-generated fields are deliberately excluded from this
     serializer so the client cannot overwrite AI intelligence.
     """
 

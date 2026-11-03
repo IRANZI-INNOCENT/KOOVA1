@@ -150,7 +150,7 @@ export default function BusinessMarketPage() {
       setError(
         err instanceof ApiError
           ? err.message
-          : "Kova could not search the market.",
+          : "KCOVA could not search the market.",
       );
     } finally {
       pauseSave.current = false;
@@ -184,7 +184,7 @@ export default function BusinessMarketPage() {
       setError(
         err instanceof ApiError
           ? err.message
-          : "Kova could not save that choice.",
+          : "KCOVA could not save that choice.",
       );
     } finally {
       setDeciding(false);
@@ -210,7 +210,7 @@ export default function BusinessMarketPage() {
               Market
             </h1>
             <p className="mt-1.5 max-w-2xl text-sm text-gray-500">
-              Optional research on similar sellers. Keep it for Kova to use, or leave it unused.
+              Optional research on similar sellers. Keep it for KCOVA to use, or leave it unused.
             </p>
           </div>
 
@@ -252,7 +252,7 @@ export default function BusinessMarketPage() {
           {hasBrief && (
             <div className="mt-8 space-y-8">
               <section className="border border-kova-border bg-white p-6">
-                <h2 className="text-base font-semibold text-kova-dark">What Kova found</h2>
+                <h2 className="text-base font-semibold text-kova-dark">What KCOVA found</h2>
                 <textarea
                   value={form.summary}
                   onChange={(event) =>
@@ -341,9 +341,9 @@ export default function BusinessMarketPage() {
 
               <p className="text-sm text-gray-600">
                 {kept
-                  ? "Kova will use this brief when it writes and replies."
+                  ? "KCOVA will use this brief when it writes and replies."
                   : status === "skipped"
-                    ? "This brief is saved here. Kova will not use it until you keep it."
+                    ? "This brief is saved here. KCOVA will not use it until you keep it."
                     : "Review the brief, then keep it or leave it out."}
               </p>
             </div>

@@ -103,7 +103,7 @@ class OnboardingChoiceView(APIView):
 
 
 class LinkedInBrainView(APIView):
-    """Snapshot of what Kova uses as the LinkedIn content brain."""
+    """Snapshot of what KCOVA uses as the LinkedIn content brain."""
 
     permission_classes = [IsAuthenticated]
 
@@ -698,7 +698,7 @@ class WeeklyBriefGenerateView(APIView):
 
 
 class LinkedInConnectConfigView(APIView):
-    """OAuth redirect URI Kova uses — paste the same value into LinkedIn Developer."""
+    """OAuth redirect URI KCOVA uses — paste the same value into LinkedIn Developer."""
 
     permission_classes = [IsAuthenticated]
 

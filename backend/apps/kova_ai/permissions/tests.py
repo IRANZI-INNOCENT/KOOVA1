@@ -1,5 +1,5 @@
 """
-Tests for the Kova Permission Engine.
+Tests for the KCOVA Permission Engine.
 """
 
 from django.test import TestCase

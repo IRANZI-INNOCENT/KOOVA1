@@ -158,7 +158,7 @@ export default function ProductDetailPage() {
                 </h1>
 
                 <p className="mt-2 text-sm text-[#69736D]">
-                  Manage the facts Kova uses to understand, market and sell
+                  Manage the facts KCOVA uses to understand, market and sell
                   this product.
                 </p>
               </div>
@@ -170,7 +170,7 @@ export default function ProductDetailPage() {
 
                 {product.ai_generated && (
                   <span className="rounded-full bg-[#FFF2E7] px-3 py-1.5 text-xs font-medium text-[#925D2B]">
-                    Kova analyzed
+                    KCOVA analyzed
                   </span>
                 )}
               </div>

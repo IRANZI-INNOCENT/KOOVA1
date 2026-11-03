@@ -1,5 +1,5 @@
 """
-Serializers for the Kova Agent API.
+Serializers for the KCOVA Agent API.
 """
 
 from rest_framework import serializers
@@ -9,7 +9,7 @@ from apps.kova_ai.context.types import ContextTask
 
 class KovaAgentRequestSerializer(serializers.Serializer):
     """
-    Validate a request sent to the Kova Agent.
+    Validate a request sent to the KCOVA Agent.
 
     The business is explicitly identified because one authenticated
     user may eventually operate multiple businesses.
@@ -35,7 +35,7 @@ class KovaAgentRequestSerializer(serializers.Serializer):
 
 
 class KovaAgentResponseSerializer(serializers.Serializer):
-    """Serialize a successful Kova Agent response."""
+    """Serialize a successful KCOVA Agent response."""
 
     message = serializers.CharField()
 

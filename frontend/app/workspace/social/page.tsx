@@ -24,7 +24,7 @@ const MODE_META: Record<
 > = {
   assist: {
     label: "Help me",
-    description: "Kova suggests. You choose what to publish.",
+    description: "KCOVA suggests. You choose what to publish.",
   },
   approval: {
     label: "You approve",
@@ -32,7 +32,7 @@ const MODE_META: Record<
   },
   autopilot: {
     label: "Autopilot",
-    description: "Kova drafts, schedules, and replies for you.",
+    description: "KCOVA drafts, schedules, and replies for you.",
   },
 };
 

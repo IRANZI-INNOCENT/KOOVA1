@@ -351,7 +351,7 @@ export default function BusinessBrandPage() {
               </h2>
 
               <p className="mt-1 text-sm leading-6 text-gray-500">
-                Give Kova a consistent way to communicate
+                Give KCOVA a consistent way to communicate
                 on behalf of your business.
               </p>
 
@@ -363,9 +363,9 @@ export default function BusinessBrandPage() {
                         Kenya relatable content
                       </p>
                       <p className="mt-1 text-sm leading-6 text-gray-500">
-                        Optional. When on, Kova writes more like everyday Kenya —
+                        Optional. When on, KCOVA writes more like everyday Kenya —
                         light Sheng/Swahili mix, local scenes — and adds phone
-                        skit / reel film briefs. Off keeps default Kova copy.
+                        skit / reel film briefs. Off keeps default KCOVA copy.
                       </p>
                     </div>
                     <button
@@ -400,7 +400,7 @@ export default function BusinessBrandPage() {
                     </p>
                   ) : (
                     <p className="mt-3 text-xs text-gray-500">
-                      Off — standard Kova content (default).
+                      Off — standard KCOVA content (default).
                     </p>
                   )}
                 </div>
@@ -440,7 +440,7 @@ export default function BusinessBrandPage() {
 
                 <BrandField
                   label="Brand personality"
-                  description="What human characteristics should Kova reflect when representing the business?"
+                  description="What human characteristics should KCOVA reflect when representing the business?"
                   value={form.brand_personality}
                   onChange={(value) =>
                     updateField(
@@ -468,7 +468,7 @@ export default function BusinessBrandPage() {
 
                 <BrandField
                   label="Communication preferences"
-                  description="Are there additional communication preferences Kova should follow?"
+                  description="Are there additional communication preferences KCOVA should follow?"
                   value={
                     form.communication_preferences
                   }

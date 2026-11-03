@@ -3,15 +3,15 @@ from django.contrib.auth.models import BaseUserManager
 
 class UserManager(BaseUserManager):
     """
-    Manager for Kova's custom User model.
+    Manager for KCOVA's custom User model.
 
-    Kova uses email as the authentication identifier, so this manager
+    KCOVA uses email as the authentication identifier, so this manager
     provides user-creation methods that do not require a username.
     """
 
     def create_user(self, email, password=None, **extra_fields):
         """
-        Create and save a regular Kova user.
+        Create and save a regular KCOVA user.
 
         Args:
             email: The user's unique email address.
@@ -39,7 +39,7 @@ class UserManager(BaseUserManager):
 
     def create_superuser(self, email, password=None, **extra_fields):
         """
-        Create and save a Kova superuser.
+        Create and save a KCOVA superuser.
 
         Superusers have full access to Django's administrative system.
         """

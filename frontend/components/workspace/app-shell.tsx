@@ -8,7 +8,7 @@ import { Topbar } from "./topbar";
 
 
 /**
- * Props accepted by the Kova application shell.
+ * Props accepted by the KCOVA application shell.
  */
 interface AppShellProps {
   children: ReactNode;
@@ -19,7 +19,7 @@ interface AppShellProps {
  * Main authenticated application shell.
  *
  * The shell provides the persistent navigation and account
- * interface around every authenticated Kova workspace page.
+ * interface around every authenticated KCOVA workspace page.
  *
  * Page-specific functionality remains inside the children so
  * the shell does not become coupled to individual product areas.

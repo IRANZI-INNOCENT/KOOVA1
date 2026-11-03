@@ -17,7 +17,7 @@ def remember_exchange(
     error="",
     tool_calls=None,
 ):
-    """Store one Ask Kova turn. A storage failure must not hide the reply."""
+    """Store one Ask KCOVA turn. A storage failure must not hide the reply."""
 
     try:
         KovaExchange.objects.create(
@@ -33,7 +33,7 @@ def remember_exchange(
         )
     except Exception:
         logger.exception(
-            "Kova could not store this exchange.",
+            "KCOVA could not store this exchange.",
             extra={"business_id": getattr(business, "id", None)},
         )
 

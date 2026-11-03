@@ -182,7 +182,7 @@ class MetaOAuthReturnView(APIView):
     """
     Browser return from Facebook Login.
 
-    Facebook sends the person here with a code. Kova sends them back
+    Facebook sends the person here with a code. KCOVA sends them back
     to Channels, which finishes the connection while they are signed in.
     """
 
@@ -567,7 +567,7 @@ class SocialMessageReplyView(APIView):
 
 
 class SocialMessageDraftView(APIView):
-    """Ask Kova to draft a reply for one comment or message."""
+    """Ask KCOVA to draft a reply for one comment or message."""
 
     permission_classes = [IsAuthenticated]
 

@@ -48,7 +48,7 @@ interface ImagePreview {
 
 function getErrorMessage(error: unknown): string {
   if (!(error instanceof Error)) {
-    return "Kova could not complete this operation.";
+    return "KCOVA could not complete this operation.";
   }
 
   const message = error.message || "";
@@ -60,7 +60,7 @@ function getErrorMessage(error: unknown): string {
     message.includes("Traceback") ||
     message.includes("TypeError at")
   ) {
-    return "Kova could not complete this operation. Please try again.";
+    return "KCOVA could not complete this operation. Please try again.";
   }
 
   return message;
@@ -683,7 +683,7 @@ export default function SnapToSellModal({
             {offeringKind === "service" ? "Snap a service" : "Snap a product"}
           </h1>
           <p className="mt-0.5 text-xs text-gray-500 sm:text-sm">
-            Photo, price, then Kova drafts the listing.
+            Photo, price, then KCOVA drafts the listing.
           </p>
         </div>
         <button
@@ -733,8 +733,8 @@ export default function SnapToSellModal({
         </div>
         <p className="text-xs leading-5 text-gray-500">
           {offeringKind === "service"
-            ? "Photograph the work, the space, or the result. Kova writes a service people can book."
-            : "Photograph the item. Kova writes a product people can order."}
+            ? "Photograph the work, the space, or the result. KCOVA writes a service people can book."
+            : "Photograph the item. KCOVA writes a product people can order."}
         </p>
 
         {/* Camera input */}
@@ -879,7 +879,7 @@ export default function SnapToSellModal({
               {images.length > 1 && (
                 <div className="mt-5 space-y-3 border border-[#E5E7E5] bg-white p-4">
                   <p className="text-sm font-semibold text-[#17211D]">
-                    How should Kova use these photos?
+                    How should KCOVA use these photos?
                   </p>
 
                   <label className="flex cursor-pointer items-start gap-3">
@@ -898,7 +898,7 @@ export default function SnapToSellModal({
                       </span>
                       <span className="mt-0.5 block text-xs leading-5 text-gray-500">
                         All photos are angles of the same
-                        item. Kova analyzes them together.
+                        item. KCOVA analyzes them together.
                       </span>
                     </span>
                   </label>
@@ -919,7 +919,7 @@ export default function SnapToSellModal({
                       </span>
                       <span className="mt-0.5 block text-xs leading-5 text-gray-500">
                         Each photo becomes its own product.
-                        Kova scans up to{" "}
+                        KCOVA scans up to{" "}
                         {MAX_SNAP_PHOTOS} images in
                         parallel.
                       </span>
@@ -990,15 +990,15 @@ export default function SnapToSellModal({
 
           <p className="text-sm font-medium text-[#176B4D]">
             {isBatchPricing
-              ? "Your photos are ready for Kova."
-              : "Your product is ready for Kova."}
+              ? "Your photos are ready for KCOVA."
+              : "Your product is ready for KCOVA."}
           </p>
 
           <h2 className="mt-1 text-lg font-semibold text-kova-dark">
             {isBatchPricing ? "Set prices" : "Your selling price"}
           </h2>
           <p className="mt-1 text-xs leading-5 text-gray-500 sm:text-sm">
-            Kova does not guess price from photos — you set it.
+            KCOVA does not guess price from photos — you set it.
           </p>
         </div>
 
@@ -1215,14 +1215,14 @@ export default function SnapToSellModal({
 
         <h2 className="mt-6 text-xl font-semibold text-[#17211D]">
           {isBatch
-            ? "Kova is preparing your products"
-            : "Kova is preparing your product"}
+            ? "KCOVA is preparing your products"
+            : "KCOVA is preparing your product"}
         </h2>
 
         <p className="mt-2 max-w-md text-sm leading-6 text-gray-500">
           {isBatch
-            ? `Kova is analyzing ${images.length} photos in parallel using your Business Brain to create separate product drafts.`
-            : "Kova is looking at your photos together with your Business Brain to understand the product and prepare its selling information."}
+            ? `KCOVA is analyzing ${images.length} photos in parallel using your Business Brain to create separate product drafts.`
+            : "KCOVA is looking at your photos together with your Business Brain to understand the product and prepare its selling information."}
         </p>
 
         <div className="mt-8 flex items-center gap-2 text-xs font-medium text-gray-500">
@@ -1266,7 +1266,7 @@ export default function SnapToSellModal({
           </h2>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-            Add the information you know. Kova will use these
+            Add the information you know. KCOVA will use these
             facts as the authoritative product information.
           </p>
         </div>
@@ -1465,7 +1465,7 @@ export default function SnapToSellModal({
             </h3>
 
             <p className="mt-1 text-sm leading-6 text-gray-500">
-              Only add facts you know. Kova will use them as
+              Only add facts you know. KCOVA will use them as
               authoritative information.
             </p>
           </div>
@@ -1879,11 +1879,11 @@ export default function SnapToSellModal({
           </p>
 
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[#17211D]">
-            Review what Kova prepared
+            Review what KCOVA prepared
           </h2>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-            Kova has analyzed your product photos using your
+            KCOVA has analyzed your product photos using your
             Business Brain. Review the product facts before
             saving.
           </p>
@@ -1892,7 +1892,7 @@ export default function SnapToSellModal({
         {product.ai_summary && (
           <div className="border border-[#E5E7E5] bg-[#FAFAF8] px-5 py-4">
             <p className="text-xs font-medium text-gray-400">
-              Kova's understanding
+              KCOVA's understanding
             </p>
 
             <p className="mt-2 text-sm leading-6 text-[#17211D]">
@@ -1908,7 +1908,7 @@ export default function SnapToSellModal({
             </p>
 
             <p className="mt-1 text-sm leading-6 text-gray-600">
-              Kova could not confidently determine some
+              KCOVA could not confidently determine some
               attributes from the photographs.
             </p>
 
@@ -1949,7 +1949,7 @@ export default function SnapToSellModal({
               </p>
 
               <p className="mt-1 text-xs leading-5 text-gray-500">
-                Kova will treat these details as authoritative
+                KCOVA will treat these details as authoritative
                 business information.
               </p>
             </div>

@@ -1,5 +1,5 @@
 """
-Tests for the Kova Context Engine.
+Tests for the KCOVA Context Engine.
 """
 
 from django.test import TestCase
@@ -23,7 +23,7 @@ from .types import ContextTask
 
 
 class TaskDefinitionTests(TestCase):
-    """Test the context requirements declared for each Kova task."""
+    """Test the context requirements declared for each KCOVA task."""
 
     def test_all_context_tasks_have_definitions(self):
         """Every supported ContextTask must have a task definition."""

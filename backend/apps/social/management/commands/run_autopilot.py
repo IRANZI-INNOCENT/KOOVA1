@@ -5,7 +5,7 @@ from apps.social.services.autopilot import run_shift
 
 
 class Command(BaseCommand):
-    help = "Run one Autopilot shift for every business that handed Kova the work."
+    help = "Run one Autopilot shift for every business that handed KCOVA the work."
 
     def handle(self, *args, **options):
         policies = BusinessPolicy.objects.filter(

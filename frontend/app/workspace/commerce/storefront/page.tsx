@@ -46,7 +46,7 @@ import {
 /**
  * Storefront management page.
  *
- * The storefront is the public commerce presence Kova uses
+ * The storefront is the public commerce presence KCOVA uses
  * around the business and its products.
  */
 export default function StorefrontPage() {
@@ -175,7 +175,7 @@ export default function StorefrontPage() {
         }
 
         console.error(
-          "Kova storefront loading failed:",
+          "KCOVA storefront loading failed:",
           err,
         );
 
@@ -447,7 +447,7 @@ export default function StorefrontPage() {
 
     } catch (err) {
       console.error(
-        "Kova storefront save failed:",
+        "KCOVA storefront save failed:",
         err,
       );
 
@@ -524,7 +524,7 @@ export default function StorefrontPage() {
 
     } catch (err) {
       console.error(
-        "Kova storefront publishing failed:",
+        "KCOVA storefront publishing failed:",
         err,
       );
 

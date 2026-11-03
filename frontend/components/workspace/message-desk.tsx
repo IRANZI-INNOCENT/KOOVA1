@@ -134,7 +134,7 @@ export function MessageDesk({
       setReply((current) => ({ ...current, [messageId]: drafted.draft_reply }));
       await load(accessToken, businessId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kova could not draft a reply.");
+      setError(err instanceof Error ? err.message : "KCOVA could not draft a reply.");
     } finally {
       setBusyId(null);
     }
@@ -331,7 +331,7 @@ export function MessageDesk({
                       setReply((current) => ({ ...current, [message.id]: event.target.value }))
                     }
                     rows={3}
-                    placeholder="Kova’s reply"
+                    placeholder="KCOVA’s reply"
                     className="w-full rounded-md border border-kova-border px-3 py-2 text-sm"
                   />
                   <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -341,7 +341,7 @@ export function MessageDesk({
                       disabled={busyId === message.id}
                       className="inline-flex h-11 w-full items-center justify-center rounded-md border border-kova-border px-3 text-xs font-bold text-kova-dark disabled:opacity-60 sm:w-auto"
                     >
-                      {busyId === message.id ? "Reading…" : "Draft with Kova"}
+                      {busyId === message.id ? "Reading…" : "Draft with KCOVA"}
                     </button>
                     <button
                       type="button"
@@ -375,7 +375,7 @@ export function MessageDesk({
         {logOpen && (
           <form onSubmit={onLog} className="mt-3 space-y-3 rounded-lg bg-kova-orange/10 p-4">
             <p className="text-xs leading-5 text-gray-600">
-              Paste something a customer sent outside the webhook. Kova will read it and draft a
+              Paste something a customer sent outside the webhook. KCOVA will read it and draft a
               reply.
             </p>
             <div className="grid gap-3 sm:grid-cols-3">
@@ -414,7 +414,7 @@ export function MessageDesk({
               type="submit"
               className="inline-flex h-12 w-full items-center justify-center rounded-md bg-kova-green px-4 text-xs font-bold text-white sm:h-11 sm:w-auto"
             >
-              Let Kova read it
+              Let KCOVA read it
             </button>
           </form>
         )}
@@ -425,7 +425,7 @@ export function MessageDesk({
 
 function deliveryLabel(status: SocialMessageRecord["delivery_status"]) {
   if (status === "sent") return "Sent on channel";
-  if (status === "saved") return "Saved in Kova";
+  if (status === "saved") return "Saved in KCOVA";
   if (status === "failed") return "Send failed";
   return "Received";
 }

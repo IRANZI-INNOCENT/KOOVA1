@@ -1,5 +1,5 @@
 """
-Types used by the Kova Permission Engine.
+Types used by the KCOVA Permission Engine.
 
 The Permission Engine determines whether a Decision may proceed,
 requires owner approval, or must be denied.
@@ -22,7 +22,7 @@ class PermissionStatus(StrEnum):
 @dataclass(frozen=True)
 class PermissionResult:
     """
-    Result of evaluating whether Kova may perform a decision.
+    Result of evaluating whether KCOVA may perform a decision.
 
     The result describes authorization only. It does not execute
     the requested action.

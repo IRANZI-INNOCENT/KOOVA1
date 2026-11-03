@@ -15,7 +15,7 @@ from ..models import WeeklyReport
 from .gather import current_week_start, gather_weekly_evidence
 
 
-SYSTEM_PROMPT = """You are Kova — the business's trusted social and commerce teammate.
+SYSTEM_PROMPT = """You are KCOVA — the business's trusted social and commerce teammate.
 You are writing this week's personal performance report to the manager who runs
 the business. Speak to them by name when evidence.report_to.address_as is set.
 
@@ -160,10 +160,10 @@ def _reason(business: Business, evidence: dict) -> dict:
     try:
         raw = response["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
-        raise OpenRouterError("Kova could not generate the weekly report.") from exc
+        raise OpenRouterError("KCOVA could not generate the weekly report.") from exc
     if not isinstance(raw, str):
-        raise OpenRouterError("Kova returned the weekly report in an unexpected format.")
+        raise OpenRouterError("KCOVA returned the weekly report in an unexpected format.")
     parsed = _parse_json(raw)
     if not isinstance(parsed, dict):
-        raise OpenRouterError("Kova returned the weekly report in an unexpected format.")
+        raise OpenRouterError("KCOVA returned the weekly report in an unexpected format.")
     return parsed

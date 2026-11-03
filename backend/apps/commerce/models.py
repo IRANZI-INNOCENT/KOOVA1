@@ -1,18 +1,18 @@
 """
-Kova Commerce models.
+KCOVA Commerce models.
 
 Commerce is part of the Business Asset layer.
 
 A product is not just a catalog record. It is an authoritative business
-asset that Kova can use for content creation, social selling, customer
+asset that KCOVA can use for content creation, social selling, customer
 conversations, commerce pages, analytics and future AI operations.
 
 The model deliberately separates:
 
 1. Owner-provided facts
-2. Kova-generated intelligence
+2. KCOVA-generated intelligence
 
-Kova-generated information must never silently replace authoritative
+KCOVA-generated information must never silently replace authoritative
 business facts.
 """
 
@@ -251,7 +251,7 @@ class Product(models.Model):
 
     Owner-provided fields represent facts supplied by the business owner.
 
-    AI-generated fields represent Kova's understanding and marketing
+    AI-generated fields represent KCOVA's understanding and marketing
     intelligence derived from product images and owner-provided information.
     """
 
@@ -489,7 +489,7 @@ class ProductImage(models.Model):
     """
     Image belonging to a Product.
 
-    Product images are the primary input for Snap to Sell and Kova's
+    Product images are the primary input for Snap to Sell and KCOVA's
     multimodal product understanding.
     """
 
@@ -561,9 +561,9 @@ class ProductImage(models.Model):
 
 class ProductAIAnalysis(models.Model):
     """
-    Store a historical Kova AI analysis of a product.
+    Store a historical KCOVA AI analysis of a product.
 
-    Analysis history is kept separately from Product so Kova can
+    Analysis history is kept separately from Product so KCOVA can
     re-analyze a product without overwriting previous intelligence.
     """
 
@@ -580,7 +580,7 @@ class ProductAIAnalysis(models.Model):
 
     result = models.JSONField(
         default=dict,
-        help_text="Structured product analysis returned by Kova.",
+        help_text="Structured product analysis returned by KCOVA.",
     )
 
     confidence = models.DecimalField(

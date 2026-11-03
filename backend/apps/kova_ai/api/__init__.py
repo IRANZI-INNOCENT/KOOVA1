@@ -1,1 +1,1 @@
-"""HTTP API for the Kova AI system."""
+"""HTTP API for the KCOVA AI system."""

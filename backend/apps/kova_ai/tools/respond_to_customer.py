@@ -1,5 +1,5 @@
 """
-Kova Customer Response Tool.
+KCOVA Customer Response Tool.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ class RespondToCustomerTool(Tool):
     def description(self) -> str:
         return (
             "Respond to a customer message or social conversation using "
-            "the business context and customer information available to Kova."
+            "the business context and customer information available to KCOVA."
         )
 
     @property

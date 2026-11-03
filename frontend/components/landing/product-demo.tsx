@@ -24,7 +24,7 @@ export default function ProductDemoSection() {
           </div>
 
           <div className="flex flex-col justify-center border border-kova-border bg-white p-6 sm:p-8">
-            <p className="text-sm font-medium text-gray-500">Talk to Kova</p>
+            <p className="text-sm font-medium text-gray-500">Talk to KCOVA</p>
 
             <div className="mt-6 space-y-4">
               <div className="ml-auto max-w-[90%] bg-kova-green px-4 py-3 text-sm leading-6 text-white">

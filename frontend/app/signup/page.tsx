@@ -99,7 +99,7 @@ export default function SignupPage() {
    * Submit the signup form.
    *
    * Account creation is followed by a normal login so that a new
-   * user enters Kova already authenticated instead of having to
+   * user enters KCOVA already authenticated instead of having to
    * submit the same credentials twice.
    */
   async function handleSubmit(
@@ -150,7 +150,7 @@ export default function SignupPage() {
 
         } catch (error) {
       console.error(
-        "Kova signup failed:",
+        "Kcova signup failed:",
         error,
       );
 
@@ -172,10 +172,10 @@ export default function SignupPage() {
   return (
     <AuthLayout
       title="Create your account"
-      description="Start building and managing your business with Kova."
+      description="Start building and managing your business with Kcova."
       footer={
         <>
-          Already have a Kova account?{" "}
+          Already have a Kcova account?{" "}
 
           <Link
             href="/login"

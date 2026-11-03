@@ -1,5 +1,5 @@
 """
-Kova Order Management Tool.
+KCOVA Order Management Tool.
 """
 
 from __future__ import annotations

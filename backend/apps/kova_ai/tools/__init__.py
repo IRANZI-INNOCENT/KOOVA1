@@ -1,1 +1,1 @@
-"""Kova Tool System package."""
+"""KCOVA Tool System package."""

@@ -72,10 +72,10 @@ class AiUsageEvent(models.Model):
 
 class KovaExchange(models.Model):
     """
-    One Ask Kova turn.
+    One Ask KCOVA turn.
 
     The owner sees the reply in the product. This row keeps the request,
-    the reply, the model, and every tool Kova used so an admin can
+    the reply, the model, and every tool KCOVA used so an admin can
     reconstruct what happened.
     """
 

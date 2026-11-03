@@ -17,7 +17,7 @@ from apps.commerce.models import (
 
 
 class SnapToSellTests(TestCase):
-    """Tests for the Kova Snap to Sell workflow."""
+    """Tests for the KCOVA Snap to Sell workflow."""
 
     def setUp(self):
         self.user = User.objects.create_user(
@@ -84,7 +84,7 @@ class SnapToSellTests(TestCase):
             },
             "uncertain_attributes": [],
             "ai_summary": (
-                "Kova identified a black jacket."
+                "KCOVA identified a black jacket."
             ),
             "confidence": 0.92,
         }

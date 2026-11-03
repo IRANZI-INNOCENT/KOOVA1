@@ -1,7 +1,7 @@
 """
-Types used by the Kova Action Execution layer.
+Types used by the KCOVA Action Execution layer.
 
-Execution represents one attempt to run an authorized Kova decision.
+Execution represents one attempt to run an authorized KCOVA decision.
 
 Execution does not determine whether an action is appropriate or
 permitted. Those responsibilities belong to the Decision Engine and

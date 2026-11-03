@@ -76,7 +76,7 @@ export function useSectionSetup<T extends object>({
       setDraftError(
         err instanceof ApiError
           ? err.message
-          : "Kova could not draft this section.",
+          : "KCOVA could not draft this section.",
       );
     } finally {
       setDrafting(false);

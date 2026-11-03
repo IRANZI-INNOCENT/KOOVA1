@@ -40,7 +40,7 @@ class BusinessProfileWebsiteScanTests(TestCase):
     def test_owner_can_scan_website(self, scan_website):
         scan_website.return_value = {
             "website": "https://unimart.example",
-            "summary": "Kova scanned the site.",
+            "summary": "KCOVA scanned the site.",
             "suggestions": {
                 "mission": "Furnish Nairobi homes.",
                 "value_proposition": "",

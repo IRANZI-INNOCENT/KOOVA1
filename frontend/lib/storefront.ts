@@ -2,7 +2,7 @@ export function whatsappLink(number: string, productName?: string) {
   const cleaned = number.replace(/\D/g, "");
   const text = productName
     ? `Hi, I want to order ${productName}. Is it available?`
-    : "Hi, I want to place an order from your Kova store.";
+    : "Hi, I want to place an order from your KCOVA store.";
 
   return `https://wa.me/${cleaned}?text=${encodeURIComponent(text)}`;
 }

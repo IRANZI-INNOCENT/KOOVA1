@@ -59,7 +59,7 @@ const RETURN_MESSAGES: Record<string, string> = {
   state_expired: "That connection link expired. Click Connect LinkedIn again.",
   profile: "Sign in again, then connect LinkedIn.",
   proxy: "We couldn't finish connecting LinkedIn. Please try again.",
-  api_unreachable: "We couldn't reach Kova to finish connecting LinkedIn.",
+  api_unreachable: "We couldn't reach KCOVA to finish connecting LinkedIn.",
   callback: "We couldn't finish connecting LinkedIn. Please try again.",
 };
 
@@ -185,7 +185,7 @@ function ConnectContent() {
 
   async function disconnect() {
     if (!accessToken || disconnecting) return;
-    if (!window.confirm("Disconnect LinkedIn? Kova will stop publishing to this account.")) {
+    if (!window.confirm("Disconnect LinkedIn? KCOVA will stop publishing to this account.")) {
       return;
     }
     setDisconnecting(true);
@@ -229,7 +229,7 @@ function ConnectContent() {
       <div className="mx-auto max-w-2xl space-y-5">
         <PageHeader
           title="Connect LinkedIn"
-          description="Copy drafts anytime — or connect so Kova can publish for you."
+          description="Copy drafts anytime — or connect so KCOVA can publish for you."
           actions={
             <button
               type="button"

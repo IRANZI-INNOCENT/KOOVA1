@@ -1,11 +1,11 @@
 """
-OpenRouter service for Kova.
+OpenRouter service for KCOVA.
 
-This module is the provider boundary between Kova and OpenRouter.
+This module is the provider boundary between KCOVA and OpenRouter.
 
-The rest of Kova must not construct OpenRouter HTTP requests directly.
+The rest of KCOVA must not construct OpenRouter HTTP requests directly.
 This keeps provider-specific behavior isolated and allows the model
-provider or model to change without rewriting Kova's intelligence layer.
+provider or model to change without rewriting KCOVA's intelligence layer.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ class OpenRouterError(Exception):
 
 
 class OpenRouterService:
-    """Production OpenRouter client used by Kova."""
+    """Production OpenRouter client used by KCOVA."""
 
     BASE_URL = (
         "https://openrouter.ai/api/v1/chat/completions"
@@ -125,7 +125,7 @@ class OpenRouterService:
 
         Args:
             messages: Conversation messages.
-            tools: Available Kova tools.
+            tools: Available KCOVA tools.
             tool_choice: Model tool-selection policy.
             parallel_tool_calls: Whether the model may request multiple
                 tools in one turn.
@@ -210,7 +210,7 @@ class OpenRouterService:
         app_name = getattr(
             settings,
             "OPENROUTER_APP_NAME",
-            "Kova",
+            "KCOVA",
         )
 
         if site_url:

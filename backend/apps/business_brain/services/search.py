@@ -43,18 +43,18 @@ def search_market(
         )
     except OpenRouterError as exc:
         raise MarketSearchError(
-            "Kova could not search the market just now. You can try again, or leave this step and come back."
+            "KCOVA could not search the market just now. You can try again, or leave this step and come back."
         ) from exc
 
     try:
         message = response["choices"][0]["message"]
     except (KeyError, IndexError, TypeError) as exc:
         raise MarketSearchError(
-            "Kova could not read the market search."
+            "KCOVA could not read the market search."
         ) from exc
 
     if not isinstance(message, dict):
-        raise MarketSearchError("Kova could not read the market search.")
+        raise MarketSearchError("KCOVA could not read the market search.")
 
     return _message_text(message), _citations(message)
 

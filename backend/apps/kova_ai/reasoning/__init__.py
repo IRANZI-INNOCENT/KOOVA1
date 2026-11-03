@@ -1,1 +1,1 @@
-"""Kova AI reasoning package."""
+"""KCOVA AI reasoning package."""

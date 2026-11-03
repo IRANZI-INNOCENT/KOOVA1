@@ -1,5 +1,5 @@
 """
-Tests for the Kova Verification layer.
+Tests for the KCOVA Verification layer.
 """
 
 from django.test import SimpleTestCase
@@ -15,7 +15,7 @@ from .verifier import ActionVerifier
 
 
 class ActionVerifierTests(SimpleTestCase):
-    """Test Kova action verification."""
+    """Test KCOVA action verification."""
 
     def setUp(self):
         self.verifier = ActionVerifier()

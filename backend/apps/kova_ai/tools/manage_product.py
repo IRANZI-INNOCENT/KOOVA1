@@ -1,5 +1,5 @@
 """
-Kova Product Management Tool.
+KCOVA Product Management Tool.
 
 Performs real CRUD operations on Product records. Creates, updates,
 and archives products in the database.

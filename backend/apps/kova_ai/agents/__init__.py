@@ -1,1 +1,1 @@
-"""Kova agent orchestration package."""
+"""KCOVA agent orchestration package."""

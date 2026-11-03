@@ -1,5 +1,5 @@
 """
-Kova Create Content Tool.
+KCOVA Create Content Tool.
 
 Creates a real Content record in the database. The content starts as a
 draft that the business owner can review, approve, and publish.

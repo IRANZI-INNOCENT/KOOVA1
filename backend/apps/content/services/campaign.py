@@ -1,8 +1,8 @@
 """
 Campaign draft service.
 
-Kova acts as a social media manager.  Given a brief (note + optional
-product), Kova generates adapted content for every connected healthy
+KCOVA acts as a social media manager.  Given a brief (note + optional
+product), KCOVA generates adapted content for every connected healthy
 channel simultaneously.
 
 The mapping from SocialAccount.Platform to Content formats:
@@ -352,7 +352,7 @@ def _call_ai(
     )
 
     system = (
-        "You are Kova, a social media manager for a small business. "
+        "You are KCOVA, a social media manager for a small business. "
         "You create adapted content for multiple platforms simultaneously "
         "from the same brief. When several Facebook Pages are listed, "
         "write separate copy per account_name (each Page is its own brand voice). "
@@ -405,13 +405,13 @@ def _call_ai(
     try:
         raw = response["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
-        raise OpenRouterError("Kova could not generate the content.") from exc
+        raise OpenRouterError("KCOVA could not generate the content.") from exc
     if not isinstance(raw, str):
-        raise OpenRouterError("Kova could not generate the content.")
+        raise OpenRouterError("KCOVA could not generate the content.")
 
     parsed = _parse_json(raw)
     if not isinstance(parsed, dict):
-        raise OpenRouterError("Kova returned content in an unexpected format.")
+        raise OpenRouterError("KCOVA returned content in an unexpected format.")
     return parsed
 
 

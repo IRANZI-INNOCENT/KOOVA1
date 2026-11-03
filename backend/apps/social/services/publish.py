@@ -2,7 +2,7 @@
 Queue a content piece onto a connected account and send it.
 
 Instagram and Facebook go through the Meta adapter. Other channels
-are kept as a ready message in the inbox, because Kova does not
+are kept as a ready message in the inbox, because KCOVA does not
 have an API for them. Failed sends stay on the post and can be
 retried up to three times.
 """
@@ -425,7 +425,7 @@ def price_conflict(content, caption: str) -> str:
             return ""
     return (
         f"The caption price does not match {product.name} at "
-        f"{product.currency} {product.price}. Kova will not publish a different price."
+        f"{product.currency} {product.price}. KCOVA will not publish a different price."
     )
 
 
@@ -521,7 +521,7 @@ def parse_when(value) -> datetime | None:
 
 
 def _ready_message(content: Content) -> None:
-    """Save a channel Kova cannot post to as a message the owner can send."""
+    """Save a channel KCOVA cannot post to as a message the owner can send."""
     channel = content.platform if content.platform in {
         SocialMessage.Channel.WHATSAPP,
         SocialMessage.Channel.INSTAGRAM,

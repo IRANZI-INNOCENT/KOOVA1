@@ -1,5 +1,5 @@
 """
-Types used by the Kova Verification layer.
+Types used by the KCOVA Verification layer.
 
 Verification determines whether there is sufficient evidence that
 an executed action achieved its intended outcome.

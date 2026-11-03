@@ -150,7 +150,7 @@ def _call_organic_ai(
         "Do not invent numbered slide decks. "
     )
     system = (
-        "You are Kova, a social media manager for a small business. "
+        "You are KCOVA, a social media manager for a small business. "
         "Create ORGANIC content — not a product ad. "
         "When multiple accounts are listed, tailor copy to each account_name. "
         "Goals: educate, inform, build trust, and stay top of mind. "
@@ -190,13 +190,13 @@ def _call_organic_ai(
     try:
         raw = response["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
-        raise OpenRouterError("Kova could not generate organic content.") from exc
+        raise OpenRouterError("KCOVA could not generate organic content.") from exc
     if not isinstance(raw, str):
-        raise OpenRouterError("Kova could not generate organic content.")
+        raise OpenRouterError("KCOVA could not generate organic content.")
 
     parsed = _parse_json(raw)
     if not isinstance(parsed, dict):
-        raise OpenRouterError("Kova returned content in an unexpected format.")
+        raise OpenRouterError("KCOVA returned content in an unexpected format.")
     return parsed
 
 

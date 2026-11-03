@@ -70,7 +70,7 @@ export function AutopilotStudioPanel({
         <div>
           <h2 className="text-sm font-semibold text-kova-dark">Autopilot</h2>
           <p className="mt-0.5 text-xs text-gray-500">
-            Kova drafts and schedules posts each shift.
+            KCOVA drafts and schedules posts each shift.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

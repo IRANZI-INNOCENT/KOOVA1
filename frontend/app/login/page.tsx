@@ -91,7 +91,7 @@ export default function LoginPage() {
       router.replace("/workspace");
     } catch (error) {
       console.error(
-        "Kova login failed:",
+        "KCOVA login failed:",
         error,
       );
 
@@ -122,10 +122,10 @@ export default function LoginPage() {
   return (
     <AuthLayout
       title="Welcome back"
-      description="Sign in to continue managing your business with Kova."
+      description="Sign in to continue managing your business with Kcova."
       footer={
         <>
-          Don't have a Kova account?{" "}
+          Don't have a Kcova account?{" "}
 
           <Link
             href="/signup"
@@ -234,8 +234,7 @@ export default function LoginPage() {
 
 
         <p className="text-xs leading-5 text-gray-500">
-          After you sign in, Kova keeps you logged in on this device
-          (including the installed app). Sign out anytime from settings.
+          After you sign in, Kcova keeps you logged in on this device
         </p>
 
         <Button

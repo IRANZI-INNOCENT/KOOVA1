@@ -1,7 +1,7 @@
 """
 Autopilot shift.
 
-The owner has handed Kova the company. A shift reads the brand and
+The owner has handed KCOVA the company. A shift reads the brand and
 profile, plans the day, then does the work: polish a listing, write
 and schedule a post, answer waiting customers, and file the report.
 """
@@ -284,7 +284,7 @@ def _listing_event(event: AutopilotEvent) -> dict | None:
 
 
 def results_brief(business: Business) -> dict:
-    """The figures Ask Kova may use when the owner asks for a summary."""
+    """The figures Ask KCOVA may use when the owner asks for a summary."""
     picture = business_picture(business)
 
     def product(item: dict) -> dict:
@@ -439,7 +439,7 @@ def _report_event(event: AutopilotEvent) -> dict | None:
 def run_shift(business: Business, *, force: bool = False) -> AutopilotShift:
     policy = BusinessPolicy.objects.filter(business=business).first()
     if policy is None or policy.social_operating_mode != BusinessPolicy.OperatingMode.AUTOPILOT:
-        raise ValueError("Turn Autopilot on before Kova starts this shift.")
+        raise ValueError("Turn Autopilot on before KCOVA starts this shift.")
 
     current = latest_shift(business)
     if (
@@ -553,7 +553,7 @@ def _plan(business: Business, briefing: str) -> dict:
                 {
                     "role": "system",
                     "content": (
-                        "You are Kova, newly responsible for this business. "
+                        "You are KCOVA, newly responsible for this business. "
                         "Plan today's work from the briefing. Mix product posts and organic "
                         "value posts (educate, tips, story — not always selling). "
                         "Return JSON with keys focus (string), "

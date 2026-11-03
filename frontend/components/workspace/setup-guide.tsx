@@ -41,7 +41,7 @@ export function SetupGuide({
           disabled={drafting}
           className="inline-flex h-10 shrink-0 items-center justify-center rounded-md bg-kova-orange px-4 text-sm font-semibold text-kova-dark hover:bg-[#f0a46e] disabled:opacity-60"
         >
-          {drafting ? "Drafting..." : "Ask Kova to draft this"}
+          {drafting ? "Drafting..." : "Ask KCOVA to draft this"}
         </button>
       </div>
       {draftError && (

@@ -1,10 +1,10 @@
 """
-Types used by the Kova Learning layer.
+Types used by the KCOVA Learning layer.
 
 Learning captures useful information from verified action outcomes.
 
 Learning is intentionally separate from permanent business memory.
-A learning result describes what Kova observed; a future memory layer
+A learning result describes what KCOVA observed; a future memory layer
 can decide whether that information should be persisted.
 """
 
@@ -14,7 +14,7 @@ from typing import Any
 
 
 class LearningType(StrEnum):
-    """Types of learning Kova can produce."""
+    """Types of learning KCOVA can produce."""
 
     SUCCESS = "success"
     FAILURE = "failure"

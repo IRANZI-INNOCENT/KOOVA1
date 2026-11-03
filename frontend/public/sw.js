@@ -1,4 +1,4 @@
-/* Kova PWA service worker — app shell offline, API always network-first. */
+/* KCOVA PWA service worker — app shell offline, API always network-first. */
 
 const CACHE_VERSION = "kova-pwa-v2";
 const PRECACHE_URLS = [

@@ -1,7 +1,7 @@
 """
-Base contract for Kova tools.
+Base contract for KCOVA tools.
 
-A Kova tool is a controlled capability exposed to the AI reasoning
+A KCOVA tool is a controlled capability exposed to the AI reasoning
 system.
 
 The LLM may request a tool, but it never executes the tool itself.
@@ -9,7 +9,7 @@ The LLM may request a tool, but it never executes the tool itself.
 The application:
     1. receives the model's request;
     2. resolves the registered tool;
-    3. constructs a Kova decision;
+    3. constructs a KCOVA decision;
     4. checks permission;
     5. executes the tool;
     6. returns the result to the model.
@@ -25,12 +25,12 @@ from .types import ToolResult
 
 
 class Tool(ABC):
-    """Base class for every Kova executable capability."""
+    """Base class for every KCOVA executable capability."""
 
     @property
     @abstractmethod
     def action(self) -> str:
-        """Return the Kova action represented by this tool."""
+        """Return the KCOVA action represented by this tool."""
 
         raise NotImplementedError
 
@@ -44,7 +44,7 @@ class Tool(ABC):
     def description(self) -> str:
         """Return a description that helps the model use the tool."""
 
-        return f"Execute the {self.action} Kova capability."
+        return f"Execute the {self.action} KCOVA capability."
 
     @property
     def parameters(self) -> dict[str, Any]:

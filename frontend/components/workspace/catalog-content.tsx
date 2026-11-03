@@ -102,10 +102,10 @@ export function CatalogContentModal({
         setDone(index + 1);
       }
       if (collected.length === 0) {
-        setError("Kova did not return any posts. Connect Facebook or Instagram first.");
+        setError("KCOVA did not return any posts. Connect Facebook or Instagram first.");
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Kova could not write the posts.");
+      setError(err instanceof ApiError ? err.message : "KCOVA could not write the posts.");
     } finally {
       setProgress("");
       setBusy(false);
@@ -153,7 +153,7 @@ export function CatalogContentModal({
     setError("");
     setDone(0);
     setTotal(1);
-    setProgress("Kova is choosing when each post should go out.");
+    setProgress("KCOVA is choosing when each post should go out.");
     try {
       const result = await authenticatedApiRequest<{ scheduled: Scheduled[] }>(
         `/content/${businessId}/schedule/`,
@@ -167,7 +167,7 @@ export function CatalogContentModal({
       setDone(1);
       onChanged?.();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Kova could not schedule the posts.");
+      setError(err instanceof ApiError ? err.message : "KCOVA could not schedule the posts.");
     } finally {
       setProgress("");
       setBusy(false);
@@ -193,7 +193,7 @@ export function CatalogContentModal({
             </h2>
             <p className="mt-1 text-sm text-gray-500">
               {focus
-                ? "Kova writes posts for this product. You can publish them now or let Kova place them on the calendar."
+                ? "KCOVA writes posts for this product. You can publish them now or let KCOVA place them on the calendar."
                 : `${targets.length} active product${targets.length === 1 ? "" : "s"} still need content. Products that already have posts stay as they are.`}
             </p>
           </div>
@@ -286,7 +286,7 @@ export function CatalogContentModal({
             <div className="flex items-center gap-3">
               <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-kova-orange border-t-transparent" />
               <p className="text-sm font-semibold text-kova-dark">
-                {progress || "Kova is working"}
+                {progress || "KCOVA is working"}
                 {total > 0 ? ` · ${Math.min(done + 1, total)} of ${total}` : ""}
               </p>
             </div>
@@ -331,7 +331,7 @@ export function CatalogContentModal({
                 onClick={schedule}
                 className="inline-flex h-10 items-center rounded-md bg-kova-orange px-4 text-sm font-bold text-kova-dark"
               >
-                Let Kova schedule
+                Let KCOVA schedule
               </button>
             </>
           )}

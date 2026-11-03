@@ -1,5 +1,5 @@
 """
-Types used by the Kova Tool System.
+Types used by the KCOVA Tool System.
 
 Tools perform actions requested by the Decision Engine after the
 Permission Engine has authorized those actions.

@@ -93,9 +93,9 @@ class Command(BaseCommand):
 
         User = get_user_model()
         first = (
-            _env("KOVA_SUPERUSER_FIRST_NAME", "DJANGO_SUPERUSER_FIRST_NAME", default="Kova")
+            _env("KOVA_SUPERUSER_FIRST_NAME", "DJANGO_SUPERUSER_FIRST_NAME", default="KCOVA")
             .strip()
-            or "Kova"
+            or "KCOVA"
         )
         last = (
             _env("KOVA_SUPERUSER_LAST_NAME", "DJANGO_SUPERUSER_LAST_NAME", default="Admin")

@@ -1,5 +1,5 @@
 """
-Kova Action Verification.
+KCOVA Action Verification.
 
 The Verification layer determines whether an executed action has
 sufficient evidence of achieving its intended outcome.
@@ -24,7 +24,7 @@ from .types import VerificationResult, VerificationStatus
 
 
 class ActionVerifier:
-    """Verify the outcome of an executed Kova action."""
+    """Verify the outcome of an executed KCOVA action."""
 
     def verify(
         self,

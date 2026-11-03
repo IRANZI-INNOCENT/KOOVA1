@@ -37,7 +37,7 @@ class BusinessProfileModelTests(TestCase):
         cls.business = Business.objects.create(
             owner=cls.user,
             name="Test Business",
-            description="A test business for Kova.",
+            description="A test business for KCOVA.",
             industry="Retail",
             location="Nairobi",
             email="business@example.com",
@@ -138,7 +138,7 @@ class BusinessProfileModelTests(TestCase):
     def test_optional_fields_can_be_empty(self):
         """
         BusinessProfile should allow incomplete information because
-        Kova will progressively learn more about a business over time.
+        KCOVA will progressively learn more about a business over time.
         """
 
         profile = BusinessProfile.objects.get(
@@ -264,7 +264,7 @@ class BusinessProfileAPITests(TestCase):
         GET should return the profile provisioned when the business
         was created.
 
-        This supports Kova's progressive Business Brain architecture.
+        This supports KCOVA's progressive Business Brain architecture.
         """
 
         self.authenticate_as_owner()
@@ -592,7 +592,7 @@ def test_business_audience_string_representation(self):
 
 def test_business_audience_fields_can_be_empty(self):
     """
-    Audience information should be optional because Kova should
+    Audience information should be optional because KCOVA should
     allow a business to progressively build its Business Brain.
     """
     audience = BusinessAudience.objects.create(

@@ -189,7 +189,7 @@ export default function ChannelsPage() {
         setPendingPages(pending);
         if (result.pending_pages?.length) {
           setVerifyNote(
-            `${result.pending_pages.length} extra Page(s) need their own business before Kova can publish for them.`,
+            `${result.pending_pages.length} extra Page(s) need their own business before KCOVA can publish for them.`,
           );
         } else {
           setVerifyNote("");
@@ -286,11 +286,11 @@ export default function ChannelsPage() {
       if (updated.connection_status === "connected") {
         if (summary.hasGap) {
           setVerifyNote(
-            `${updated.account_name || "This account"} is connected, but only ${summary.granted} of ${summary.total} permissions are granted. Use “Allow missing permissions” so Kova can reply to comments and messages.`,
+            `${updated.account_name || "This account"} is connected, but only ${summary.granted} of ${summary.total} permissions are granted. Use “Allow missing permissions” so KCOVA can reply to comments and messages.`,
           );
         } else {
           setVerifyNote(
-            `${updated.account_name || "This account"} is connected with all ${summary.total} permissions Kova needs.`,
+            `${updated.account_name || "This account"} is connected with all ${summary.total} permissions KCOVA needs.`,
           );
         }
       } else {

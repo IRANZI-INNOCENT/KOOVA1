@@ -74,7 +74,7 @@ TASK_SPECS: tuple[TaskSpec, ...] = (
     ),
     TaskSpec(
         key="starters",
-        label="Ask Kova starter prompts",
+        label="Ask KCOVA starter prompts",
         default_model="google/gemini-2.5-flash-lite",
         help_text="Home-screen suggested questions for the owner.",
     ),
@@ -122,7 +122,7 @@ TASK_SPECS: tuple[TaskSpec, ...] = (
     ),
     TaskSpec(
         key="ask_kova",
-        label="Ask Kova (agent + tools)",
+        label="Ask KCOVA (agent + tools)",
         default_model="google/gemini-3.1-flash-lite",
         help_text="Owner chat with tool calling. Prefer Flash Lite; raise if tools fail.",
         needs_tools=True,

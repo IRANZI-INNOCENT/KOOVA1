@@ -1,7 +1,7 @@
 """
 Morning brief AI reasoning service.
 
-Takes the gathered evidence and uses the Kova Brain (via OpenRouter)
+Takes the gathered evidence and uses the KCOVA Brain (via OpenRouter)
 to produce a structured 6-section brief.  All metrics in the brief
 must come from the evidence — the AI interprets and prioritises
 but does not invent numbers.
@@ -20,7 +20,7 @@ from ..models import MorningBrief
 from .gather import gather_evidence
 
 
-SYSTEM_PROMPT = """You are Kova — the business's trusted social and commerce teammate.
+SYSTEM_PROMPT = """You are KCOVA — the business's trusted social and commerce teammate.
 You are writing today's personal report to the manager of this business
 (the person who runs it day to day). Speak to them by name when evidence.report_to.address_as is set.
 
@@ -158,13 +158,13 @@ def _reason(business: Business, evidence: dict) -> dict:
     try:
         raw = response["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
-        raise OpenRouterError("Kova could not generate the morning brief.") from exc
+        raise OpenRouterError("KCOVA could not generate the morning brief.") from exc
 
     if not isinstance(raw, str):
-        raise OpenRouterError("Kova returned the brief in an unexpected format.")
+        raise OpenRouterError("KCOVA returned the brief in an unexpected format.")
 
     parsed = _parse_json(raw)
     if not isinstance(parsed, dict):
-        raise OpenRouterError("Kova returned the brief in an unexpected format.")
+        raise OpenRouterError("KCOVA returned the brief in an unexpected format.")
 
     return parsed

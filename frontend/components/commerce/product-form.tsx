@@ -96,7 +96,7 @@ export function ProductForm({
           Information you control
         </h2>
         <p className="mt-1 text-sm text-[#69736D]">
-          These facts are the source Kova should trust when generating
+          These facts are the source KCOVA should trust when generating
           commerce and social content.
         </p>
       </div>

@@ -1,7 +1,7 @@
 """
 Publish a business store when a product is added.
 
-Kova is the store. Adding a product should give the business a public
+KCOVA is the store. Adding a product should give the business a public
 catalog and a page for that product, without a separate commerce tool.
 """
 

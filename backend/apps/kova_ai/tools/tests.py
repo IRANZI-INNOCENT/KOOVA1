@@ -1,5 +1,5 @@
 """
-Tests for the Kova Tool Registry.
+Tests for the KCOVA Tool Registry.
 """
 
 from django.test import TestCase

@@ -1,8 +1,8 @@
 """
 Abstract channel adapter.
 
-Every social platform Kova connects to implements this interface.
-The adapter translates common Kova actions into each platform's API
+Every social platform KCOVA connects to implements this interface.
+The adapter translates common KCOVA actions into each platform's API
 calls, so the rest of the codebase never talks to platform APIs
 directly.
 """

@@ -79,7 +79,7 @@ def draft_section(business: Business, section: str) -> dict:
             {
                 "role": "system",
                 "content": (
-                    "You draft Business Brain fields for Kova, an assistant for small businesses. "
+                    "You draft Business Brain fields for KCOVA, an assistant for small businesses. "
                     "Use only the business facts provided. Do not invent a website, phone number, "
                     "or awards. Write plain sentences the owner can edit. "
                     "Reply with one JSON object and no markdown."
@@ -148,7 +148,7 @@ def _prompt(business: Business, section: str) -> str:
     guidance = (
         "Keep automatic publishing, comment replies, direct messages, "
         "product changes, orders, discounts, refunds, and payments off or requiring approval "
-        "unless the business description clearly asks Kova to do them. "
+        "unless the business description clearly asks KCOVA to do them. "
         "max_auto_discount_percent must be a number from 0 to 20."
         if section == "policy"
         else "Every text field should be one or two short paragraphs. Leave website as an empty string if it was not provided."
@@ -165,7 +165,7 @@ def _fields_from_response(response: dict, section: str) -> dict:
     try:
         content = response["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
-        raise OpenRouterError("Kova could not read a draft from the model.") from exc
+        raise OpenRouterError("KCOVA could not read a draft from the model.") from exc
 
     parsed = _parse_json(content)
     allowed = SECTION_FIELDS[section]
@@ -185,7 +185,7 @@ def _fields_from_response(response: dict, section: str) -> dict:
         elif isinstance(value, str):
             cleaned[key] = value.strip()
     if not cleaned:
-        raise OpenRouterError("Kova returned a draft without usable fields.")
+        raise OpenRouterError("KCOVA returned a draft without usable fields.")
     return cleaned
 
 
@@ -205,4 +205,4 @@ def _parse_json(raw: str) -> dict:
             continue
         if isinstance(result, dict):
             return result
-    raise OpenRouterError("Kova returned a draft that was not JSON.")
+    raise OpenRouterError("KCOVA returned a draft that was not JSON.")

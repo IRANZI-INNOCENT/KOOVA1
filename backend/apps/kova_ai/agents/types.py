@@ -1,5 +1,5 @@
 """
-Types used by the Kova Agent.
+Types used by the KCOVA Agent.
 """
 
 from dataclasses import dataclass, field
@@ -18,7 +18,7 @@ class AgentToolCall:
 
 @dataclass(frozen=True)
 class AgentResult:
-    """Final result returned by a Kova agent run."""
+    """Final result returned by a KCOVA agent run."""
 
     message: str
     tool_calls: tuple[AgentToolCall, ...] = field(

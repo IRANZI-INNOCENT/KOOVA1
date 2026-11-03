@@ -1,4 +1,4 @@
-"""Pull LinkedIn member profile fields into Kova's brain when connected."""
+"""Pull LinkedIn member profile fields into KCOVA's brain when connected."""
 
 from __future__ import annotations
 

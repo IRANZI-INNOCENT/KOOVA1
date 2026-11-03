@@ -1,1 +1,1 @@
-"""Kova learning package."""
+"""KCOVA learning package."""

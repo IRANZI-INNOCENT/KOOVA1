@@ -1,5 +1,5 @@
 """
-Production Kova Agent.
+Production KCOVA Agent.
 
 The agent coordinates:
 
@@ -54,11 +54,11 @@ from .types import AgentResult, AgentToolCall
 
 
 class KovaAgentError(Exception):
-    """Raised when Kova cannot complete an agent run."""
+    """Raised when KCOVA cannot complete an agent run."""
 
 
 class KovaAgent:
-    """Production orchestration layer for Kova's AI agent."""
+    """Production orchestration layer for KCOVA's AI agent."""
 
     def __init__(
         self,
@@ -106,7 +106,7 @@ class KovaAgent:
         user_request: str,
     ) -> AgentResult:
         """
-        Run Kova's reasoning and tool-calling loop.
+        Run KCOVA's reasoning and tool-calling loop.
 
         The loop is bounded to prevent runaway model/tool execution.
         """
@@ -184,7 +184,7 @@ class KovaAgent:
                 )
 
         raise KovaAgentError(
-            "Kova reached the maximum number of tool rounds "
+            "KCOVA reached the maximum number of tool rounds "
             "without producing a final response."
         )
 
@@ -235,7 +235,7 @@ class KovaAgent:
             action=tool.action,
             status=DecisionStatus.READY,
             reason=(
-                f"Kova requested execution of the "
+                f"KCOVA requested execution of the "
                 f"'{tool_name}' tool."
             ),
             inputs=arguments,
@@ -461,7 +461,7 @@ class KovaAgent:
 
         if not isinstance(content, str):
             raise KovaAgentError(
-                "Kova received an invalid final response."
+                "KCOVA received an invalid final response."
             )
 
         return content.strip()

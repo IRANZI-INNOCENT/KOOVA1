@@ -33,7 +33,7 @@ const choices: {
   {
     path: "both",
     title: "Both",
-    description: "Use Kova for your company and your personal LinkedIn presence.",
+    description: "Use KCOVA for your company and your personal LinkedIn presence.",
   },
 ];
 
@@ -108,7 +108,7 @@ export default function OnboardingPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl px-4 py-10">
-        <p className="text-sm font-medium text-kova-green">Welcome to Kova</p>
+        <p className="text-sm font-medium text-kova-green">Welcome to KCOVA</p>
         <h1 className="mt-2 text-2xl font-semibold text-kova-ink">
           What do you want to manage first?
         </h1>

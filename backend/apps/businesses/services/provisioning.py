@@ -1,10 +1,10 @@
 """
 Business provisioning.
 
-A Business is the root entity of Kova.
+A Business is the root entity of KCOVA.
 
 When a business is created, its supporting intelligence and commerce
-objects are provisioned so that the rest of Kova can immediately work
+objects are provisioned so that the rest of KCOVA can immediately work
 with a complete business context.
 """
 

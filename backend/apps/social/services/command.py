@@ -1,7 +1,7 @@
 """
 The social command center.
 
-Counts and recommendations come from records Kova already has.
+Counts and recommendations come from records KCOVA already has.
 A quiet product, a waiting customer, a failed send, and a dropped
 connection are stated from those records.
 """
@@ -51,7 +51,7 @@ def build_social_command(business) -> dict:
         if account.connection_status != SocialAccount.ConnectionStatus.CONNECTED:
             recommendations.append({
                 "title": f"Reconnect {account.account_name or account.get_platform_display()}",
-                "detail": account.connection_error or "Access is no longer healthy. Reconnect so Kova can keep working on this account.",
+                "detail": account.connection_error or "Access is no longer healthy. Reconnect so KCOVA can keep working on this account.",
                 "href": "/workspace/social/channels",
             })
             continue
@@ -75,7 +75,7 @@ def build_social_command(business) -> dict:
             "detail": (
                 f"{names} "
                 f"{'have' if len(quiet) > 1 else 'has'} not been featured in a published post. "
-                "Kova can prepare one from the approved product details."
+                "KCOVA can prepare one from the approved product details."
             ),
             "href": "/workspace/commerce",
         })
@@ -125,7 +125,7 @@ def build_social_command(business) -> dict:
     summary = (
         "This week: " + ", ".join(plan_bits) + "."
         if plan_bits
-        else "Connect a channel and add a product, and Kova will build this week's work from what is actually waiting."
+        else "Connect a channel and add a product, and KCOVA will build this week's work from what is actually waiting."
     )
 
     return {
@@ -191,14 +191,14 @@ def _stock_note(message: SocialMessage) -> str:
         if asks_stock:
             return (
                 "A customer asked whether something is available. "
-                "Stock is not tied to a product on this message, so Kova should ask you rather than guess."
+                "Stock is not tied to a product on this message, so KCOVA should ask you rather than guess."
             )
         return ""
     stock = message.lead.product.stock
     if stock is None:
         return (
             f"A customer asked if {message.lead.product.name} is available. "
-            "Stock is not recorded, so Kova should ask you rather than invent an answer."
+            "Stock is not recorded, so KCOVA should ask you rather than invent an answer."
         )
     return ""
 

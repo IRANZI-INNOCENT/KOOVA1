@@ -58,7 +58,7 @@ def scan_website_for_profile(business: Business, website: str) -> dict:
             raise WebsiteScanError(fetch_error)
         if not research_note:
             raise WebsiteScanError(
-                "Kova could not read enough from that website. Check the URL is public and try again."
+                "KCOVA could not read enough from that website. Check the URL is public and try again."
             )
 
     suggestions = _suggest_fields(service, business, url, research_note)
@@ -93,9 +93,9 @@ def validate_public_url(url: str) -> None:
     if not host:
         raise WebsiteScanError("Enter a valid website address.")
     if host in {"localhost", "127.0.0.1", "0.0.0.0"} or host.endswith(".local"):
-        raise WebsiteScanError("Kova can only scan public websites.")
+        raise WebsiteScanError("KCOVA can only scan public websites.")
     if host.startswith("169.254.") or host.endswith(".internal"):
-        raise WebsiteScanError("Kova can only scan public websites.")
+        raise WebsiteScanError("KCOVA can only scan public websites.")
 
     try:
         ipaddress.ip_address(host)
@@ -105,7 +105,7 @@ def validate_public_url(url: str) -> None:
             infos = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
         except socket.gaierror as exc:
             raise WebsiteScanError(
-                "Kova could not resolve that website address. Check the spelling and try again."
+                "KCOVA could not resolve that website address. Check the spelling and try again."
             ) from exc
         addresses = [info[4][0] for info in infos]
 
@@ -118,7 +118,7 @@ def validate_public_url(url: str) -> None:
             or ip.is_reserved
             or ip.is_multicast
         ):
-            raise WebsiteScanError("Kova can only scan public websites.")
+            raise WebsiteScanError("KCOVA can only scan public websites.")
 
 
 def _fetch_page_text(url: str) -> tuple[str, str]:
@@ -131,12 +131,12 @@ def _fetch_page_text(url: str) -> tuple[str, str]:
             allow_redirects=True,
         )
     except requests.RequestException as exc:
-        return "", "Kova could not open that website. It may be down or blocking automated visits."
+        return "", "KCOVA could not open that website. It may be down or blocking automated visits."
 
     try:
         validate_public_url(response.url)
     except WebsiteScanError:
-        return "", "That website redirected to an address Kova is not allowed to open."
+        return "", "That website redirected to an address KCOVA is not allowed to open."
 
     if response.status_code >= 400:
         return "", f"That website returned an error ({response.status_code})."
@@ -187,7 +187,7 @@ def _suggest_fields(
                 {
                     "role": "system",
                     "content": (
-                        "You read a business website for Kova. "
+                        "You read a business website for KCOVA. "
                         "Suggest Business Profile fields using only the research note and business facts. "
                         "Do not invent awards, locations, or offers that are not supported. "
                         "business_model and business_stage must be short phrases under 80 characters. "
@@ -215,19 +215,19 @@ def _suggest_fields(
         )
     except OpenRouterError as exc:
         raise WebsiteScanError(
-            "Kova read the site but could not suggest profile fields. You can try again."
+            "KCOVA read the site but could not suggest profile fields. You can try again."
         ) from exc
 
     try:
         content = response["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
         raise WebsiteScanError(
-            "Kova read the site but could not suggest profile fields. You can try again."
+            "KCOVA read the site but could not suggest profile fields. You can try again."
         ) from exc
 
     if not isinstance(content, str):
         raise WebsiteScanError(
-            "Kova read the site but could not suggest profile fields. You can try again."
+            "KCOVA read the site but could not suggest profile fields. You can try again."
         )
 
     parsed = _parse_json(content)
@@ -250,7 +250,7 @@ def _suggest_fields(
 
     if not any(cleaned.get(key) for key in PROFILE_FIELDS if key != "website"):
         raise WebsiteScanError(
-            "Kova could not find enough on that website to suggest profile fields. "
+            "KCOVA could not find enough on that website to suggest profile fields. "
             "Try a page with more about the business, or fill the fields manually."
         )
 
@@ -265,8 +265,8 @@ def _scan_summary(suggestions: dict[str, str], url: str) -> str:
         if key != "website" and suggestions.get(key)
     ]
     if not filled:
-        return f"Kova scanned {url} but did not find new profile details."
+        return f"KCOVA scanned {url} but did not find new profile details."
     label = ", ".join(filled[:4])
     if len(filled) > 4:
         label = f"{label}, and more"
-    return f"Kova scanned {url} and suggests updates for {label}. Review before you save."
+    return f"KCOVA scanned {url} and suggests updates for {label}. Review before you save."

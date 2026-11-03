@@ -15,7 +15,7 @@ class StarterPromptTests(APITestCase):
         self.user = User.objects.create_user(email="owner@example.com", password="testpass123")
         self.business = Business.objects.create(
             owner=self.user,
-            name="Kova Agents",
+            name="KCOVA Agents",
             description="Sofas in Nairobi",
             location="Nairobi",
         )

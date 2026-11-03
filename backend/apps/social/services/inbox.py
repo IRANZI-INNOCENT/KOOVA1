@@ -15,7 +15,7 @@ from apps.social.models import SocialAccount, SocialMessage
 
 
 _SYSTEM = (
-    "You are Kova, the operator for a small business. "
+    "You are KCOVA, the operator for a small business. "
     "Read one customer comment or direct message and answer as that business. "
     "Use only facts in the business context. Do not invent prices, stock, or delivery promises. "
     "If stock or price is missing, say you will confirm with the shop. "
@@ -62,7 +62,7 @@ def understand_customer(business, body: str, *, kind: str, channel: str) -> dict
     try:
         raw = response["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
-        raise OpenRouterError("Kova could not read that customer message.") from exc
+        raise OpenRouterError("KCOVA could not read that customer message.") from exc
     parsed = _parse_json(raw if isinstance(raw, str) else "")
     allowed = {choice for choice, _label in SocialMessage.Intent.choices}
     intent = parsed.get("intent")
@@ -136,7 +136,7 @@ def record_inbound(
     kind: str = SocialMessage.Kind.MESSAGE,
     reply_target_id: str = "",
 ) -> SocialMessage:
-    """Save a comment or direct message, then let Kova read it and draft a reply."""
+    """Save a comment or direct message, then let KCOVA read it and draft a reply."""
     if kind not in {SocialMessage.Kind.MESSAGE, SocialMessage.Kind.COMMENT}:
         kind = SocialMessage.Kind.MESSAGE
     if external_id:
@@ -179,7 +179,7 @@ def record_inbound(
 
 
 def draft_reply(message: SocialMessage) -> SocialMessage:
-    """Ask Kova again for the reply to this comment or message."""
+    """Ask KCOVA again for the reply to this comment or message."""
     reading = understand_customer(
         message.business,
         message.body,
@@ -369,7 +369,7 @@ def _parse_json(raw: str) -> dict:
     try:
         parsed = json.loads(text)
     except json.JSONDecodeError as exc:
-        raise OpenRouterError("Kova returned a reply Kova could not read.") from exc
+        raise OpenRouterError("KCOVA returned a reply KCOVA could not read.") from exc
     if not isinstance(parsed, dict):
-        raise OpenRouterError("Kova returned a reply Kova could not read.")
+        raise OpenRouterError("KCOVA returned a reply KCOVA could not read.")
     return parsed

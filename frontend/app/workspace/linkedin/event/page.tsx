@@ -80,7 +80,7 @@ export default function EventMomentPage() {
       setError(
         err instanceof ApiError
           ? err.message
-          : "Kova could not write that post. Try again.",
+          : "KCOVA could not write that post. Try again.",
       );
     } finally {
       setLoading(false);
@@ -103,7 +103,7 @@ export default function EventMomentPage() {
           </h1>
           <p className="mt-1 text-sm text-kova-muted">
             A conference, training, course, or event. Add a selfie or a photo.
-            Kova writes the post.
+            KCOVA writes the post.
           </p>
         </div>
 
@@ -141,7 +141,7 @@ export default function EventMomentPage() {
               disabled={loading}
             />
             <label className="block text-sm font-medium text-kova-ink">
-              Anything Kova should mention?
+              Anything KCOVA should mention?
               <textarea
                 className="mt-1 min-h-[88px] w-full rounded-lg border border-kova-border p-3 text-sm font-normal"
                 placeholder="Optional. One honest line is enough."
@@ -151,7 +151,7 @@ export default function EventMomentPage() {
               />
             </label>
             <Button type="button" disabled={loading} onClick={writePost}>
-              {loading ? "Kova is writing…" : "Write my post"}
+              {loading ? "KCOVA is writing…" : "Write my post"}
             </Button>
           </div>
         )}

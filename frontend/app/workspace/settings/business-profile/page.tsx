@@ -241,7 +241,7 @@ export default function BusinessProfilePage() {
     const candidate = (urlOverride ?? form.website).trim();
     if (!looksLikeWebsite(candidate)) {
       setScanError(
-        "Enter a public website address before Kova can scan it.",
+        "Enter a public website address before KCOVA can scan it.",
       );
       return;
     }
@@ -273,7 +273,7 @@ export default function BusinessProfilePage() {
       setScanError(
         err instanceof ApiError
           ? err.message
-          : "Kova could not scan that website. Try again in a moment.",
+          : "KCOVA could not scan that website. Try again in a moment.",
       );
     } finally {
       setScanning(false);
@@ -295,7 +295,7 @@ export default function BusinessProfilePage() {
       return next;
     });
     setSuccess(
-      "Kova applied the suggested fields. Review them, then save when you are ready.",
+      "KCOVA applied the suggested fields. Review them, then save when you are ready.",
     );
     setScanError("");
   }
@@ -491,7 +491,7 @@ export default function BusinessProfilePage() {
                   updateField("target_market", value)
                 }
                 placeholder="Who are your main customers?"
-                example="You can describe your customers naturally. Kova will use this information when helping with content and marketing decisions."
+                example="You can describe your customers naturally. KCOVA will use this information when helping with content and marketing decisions."
                 error={fieldErrors.target_market}
               />
             </FormSection>

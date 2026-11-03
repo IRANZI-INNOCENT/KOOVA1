@@ -127,13 +127,13 @@ export default function ProductDetailPage() {
       const updated = await polishProduct(businessId, product.id, accessToken);
       setProduct(updated);
       setSuccess(
-        "Kova polished this listing. The public page now uses the new name, description, and selling points.",
+        "KCOVA polished this listing. The public page now uses the new name, description, and selling points.",
       );
     } catch (err) {
       setError(
         err instanceof ApiError
           ? err.message
-          : "Kova could not polish this product.",
+          : "KCOVA could not polish this product.",
       );
     } finally {
       setPolishing(false);
@@ -230,7 +230,7 @@ export default function ProductDetailPage() {
                 ) : null}
               </div>
               <p className="mt-1 text-sm text-gray-500">
-                {product.ai_generated ? "Created by Kova AI · " : ""}
+                {product.ai_generated ? "Created by KCOVA AI · " : ""}
                 {product.category || "Uncategorized"}
                 {product.price
                   ? ` · ${product.currency} ${product.price}`
@@ -244,7 +244,7 @@ export default function ProductDetailPage() {
                 loading={polishing}
                 disabled={polishing || saving}
               >
-                Polish with Kova
+                Polish with KCOVA
               </Button>
               {product.product_path && (
                 <a
@@ -352,7 +352,7 @@ export default function ProductDetailPage() {
 
               <div className="border border-kova-border bg-white p-5">
                 <p className="text-sm font-semibold text-kova-dark">
-                  From Kova
+                  From KCOVA
                 </p>
 
                 {product.ai_summary ? (
@@ -540,7 +540,7 @@ export default function ProductDetailPage() {
               <section className="rounded-lg border border-kova-border bg-white p-6">
                 <h2 className="font-bold text-kova-dark">Description</h2>
                 <p className="mt-0.5 text-xs text-gray-400">
-                  This is what visitors read on the public page. Polish with Kova rewrites it from the photos.
+                  This is what visitors read on the public page. Polish with KCOVA rewrites it from the photos.
                 </p>
                 <div className="mt-4">
                   <label className="mb-2 block text-sm font-medium text-kova-dark">

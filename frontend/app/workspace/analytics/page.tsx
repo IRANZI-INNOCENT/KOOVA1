@@ -72,7 +72,7 @@ export default function AnalyticsPage() {
       setError(
         err instanceof ApiError
           ? err.message
-          : "Kova could not generate today’s brief.",
+          : "KCOVA could not generate today’s brief.",
       );
     } finally {
       setBusy(null);
@@ -91,7 +91,7 @@ export default function AnalyticsPage() {
       setError(
         err instanceof ApiError
           ? err.message
-          : "Kova could not generate the weekly report.",
+          : "KCOVA could not generate the weekly report.",
       );
     } finally {
       setBusy(null);

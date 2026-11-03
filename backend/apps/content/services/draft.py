@@ -49,9 +49,9 @@ def draft_post(
     platform = (platform or "").strip().lower()
     content_type = (content_type or "").strip().lower()
     if platform not in Content.Platform.values:
-        raise ValueError("Choose a platform Kova knows.")
+        raise ValueError("Choose a platform KCOVA knows.")
     if content_type not in Content.ContentType.values:
-        raise ValueError("Choose a post type Kova knows.")
+        raise ValueError("Choose a post type KCOVA knows.")
 
     product = None
     product_images: list[str] = []
@@ -219,7 +219,7 @@ def _system_prompt(content_type: str, facts: dict | None = None) -> str:
     )
 
     base = (
-        "You write social content for a small business using Kova. "
+        "You write social content for a small business using KCOVA. "
         "Use the business facts, brand voice, and product information provided. "
         "Do not invent prices, addresses, awards, stock levels, or offers "
         "that were not provided. "
@@ -334,14 +334,14 @@ def _parse_response(response: dict, content_type: str) -> dict:
     try:
         raw = response["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
-        raise OpenRouterError("Kova could not read the draft.") from exc
+        raise OpenRouterError("KCOVA could not read the draft.") from exc
     if not isinstance(raw, str):
-        raise OpenRouterError("Kova could not read the draft.")
+        raise OpenRouterError("KCOVA could not read the draft.")
 
     parsed = _parse_json(raw)
     caption = str(parsed.get("caption") or "").strip()
     if not caption:
-        raise OpenRouterError("Kova returned a draft without a caption.")
+        raise OpenRouterError("KCOVA returned a draft without a caption.")
 
     result: dict = {
         "caption": caption[:4000],

@@ -1,4 +1,4 @@
-"""Starter questions for Talk to Kova.
+"""Starter questions for Talk to KCOVA.
 
 The lines come from what the business is doing and from the same public
 market search used for the market brief. They are kept for half a day so
@@ -120,7 +120,7 @@ def _ask_for_prompts(business: Business, activity: dict, note: str) -> list[str]
                 {
                     "role": "system",
                     "content": (
-                        "You write four short questions a business owner can ask Kova. "
+                        "You write four short questions a business owner can ask KCOVA. "
                         "Use only the activity and the market note. "
                         "Name a product only if it is in the activity. "
                         "Mention a trend only if the market note states it. "

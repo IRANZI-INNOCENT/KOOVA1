@@ -1,9 +1,9 @@
 """
-Kova Social models.
+KCOVA Social models.
 
-Socials is the execution arm of the Kova Brain for a business's public
+Socials is the execution arm of the KCOVA Brain for a business's public
 online presence.  These models store connected social accounts, track
-every published post across platforms, and audit every action Kova
+every published post across platforms, and audit every action KCOVA
 takes so nothing is invisible.
 
 The models are platform-agnostic.  Platform-specific behaviour lives
@@ -259,9 +259,9 @@ class SocialPost(models.Model):
 
 class SocialAction(models.Model):
     """
-    Persistent record of every action Kova performs on social platforms.
+    Persistent record of every action KCOVA performs on social platforms.
 
-    Every external action records what Kova intended to do, what it
+    Every external action records what KCOVA intended to do, what it
     attempted, the platform response, and whether the action succeeded.
     This is the verification and learning layer.
     """
@@ -311,7 +311,7 @@ class SocialAction(models.Model):
     )
 
     intent = models.TextField(
-        help_text="What Kova intended to do.",
+        help_text="What KCOVA intended to do.",
     )
 
     result = models.TextField(
@@ -361,7 +361,7 @@ class SocialAction(models.Model):
 
 class SocialMessage(models.Model):
     """
-    A customer message or comment, and the reply Kova or the owner sent.
+    A customer message or comment, and the reply KCOVA or the owner sent.
 
     Messages arrive from a Meta webhook or are logged by the owner.
     A buying message also creates a lead.
@@ -392,7 +392,7 @@ class SocialMessage(models.Model):
     class Delivery(models.TextChoices):
         RECEIVED = "received", "Received"
         SENT = "sent", "Sent to the platform"
-        SAVED = "saved", "Saved in Kova"
+        SAVED = "saved", "Saved in KCOVA"
         FAILED = "failed", "The platform rejected it"
 
     business = models.ForeignKey(
@@ -473,7 +473,7 @@ class SocialMessage(models.Model):
 
 class SocialLesson(models.Model):
     """
-    A verified outcome or an observation Kova can use next time.
+    A verified outcome or an observation KCOVA can use next time.
 
     A published post is verified only after the platform accepts it.
     A failed send is an observation, not a success.
@@ -501,7 +501,7 @@ class SocialLesson(models.Model):
 
 
 class AutopilotShift(models.Model):
-    """One stretch of work after the owner hands Kova the business."""
+    """One stretch of work after the owner hands KCOVA the business."""
 
     class Status(models.TextChoices):
         RUNNING = "running", "Running"
@@ -531,7 +531,7 @@ class AutopilotShift(models.Model):
 
 
 class AutopilotEvent(models.Model):
-    """One thing Kova did, or tried to do, during a shift."""
+    """One thing KCOVA did, or tried to do, during a shift."""
 
     class Status(models.TextChoices):
         DONE = "done", "Done"

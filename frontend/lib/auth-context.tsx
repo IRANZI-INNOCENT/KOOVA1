@@ -31,7 +31,7 @@ import {
 
 
 /**
- * Authentication state and actions exposed to the Kova frontend.
+ * Authentication state and actions exposed to the KCOVA frontend.
  */
 interface AuthContextValue {
   user: AuthUser | null;
@@ -59,7 +59,7 @@ interface AuthProviderProps {
 
 
 /**
- * Central authentication provider for Kova.
+ * Central authentication provider for KCOVA.
  *
  * Authentication architecture:
  *
@@ -87,7 +87,7 @@ export function AuthProvider({
    * Prevent duplicate session initialization.
    *
    * React Strict Mode can mount/effect components more than once
-   * during development. This guard ensures that Kova does not
+   * during development. This guard ensures that KCOVA does not
    * perform competing session restoration requests.
    */
   const initializationStarted =
@@ -310,7 +310,7 @@ export function AuthProvider({
 
 
 /**
- * Access the Kova authentication state.
+ * Access the KCOVA authentication state.
  */
 export function useAuth(): AuthContextValue {
 

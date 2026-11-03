@@ -12,7 +12,7 @@ User = get_user_model()
 
 class BusinessModelTests(TestCase):
     """
-    Test the Kova Business model.
+    Test the KCOVA Business model.
 
     These tests verify the core ownership relationship, business data,
     timestamps, and the distinction between user authentication email
@@ -38,7 +38,7 @@ class BusinessModelTests(TestCase):
 
         business = Business.objects.create(
             owner=self.user,
-            name="Kova Shoes",
+            name="KCOVA Shoes",
             description="Affordable shoes for everyday customers.",
             industry="Fashion",
             location="Nairobi, Kenya",
@@ -53,7 +53,7 @@ class BusinessModelTests(TestCase):
 
         self.assertEqual(
             business.name,
-            "Kova Shoes",
+            "KCOVA Shoes",
         )
 
     def test_business_belongs_to_correct_owner(self):
@@ -61,7 +61,7 @@ class BusinessModelTests(TestCase):
 
         business = Business.objects.create(
             owner=self.user,
-            name="Kova Shoes",
+            name="KCOVA Shoes",
         )
 
         self.assertEqual(
@@ -79,12 +79,12 @@ class BusinessModelTests(TestCase):
 
         first_business = Business.objects.create(
             owner=self.user,
-            name="Kova Shoes",
+            name="KCOVA Shoes",
         )
 
         second_business = Business.objects.create(
             owner=self.user,
-            name="Kova Fashion",
+            name="KCOVA Fashion",
         )
 
         self.assertEqual(
@@ -106,7 +106,7 @@ class BusinessModelTests(TestCase):
         """
         A business may use the same email as its owner's login email.
 
-        User.email identifies the Kova account, while Business.email
+        User.email identifies the KCOVA account, while Business.email
         represents customer-facing business contact information.
         """
 
@@ -126,12 +126,12 @@ class BusinessModelTests(TestCase):
 
         business = Business.objects.create(
             owner=self.user,
-            name="Kova Shoes",
+            name="KCOVA Shoes",
         )
 
         self.assertEqual(
             str(business),
-            "Kova Shoes",
+            "KCOVA Shoes",
         )
 
     def test_business_timestamps_are_created(self):
@@ -139,7 +139,7 @@ class BusinessModelTests(TestCase):
 
         business = Business.objects.create(
             owner=self.user,
-            name="Kova Shoes",
+            name="KCOVA Shoes",
         )
 
         self.assertIsNotNone(
@@ -159,7 +159,7 @@ class BusinessModelTests(TestCase):
 
         business = Business.objects.create(
             owner=self.user,
-            name="Kova Shoes",
+            name="KCOVA Shoes",
         )
 
         business_id = business.id
@@ -209,7 +209,7 @@ class BusinessCreateAPITests(APITestCase):
         """
 
         payload = {
-            "name": "Kova Shoes",
+            "name": "KCOVA Shoes",
             "description": "Affordable shoes for everyday customers.",
             "industry": "Fashion",
             "location": "Nairobi, Kenya",
@@ -234,7 +234,7 @@ class BusinessCreateAPITests(APITestCase):
         )
 
         business = Business.objects.get(
-            name="Kova Shoes",
+            name="KCOVA Shoes",
         )
 
         self.assertEqual(
@@ -390,7 +390,7 @@ class BusinessCreateAPITests(APITestCase):
     def test_user_cannot_see_another_users_businesses(self):
         """
         A user's business list must never expose businesses owned
-        by another Kova account.
+        by another KCOVA account.
         """
         Business.objects.create(
             owner=self.user,
@@ -436,7 +436,7 @@ class BusinessCreateAPITests(APITestCase):
     def test_unauthenticated_user_cannot_list_businesses(self):
         """
         Business information must only be accessible to authenticated
-        Kova users.
+        KCOVA users.
         """
         self.client.force_authenticate(
             user=None,

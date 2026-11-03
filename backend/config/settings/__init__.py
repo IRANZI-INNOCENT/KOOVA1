@@ -1,5 +1,5 @@
 """
-Kova settings package.
+KCOVA settings package.
 
 Defaults to the development configuration so that ``manage.py``
 works without setting ``DJANGO_SETTINGS_MODULE`` manually.

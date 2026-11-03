@@ -133,7 +133,7 @@ export function DailyBriefPanel({ brief }: { brief: MorningBrief }) {
         <BulletList items={sections.plan?.steps} />
       </SectionCard>
 
-      <SectionCard title="What Kova is doing">
+      <SectionCard title="What KCOVA is doing">
         {sections.kova_actions?.completed?.length ? (
           <div className="mt-2">
             <p className="text-xs font-medium text-gray-500">Done</p>

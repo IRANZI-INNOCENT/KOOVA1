@@ -6,16 +6,16 @@ from .managers import UserManager
 
 class User(AbstractUser):
     """
-    Kova's custom user model.
+    KCOVA's custom user model.
 
     Email is used as the primary authentication identifier instead
     of Django's default username field.
     """
 
-    # Kova authenticates users using their email address.
+    # KCOVA authenticates users using their email address.
     username = None
 
-    # Every Kova account must have a unique email address.
+    # Every KCOVA account must have a unique email address.
     email = models.EmailField(
         unique=True,
         db_index=True,
@@ -35,7 +35,7 @@ class User(AbstractUser):
     # No additional fields are required by createsuperuser.
     REQUIRED_FIELDS = []
 
-    # Use Kova's email-based manager.
+    # Use KCOVA's email-based manager.
     objects = UserManager()
 
     def __str__(self):

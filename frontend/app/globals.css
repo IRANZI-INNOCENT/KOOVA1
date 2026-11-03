@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  /* Kova brand */
+  /* KCOVA brand */
   --kova-green: #176b4d;
   --kova-orange: #f4b183;
   --kova-orange-soft: #f8e6d2;
 
-  /* Kova neutrals */
+  /* KCOVA neutrals */
   --kova-dark: #17211d;
   --kova-background: #fafaf8;
   --kova-white: #ffffff;

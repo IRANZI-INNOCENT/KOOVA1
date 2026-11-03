@@ -102,7 +102,7 @@ export default function ContentStudioPage() {
         setNote(seeds[0].brief);
       }
     } catch {
-      setError("Kova could not load content ideas. Try again in a moment.");
+      setError("KCOVA could not load content ideas. Try again in a moment.");
     } finally {
       setSeedsLoading(false);
     }
@@ -164,7 +164,7 @@ export default function ContentStudioPage() {
     setError("");
     try {
       if (campaignMode === "organic" && !selectedSeed) {
-        setError("Choose one of Kova's content seeds below.");
+        setError("Choose one of KCOVA's content seeds below.");
         return;
       }
       if (campaignMode === "video") {
@@ -210,7 +210,7 @@ export default function ContentStudioPage() {
       setError(
         err instanceof ApiError
           ? err.message
-          : "Kova could not generate content.",
+          : "KCOVA could not generate content.",
       );
     } finally {
       setGenerating(false);
@@ -279,7 +279,7 @@ export default function ContentStudioPage() {
               Connect an account first
             </p>
             <p className="mt-1 text-sm text-gray-500">
-              Facebook or Instagram — then Kova can draft posts.
+              Facebook or Instagram — then KCOVA can draft posts.
             </p>
             <Link
               href="/workspace/social/channels"

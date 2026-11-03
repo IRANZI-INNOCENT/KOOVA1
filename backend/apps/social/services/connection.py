@@ -259,7 +259,7 @@ def connect_meta(
 def instagram_link_status(business: Business) -> dict:
     """
     Report whether the connected Facebook Page has a linked Instagram
-    Professional account (via Graph API), and whether Kova already stores IG.
+    Professional account (via Graph API), and whether KCOVA already stores IG.
     """
 
     fb_accounts = list(

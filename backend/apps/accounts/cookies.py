@@ -1,4 +1,4 @@
-"""HttpOnly refresh-token cookie helpers for Kova authentication."""
+"""HttpOnly refresh-token cookie helpers for KCOVA authentication."""
 
 from django.conf import settings
 from django.http import HttpResponse

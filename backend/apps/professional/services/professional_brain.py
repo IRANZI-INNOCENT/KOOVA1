@@ -1,5 +1,5 @@
 """
-LinkedIn professional brain — structured profile context for all Kova AI on
+LinkedIn professional brain — structured profile context for all KCOVA AI on
 personal LinkedIn content (plans, drafts, briefs, autopilot).
 """
 
@@ -82,7 +82,7 @@ def gather_brain_snapshot(
 
 def brain_system_rules() -> str:
     return (
-        "You are Kova, an intelligent LinkedIn content partner for ONE professional.\n"
+        "You are KCOVA, an intelligent LinkedIn content partner for ONE professional.\n"
         "The LinkedIn Brain block below is the source of truth for voice and positioning.\n"
         "Rules:\n"
         "- Write in their voice: headline, role, tone notes, and pillars define what fits.\n"

@@ -4,17 +4,17 @@ from django.db import models
 
 class Business(models.Model):
     """
-Represent a business managed through Kova.
+Represent a business managed through KCOVA.
 
 A Business belongs to the User who creates it. The owner remains
 the authoritative account holder for business configuration,
-Kova permissions, integrations, billing and other sensitive
+KCOVA permissions, integrations, billing and other sensitive
 business actions.
 """
 
     # The business owner is the user who initially creates the business.
     # settings.AUTH_USER_MODEL keeps this relationship compatible with
-    # Kova's custom email-based User model.
+    # KCOVA's custom email-based User model.
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

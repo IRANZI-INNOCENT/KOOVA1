@@ -139,7 +139,7 @@ export default function KovaChatPage() {
 
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
-      const errMsg = err instanceof ApiError ? err.message : "Kova couldn't process that. Try again.";
+      const errMsg = err instanceof ApiError ? err.message : "KCOVA couldn't process that. Try again.";
       setError(errMsg);
     } finally {
       setSending(false);
@@ -165,7 +165,7 @@ export default function KovaChatPage() {
         <div className="flex min-h-[80vh] items-center justify-center">
           <div className="text-center">
             <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-kova-green border-t-transparent" />
-            <p className="mt-4 text-sm text-gray-500">Starting Kova...</p>
+            <p className="mt-4 text-sm text-gray-500">Starting KCOVA...</p>
           </div>
         </div>
       </AppShell>
@@ -229,7 +229,7 @@ export default function KovaChatPage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask Kova anything about your business..."
+                placeholder="Ask KCOVA anything about your business..."
                 rows={1}
                 disabled={sending}
                 className="w-full resize-none rounded-md border border-kova-orange/40 bg-white px-4 py-2.5 pr-14 text-base text-kova-dark placeholder:text-gray-400 focus:border-kova-green focus:outline-none focus:ring-1 focus:ring-kova-green disabled:bg-gray-50 disabled:text-gray-400 sm:text-sm"
@@ -286,7 +286,7 @@ function EmptyState({
   return (
     <div className="mx-auto flex min-h-[50vh] max-w-xl flex-col justify-center px-2 py-8">
       <h2 className="text-2xl font-semibold tracking-tight text-kova-dark">
-        Talk to Kova
+        Talk to KCOVA
       </h2>
       <p className="mt-1 text-sm text-gray-500">{businessName}</p>
 
@@ -298,7 +298,7 @@ function EmptyState({
               href="/workspace/social"
               className="text-sm font-medium text-kova-green hover:underline"
             >
-              See what Kova is doing
+              See what KCOVA is doing
             </Link>
           ) : null}
           {desk.paused ? (
@@ -481,7 +481,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
     <div className={`flex ${isUser ? "justify-end" : ""}`}>
       <div className="max-w-[85%]">
         <p className="mb-1 text-xs text-gray-500">
-          {isUser ? "You" : "Kova"} ·{" "}
+          {isUser ? "You" : "KCOVA"} ·{" "}
           {message.timestamp.toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
@@ -533,7 +533,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 function ThinkingIndicator() {
   return (
     <div>
-      <p className="mb-1 text-xs text-gray-500">Kova</p>
+      <p className="mb-1 text-xs text-gray-500">KCOVA</p>
       <div className="border border-kova-border bg-white px-4 py-3 text-sm text-gray-500">
         Thinking…
       </div>

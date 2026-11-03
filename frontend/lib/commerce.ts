@@ -746,7 +746,7 @@ export async function createBroadcastPack(
 }
 
 /* ------------------------------------------------------------------ */
-/* Kova Agent                                                          */
+/* KCOVA Agent                                                          */
 /* ------------------------------------------------------------------ */
 
 export interface KovaToolCall {

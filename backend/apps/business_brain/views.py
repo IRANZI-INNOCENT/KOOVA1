@@ -67,7 +67,7 @@ class BusinessProfileView(BusinessBrainMixin, generics.RetrieveUpdateAPIView):
     """
     Retrieve or partially update the Business Brain profile.
 
-    Supports GET and PATCH. The profile is created lazily so Kova's
+    Supports GET and PATCH. The profile is created lazily so KCOVA's
     Business Brain can grow progressively.
     """
 
@@ -108,7 +108,7 @@ class BusinessAudienceView(BusinessBrainMixin, generics.RetrieveUpdateAPIView):
     """
     Retrieve or partially update the Business Audience profile.
 
-    The audience profile describes the customers Kova should consider
+    The audience profile describes the customers KCOVA should consider
     when creating content, engaging, and selling.
     """
 
@@ -127,7 +127,7 @@ class BusinessBrandView(BusinessBrainMixin, generics.RetrieveUpdateAPIView):
     Retrieve or update the brand configuration.
 
     The brand defines voice, tone, personality, and content style
-    Kova should use when representing the business.
+    KCOVA should use when representing the business.
     """
 
     serializer_class = BusinessBrandSerializer
@@ -144,7 +144,7 @@ class BusinessGoalView(BusinessBrainMixin, generics.RetrieveUpdateAPIView):
     """
     Retrieve or update the business goals.
 
-    Goals tell Kova what the business wants to achieve so it can
+    Goals tell KCOVA what the business wants to achieve so it can
     optimize content, leads, and recommendations.
     """
 
@@ -162,7 +162,7 @@ class BusinessPolicyView(BusinessBrainMixin, generics.RetrieveUpdateAPIView):
     """
     Retrieve or update the business policies.
 
-    Policies define what Kova may do automatically, what requires
+    Policies define what KCOVA may do automatically, what requires
     owner approval, and what is prohibited.
     """
 
@@ -245,7 +245,7 @@ class BusinessMarketResearchView(BusinessBrainMixin, APIView):
             brief = research_market(business)
         except (MarketSearchError, OpenRouterError, json.JSONDecodeError) as exc:
             detail = (
-                "Kova could not finish the market brief. You can try again."
+                "KCOVA could not finish the market brief. You can try again."
                 if isinstance(exc, json.JSONDecodeError)
                 else str(exc)
             )
@@ -254,7 +254,7 @@ class BusinessMarketResearchView(BusinessBrainMixin, APIView):
 
 
 class BusinessMarketDecisionView(BusinessBrainMixin, APIView):
-    """Keep the brief for Kova, or leave it stored without using it."""
+    """Keep the brief for KCOVA, or leave it stored without using it."""
 
     def post(self, request, business_id):
         business = self.get_business()

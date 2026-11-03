@@ -1,1 +1,1 @@
-"""Services used by the Kova AI system."""
+"""Services used by the KCOVA AI system."""

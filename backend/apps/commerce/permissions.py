@@ -10,7 +10,7 @@ class IsBusinessOwner(BasePermission):
     Allow access only to the authenticated owner of the business.
 
     Business ownership is a hard application security boundary.
-    Kova AI decisions must never be allowed to override it.
+    KCOVA AI decisions must never be allowed to override it.
     """
 
     message = "You do not have permission to access this business."

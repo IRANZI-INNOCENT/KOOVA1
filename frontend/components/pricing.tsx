@@ -5,7 +5,7 @@ const features = [
   "Public store for your catalog",
   "WhatsApp order buttons",
   "Facebook and Instagram workspace",
-  "Talk to Kova and Autopilot",
+  "Talk to KCOVA and Autopilot",
   "Inbox, leads, analytics, morning brief",
 ];
 
@@ -17,11 +17,11 @@ export default function Pricing() {
           <SectionHeader
             eyebrow="Pricing"
             title="One plan. Try it on real work first."
-            lead="Use the full workspace for seven days on your products and channels. If Kova is not earning its place in your week, cancel before you pay."
+            lead="Use the full workspace for seven days on your products and channels. If KCOVA is not earning its place in your week, cancel before you pay."
           />
 
           <div className="rounded-lg border-2 border-kova-green/20 bg-kova-background p-7 shadow-sm lg:sticky lg:top-24">
-            <p className="text-sm font-semibold text-kova-green">Kova</p>
+            <p className="text-sm font-semibold text-kova-green">KCOVA</p>
             <p className="mt-4 flex items-end gap-2">
               <span className="font-display text-4xl font-semibold tracking-tight text-kova-dark">
                 KSh 1,300

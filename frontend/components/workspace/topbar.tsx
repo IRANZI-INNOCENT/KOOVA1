@@ -11,7 +11,7 @@ import { useAuth } from "@/lib/auth-context";
 /** Single label in the topbar — avoid section + title double chrome. */
 const PAGE_TITLES: Record<string, string> = {
   "/workspace": "Home",
-  "/workspace/kova": "Talk to Kova",
+  "/workspace/kova": "Talk to KCOVA",
   "/workspace/brief": "Reports",
   "/workspace/social": "Post",
   "/workspace/linkedin": "LinkedIn",

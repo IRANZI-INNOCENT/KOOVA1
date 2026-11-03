@@ -1,4 +1,4 @@
-"""Kova Context Engine package."""
+"""KCOVA Context Engine package."""
 
 from .engine import ContextEngine
 from .types import BusinessContext, ContextTask

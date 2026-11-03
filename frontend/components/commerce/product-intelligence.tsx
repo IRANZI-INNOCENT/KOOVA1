@@ -16,7 +16,7 @@ function AttributeList({
   if (!entries.length) {
     return (
       <p className="text-sm text-[#69736D]">
-        Kova has not identified additional visual attributes yet.
+        KCOVA has not identified additional visual attributes yet.
       </p>
     );
   }
@@ -56,10 +56,10 @@ export function ProductIntelligence({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#176B4D]">
-              Kova Intelligence
+              KCOVA Intelligence
             </p>
             <h2 className="mt-1 text-xl font-semibold text-[#17211D]">
-              What Kova understands
+              What KCOVA understands
             </h2>
           </div>
 
@@ -81,7 +81,7 @@ export function ProductIntelligence({
           </div>
         ) : (
           <p className="mt-5 text-sm text-[#69736D]">
-            Kova has not generated a product summary yet.
+            KCOVA has not generated a product summary yet.
           </p>
         )}
       </section>
@@ -136,7 +136,7 @@ export function ProductIntelligence({
           </div>
         ) : (
           <p className="mt-3 text-sm text-[#69736D]">
-            Kova has not flagged any uncertain attributes.
+            KCOVA has not flagged any uncertain attributes.
           </p>
         )}
       </section>

@@ -65,7 +65,7 @@ OPENROUTER_SITE_URL = os.getenv(
 
 OPENROUTER_APP_NAME = os.getenv(
     "OPENROUTER_APP_NAME",
-    "Kova",
+    "KCOVA",
 )
 
 FACEBOOK_APP_SECRET = os.getenv("FACEBOOK_APP_SECRET", "").strip()
@@ -152,7 +152,7 @@ CORS_ALLOWED_ORIGINS = [
 
 # Allow the frontend to send cookies with API requests.
 #
-# This is required because Kova uses an HttpOnly refresh-token
+# This is required because KCOVA uses an HttpOnly refresh-token
 # cookie for authentication.
 CORS_ALLOW_CREDENTIALS = True
 

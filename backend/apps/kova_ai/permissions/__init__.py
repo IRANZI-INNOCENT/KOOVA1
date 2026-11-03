@@ -1,1 +1,1 @@
-"""Kova Permission Engine package."""
+"""KCOVA Permission Engine package."""

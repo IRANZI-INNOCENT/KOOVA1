@@ -321,7 +321,7 @@ export default function TopicWeekPage() {
           <div className="space-y-4">
             {primaryPillar && (
               <p className="text-sm text-kova-muted">
-                Kova aligned this week with pillar{" "}
+                KCOVA aligned this week with pillar{" "}
                 <span className="font-semibold text-kova-green">
                   {primaryPillar}
                 </span>

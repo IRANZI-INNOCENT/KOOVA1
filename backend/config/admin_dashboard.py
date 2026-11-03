@@ -62,7 +62,7 @@ def kova_stats():
             "href": "/admin/social/socialpost/?publishing_status__exact=failed",
         },
         {
-            "label": "Ask Kova",
+            "label": "Ask KCOVA",
             "value": KovaExchange.objects.count(),
             "href": "/admin/kova_ai/kovaexchange/",
         },

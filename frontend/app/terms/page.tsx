@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { LegalPage, LegalSection } from "@/components/legal-page";
 
 export const metadata: Metadata = {
-  title: "Terms — Kova",
-  description: "The terms for using Kova to publish a store and run a business.",
+  title: "Terms — KCOVA",
+  description: "The terms for using KCOVA to publish a store and run a business.",
 };
 
 export default function TermsPage() {
@@ -12,7 +12,7 @@ export default function TermsPage() {
     <LegalPage eyebrow="Legal" title="Terms">
       <LegalSection title="The service">
         <p>
-          Kova helps a small business photograph a product, publish a public
+          KCOVA helps a small business photograph a product, publish a public
           store, take the order on WhatsApp, and ask for posts, replies, and
           follow-up. These terms cover the website, the workspace, and the
           public store.
@@ -39,7 +39,7 @@ export default function TermsPage() {
       <LegalSection title="Your business and your store">
         <p>
           You own the photos, product details, and business information you
-          add. You give Kova permission to host them, show them on your public
+          add. You give KCOVA permission to host them, show them on your public
           store, and use them to draft listings, posts, and briefs for you.
         </p>
         <p>
@@ -52,14 +52,14 @@ export default function TermsPage() {
       <LegalSection title="Orders">
         <p>
           A customer orders by opening WhatsApp to the number you set. The
-          sale is between you and that customer. Kova does not take the
+          sale is between you and that customer. KCOVA does not take the
           payment, hold the goods, or become the seller.
         </p>
       </LegalSection>
 
       <LegalSection title="Acceptable use">
         <p>
-          Use Kova for a lawful business. Do not publish goods or claims you
+          Use KCOVA for a lawful business. Do not publish goods or claims you
           are not allowed to sell, attempt to break into another account, or
           use the service to mislead a customer.
         </p>
@@ -67,7 +67,7 @@ export default function TermsPage() {
 
       <LegalSection title="Availability">
         <p>
-          We work to keep Kova available, and sometimes the service will be
+          We work to keep KCOVA available, and sometimes the service will be
           interrupted for a fix, a provider outage, or maintenance. Drafts can
           be wrong. Review them before they go to a customer.
         </p>
@@ -75,7 +75,7 @@ export default function TermsPage() {
 
       <LegalSection title="Ending use">
         <p>
-          You can stop using Kova and cancel the plan. We can suspend an
+          You can stop using KCOVA and cancel the plan. We can suspend an
           account that breaks these terms, puts other people at risk, or uses
           the service unlawfully. On closure, the public store can be taken
           down.
@@ -84,7 +84,7 @@ export default function TermsPage() {
 
       <LegalSection title="Liability">
         <p>
-          Kova is a tool for your business. To the extent the law allows, Kova
+          KCOVA is a tool for your business. To the extent the law allows, KCOVA
           is not liable for lost sales, a customer dispute, or a decision you
           make from a draft. Nothing in these terms limits liability that
           Kenyan law does not allow us to limit.

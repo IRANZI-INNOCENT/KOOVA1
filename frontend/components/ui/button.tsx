@@ -5,7 +5,7 @@ import type {
 
 
 /**
- * Visual styles supported by the Kova Button component.
+ * Visual styles supported by the KCOVA Button component.
  *
  * Keeping button variants centralized ensures that actions across
  * the application use the same visual language.
@@ -19,7 +19,7 @@ type ButtonVariant =
 
 
 /**
- * Props accepted by the Kova Button component.
+ * Props accepted by the KCOVA Button component.
  */
 interface ButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -30,7 +30,7 @@ interface ButtonProps
 
 
 /**
- * Base styles shared by every Kova button.
+ * Base styles shared by every KCOVA button.
  */
 const baseStyles =
   "inline-flex items-center justify-center gap-2 rounded-md border px-5 py-3 text-sm font-semibold transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-kova-green focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
@@ -61,7 +61,7 @@ const variantStyles: Record<
 
 
 /**
- * Reusable Kova button.
+ * Reusable KCOVA button.
  *
  * All primary application actions should use this component instead
  * of defining button styling independently inside each page.

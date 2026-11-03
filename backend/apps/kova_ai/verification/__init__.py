@@ -1,1 +1,1 @@
-"""Kova action verification package."""
+"""KCOVA action verification package."""

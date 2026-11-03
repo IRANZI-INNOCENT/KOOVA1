@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { LegalPage, LegalSection } from "@/components/legal-page";
 
 export const metadata: Metadata = {
-  title: "Privacy policy — Kova",
-  description: "How Kova handles account, business, product, and customer information.",
+  title: "Privacy policy — KCOVA",
+  description: "How KCOVA handles account, business, product, and customer information.",
 };
 
 export default function PrivacyPage() {
@@ -12,14 +12,14 @@ export default function PrivacyPage() {
     <LegalPage eyebrow="Legal" title="Privacy policy">
       <LegalSection title="Who this covers">
         <p>
-          This policy explains how Kova handles information when you create an
+          This policy explains how KCOVA handles information when you create an
           account, run a business in the workspace, or open a public store.
           It is written for the Kenya Data Protection Act, 2019.
         </p>
         <p>
-          Kova is the service. The business owner remains responsible for the
-          customer information they choose to keep in Kova, including leads
-          and WhatsApp conversations that continue outside Kova.
+          KCOVA is the service. The business owner remains responsible for the
+          customer information they choose to keep in KCOVA, including leads
+          and WhatsApp conversations that continue outside KCOVA.
         </p>
       </LegalSection>
 
@@ -33,8 +33,8 @@ export default function PrivacyPage() {
         </p>
         <p>
           When you sell, we hold product photos, names, prices, descriptions,
-          and the public store page. When you use Talk to Kova, we hold the
-          messages in that workspace and the drafts Kova prepares. When you
+          and the public store page. When you use Talk to KCOVA, we hold the
+          messages in that workspace and the drafts KCOVA prepares. When you
           record a lead, we hold the name, source, and notes you save.
         </p>
         <p>
@@ -52,7 +52,7 @@ export default function PrivacyPage() {
         </p>
         <p>
           Product photos, business context, and the text you submit can be
-          sent to the AI provider described on the AI usage page, so Kova can
+          sent to the AI provider described on the AI usage page, so KCOVA can
           draft a listing, a post, a reply, or a brief. Market research uses
           publicly available web pages.
         </p>
@@ -61,7 +61,7 @@ export default function PrivacyPage() {
       <LegalSection title="Cookies">
         <p>
           Sign-in uses one essential cookie, described on the cookies page.
-          Kova does not set advertising or analytics cookies.
+          KCOVA does not set advertising or analytics cookies.
         </p>
       </LegalSection>
 
@@ -79,7 +79,7 @@ export default function PrivacyPage() {
           You can review and edit your business, products, and policies in the
           workspace. You can ask to access, correct, or delete the personal
           information we hold about your account. Send that request from the
-          email on your Kova account and put Privacy in the subject.
+          email on your KCOVA account and put Privacy in the subject.
         </p>
         <p>
           If you store a customer’s details as a lead, you are the person they
@@ -100,7 +100,7 @@ export default function PrivacyPage() {
       <LegalSection title="Changes">
         <p>
           If this policy changes, the date at the top of the page changes with
-          it. Continued use of Kova after that date means the updated policy
+          it. Continued use of KCOVA after that date means the updated policy
           applies.
         </p>
       </LegalSection>

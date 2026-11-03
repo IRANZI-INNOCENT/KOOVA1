@@ -8,7 +8,7 @@ export default function OfflinePage() {
         You are not connected
       </h1>
       <p className="mt-2 max-w-md text-sm leading-6 text-gray-500">
-        Kova needs a network connection for live data. Your sign-in session
+        KCOVA needs a network connection for live data. Your sign-in session
         is still saved — reconnect and open the app again.
       </p>
       <a

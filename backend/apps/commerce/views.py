@@ -363,7 +363,7 @@ class ProductPolishView(BusinessOwnedAPIView):
         except ProductVisionError as exc:
             return Response(
                 {
-                    "detail": str(exc) or "Kova could not polish this product.",
+                    "detail": str(exc) or "KCOVA could not polish this product.",
                     "error_code": "PRODUCT_POLISH_FAILED",
                 },
                 status=status.HTTP_502_BAD_GATEWAY,
@@ -1005,11 +1005,11 @@ class PublicProductView(APIView):
 
 class SnapToSellView(BusinessOwnedAPIView):
     """
-    Convert product photographs into a structured Kova
+    Convert product photographs into a structured KCOVA
     product draft.
 
     Owner facts (price, name, category, brand, material, size, color,
-    condition) are authoritative.  Kova intelligence (descriptions,
+    condition) are authoritative.  KCOVA intelligence (descriptions,
     SEO, selling points, keywords, visual attributes) is supplementary.
 
     The view validates the HTTP request and delegates the business
@@ -1067,7 +1067,7 @@ class SnapToSellView(BusinessOwnedAPIView):
                 {
                     "detail": str(exc)
                     if str(exc)
-                    else "Kova could not analyze the product images.",
+                    else "KCOVA could not analyze the product images.",
                     "error_code": "PRODUCT_VISION_FAILED",
                 },
                 status=status.HTTP_502_BAD_GATEWAY,
@@ -1084,7 +1084,7 @@ class SnapToSellView(BusinessOwnedAPIView):
             return Response(
                 {
                     "detail": (
-                        "Kova encountered an unexpected error "
+                        "KCOVA encountered an unexpected error "
                         "while analyzing the product images."
                     ),
                     "error_code": "SNAP_TO_SELL_INTERNAL_ERROR",
@@ -1166,7 +1166,7 @@ class SnapToSellBatchView(BusinessOwnedAPIView):
                 {
                     "detail": str(exc)
                     if str(exc)
-                    else "Kova could not analyze the product images.",
+                    else "KCOVA could not analyze the product images.",
                     "error_code": "PRODUCT_VISION_FAILED",
                 },
                 status=status.HTTP_502_BAD_GATEWAY,
@@ -1183,7 +1183,7 @@ class SnapToSellBatchView(BusinessOwnedAPIView):
             return Response(
                 {
                     "detail": (
-                        "Kova encountered an unexpected error "
+                        "KCOVA encountered an unexpected error "
                         "while analyzing the product images."
                     ),
                     "error_code": "SNAP_TO_SELL_INTERNAL_ERROR",

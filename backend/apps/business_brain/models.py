@@ -4,7 +4,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 
 class BusinessProfile(models.Model):
     """
-    Store high-level business knowledge that Kova can use when
+    Store high-level business knowledge that KCOVA can use when
     understanding and reasoning about a business.
 
     The core Business model contains basic identity and contact
@@ -72,17 +72,17 @@ class BusinessAudience(models.Model):
     Store detailed knowledge about the customers a business serves.
 
     BusinessProfile describes the business itself. BusinessAudience
-    describes the people Kova should consider when creating content,
+    describes the people KCOVA should consider when creating content,
     engaging with customers, generating leads, and supporting sales.
 
     The audience is intentionally stored as natural-language context
     rather than rigid demographic fields. This gives business owners
     flexibility to describe their customers in their own words and
-    gives Kova richer context for future AI reasoning.
+    gives KCOVA richer context for future AI reasoning.
 
     Each business has one audience profile in the current version.
     The model can later evolve to support multiple audience segments
-    if Kova needs more granular customer targeting.
+    if KCOVA needs more granular customer targeting.
     """
 
     business = models.OneToOneField(
@@ -142,7 +142,7 @@ class BusinessBrand(models.Model):
 
     BusinessProfile describes what the business is.
     BusinessAudience describes who the business serves.
-    BusinessBrand describes how Kova should communicate
+    BusinessBrand describes how KCOVA should communicate
     when representing the business.
 
     The brand is intentionally stored as structured natural-language
@@ -160,7 +160,7 @@ class BusinessBrand(models.Model):
     voice = models.TextField(
         blank=True,
         help_text=(
-            "The consistent character or personality Kova "
+            "The consistent character or personality KCOVA "
             "should use when communicating for the business."
         ),
     )
@@ -182,7 +182,7 @@ class BusinessBrand(models.Model):
         blank=True,
         help_text=(
             "The human characteristics and personality traits "
-            "Kova should reflect when representing the business."
+            "KCOVA should reflect when representing the business."
         ),
     )
     content_style = models.TextField(
@@ -195,15 +195,15 @@ class BusinessBrand(models.Model):
     communication_preferences = models.TextField(
         blank=True,
         help_text=(
-            "Additional communication preferences Kova should "
+            "Additional communication preferences KCOVA should "
             "follow when creating or sending content."
         ),
     )
     kenya_relatable_mode = models.BooleanField(
         default=False,
         help_text=(
-            "When on, Kova writes Kenya-relatable copy (Sheng/Swahili mix, "
-            "everyday scenes) and reel/skit film briefs. Off keeps default Kova."
+            "When on, KCOVA writes Kenya-relatable copy (Sheng/Swahili mix, "
+            "everyday scenes) and reel/skit film briefs. Off keeps default KCOVA."
         ),
     )
     created_at = models.DateTimeField(auto_now_add=True)
@@ -218,10 +218,10 @@ class BusinessBrand(models.Model):
 
 class BusinessGoal(models.Model):
     """
-    Stores the strategic goals Kova should understand for a business.
+    Stores the strategic goals KCOVA should understand for a business.
 
     Goals are kept separate from the general Business model so that
-    Kova can use them as structured business context when deciding
+    KCOVA can use them as structured business context when deciding
     what actions to recommend or perform.
     """
 
@@ -253,7 +253,7 @@ class BusinessGoal(models.Model):
 
     current_challenges = models.TextField(
         blank=True,
-        help_text="The main problems or obstacles Kova should understand and help address.",
+        help_text="The main problems or obstacles KCOVA should understand and help address.",
     )
 
     time_horizon = models.CharField(
@@ -269,9 +269,9 @@ class BusinessGoal(models.Model):
 
 class BusinessPolicy(models.Model):
     """
-    Stores the operating rules Kova must follow for a business.
+    Stores the operating rules KCOVA must follow for a business.
 
-    Policies describe what Kova may do automatically and which
+    Policies describe what KCOVA may do automatically and which
     actions require owner approval.
     """
 
@@ -291,9 +291,9 @@ class BusinessPolicy(models.Model):
         choices=OperatingMode.choices,
         default=OperatingMode.ASSIST,
         help_text=(
-            "Assist: Kova drafts and recommends, owner acts. "
-            "Approval: Kova prepares work and executes after approval. "
-            "Autopilot: Kova independently performs permitted low-risk tasks."
+            "Assist: KCOVA drafts and recommends, owner acts. "
+            "Approval: KCOVA prepares work and executes after approval. "
+            "Autopilot: KCOVA independently performs permitted low-risk tasks."
         ),
     )
 
@@ -401,10 +401,10 @@ class BusinessPolicy(models.Model):
 
 class BusinessMarketBrief(models.Model):
     """
-    A market brief Kova researched from public pages.
+    A market brief KCOVA researched from public pages.
 
     The owner can keep it, so later writing and replies use it, or leave it
-    stored here without feeding it into Kova.
+    stored here without feeding it into KCOVA.
     """
 
     class Status(models.TextChoices):

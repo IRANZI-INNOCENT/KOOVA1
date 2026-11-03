@@ -211,7 +211,7 @@ class ProductAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Kova reading",
+            "KCOVA reading",
             {
                 "classes": ("collapse",),
                 "fields": (

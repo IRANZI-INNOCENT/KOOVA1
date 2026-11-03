@@ -7,7 +7,7 @@ User = get_user_model()
 
 class SignupSerializer(serializers.ModelSerializer):
     """
-    Validate and create new Kova user accounts.
+    Validate and create new KCOVA user accounts.
 
     The password is accepted during signup but is never included
     in the API response because it is write-only.
@@ -35,7 +35,7 @@ class SignupSerializer(serializers.ModelSerializer):
         """
         Normalize and validate the email address.
 
-        Kova requires every account to have a unique email address.
+        KCOVA requires every account to have a unique email address.
         """
 
         email = value.strip().lower()
@@ -87,7 +87,7 @@ class SignupSerializer(serializers.ModelSerializer):
 
 class LoginSerializer(serializers.Serializer):
     """
-    Validate Kova login credentials.
+    Validate KCOVA login credentials.
 
     The serializer authenticates the user using their email address
     and password. Successful authentication is later converted into

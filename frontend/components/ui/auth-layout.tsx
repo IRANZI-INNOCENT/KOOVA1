@@ -6,7 +6,7 @@ import { Logo } from "./logo";
 
 
 /**
- * Shared layout for Kova authentication pages.
+ * Shared layout for KCOVA authentication pages.
  *
  * Login and signup should feel like parts of the same product.
  * Keeping their layout here prevents visual differences from
@@ -21,11 +21,11 @@ interface AuthLayoutProps {
 
 
 /**
- * Kova authentication layout.
+ * KCOVA authentication layout.
  *
  * Desktop uses a two-column composition:
  *
- * - Left: Kova identity and product positioning.
+ * - Left: KCOVA identity and product positioning.
  * - Right: The active authentication form.
  *
  * On smaller screens the identity panel becomes a compact
@@ -42,7 +42,7 @@ export function AuthLayout({
 
       <div className="grid min-h-dvh lg:grid-cols-[0.92fr_1.08fr]">
 
-        {/* Kova brand panel */}
+        {/* KCOVA brand panel */}
         <section className="relative hidden overflow-hidden bg-kova-green lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16">
           <img
             src="/landing/auth.jpg"
@@ -69,7 +69,7 @@ export function AuthLayout({
               </h2>
 
               <p className="mt-6 max-w-sm text-base leading-7 text-white/85">
-                Kova helps small businesses plan, create, publish,
+                KCOVA helps small businesses plan, create, publish,
                 engage with customers, generate leads, and sell.
               </p>
 
@@ -126,7 +126,7 @@ export function AuthLayout({
             <div>
 
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-kova-orange">
-                Kova
+                KCOVA
               </p>
 
               <h1 className="mt-2 text-3xl font-semibold tracking-tight text-kova-dark">

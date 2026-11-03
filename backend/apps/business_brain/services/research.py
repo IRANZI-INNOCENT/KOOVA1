@@ -21,7 +21,7 @@ from apps.kova_ai.services.openrouter import OpenRouterError, OpenRouterService
 
 THIN_SUMMARY = (
     "Public web results did not name competitors clearly enough to use. "
-    "Kova did not invent shops, prices, or claims."
+    "KCOVA did not invent shops, prices, or claims."
 )
 
 
@@ -116,14 +116,14 @@ def _from_citations(
         )
     except OpenRouterError as exc:
         raise MarketSearchError(
-            "Kova searched the market but could not write the brief. You can try again."
+            "KCOVA searched the market but could not write the brief. You can try again."
         ) from exc
 
     try:
         content = response["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
         raise MarketSearchError(
-            "Kova searched the market but could not write the brief. You can try again."
+            "KCOVA searched the market but could not write the brief. You can try again."
         ) from exc
 
     if not isinstance(content, str):

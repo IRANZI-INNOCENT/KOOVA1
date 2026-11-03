@@ -31,7 +31,7 @@ from .models import BusinessAudience, BusinessProfile
 
 class BusinessProfileSerializer(serializers.ModelSerializer):
     """
-    Serialize BusinessProfile information for the Kova API.
+    Serialize BusinessProfile information for the KCOVA API.
 
     The business relationship is read-only because the profile must
     always belong to the business identified by the API URL. Clients
@@ -65,7 +65,7 @@ class BusinessProfileSerializer(serializers.ModelSerializer):
 
 class BusinessAudienceSerializer(serializers.ModelSerializer):
     """
-    Serialize BusinessAudience information for the Kova API.
+    Serialize BusinessAudience information for the KCOVA API.
 
     The business relationship is read-only because the audience
     must always belong to the business identified by the API URL.

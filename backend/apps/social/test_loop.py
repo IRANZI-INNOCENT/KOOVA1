@@ -288,14 +288,14 @@ class LoopTests(TestCase):
             business=self.business,
             platform="facebook",
             content_type="carousel",
-            caption="Swipe through to meet Kova.",
+            caption="Swipe through to meet KCOVA.",
             call_to_action="Send a message.",
             slides=[{"caption": "First slide"}, {"caption": "Second slide"}],
             hashtags=["Nairobi"],
             media_urls=["https://example.com/one.jpg"],
         )
         text = outgoing_text(content)
-        self.assertIn("Meet Kova.", text)
+        self.assertIn("Meet KCOVA.", text)
         self.assertNotIn("Swipe", text)
         self.assertNotIn("1. First slide", text)
         self.assertIn("First slide", text)

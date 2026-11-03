@@ -28,7 +28,7 @@ export function LinkedInBrainCard({ topic }: { topic?: string }) {
         LinkedIn brain
       </p>
       <p className="mt-1 text-sm text-kova-muted">
-        Kova uses this on every plan, draft, brief, and autopilot run.
+        KCOVA uses this on every plan, draft, brief, and autopilot run.
       </p>
       <dl className="mt-4 space-y-2 text-sm">
         <div>

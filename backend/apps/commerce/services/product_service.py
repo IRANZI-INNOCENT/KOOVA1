@@ -1,7 +1,7 @@
 """
 Snap-to-Sell service.
 
-Turns product photographs into a reviewable Kova business asset.
+Turns product photographs into a reviewable KCOVA business asset.
 
 The service:
     - validates uploaded images;
@@ -11,7 +11,7 @@ The service:
     - enforces the owner-fact / AI-intelligence boundary.
 
 Owner-provided facts win when the owner typed them. When a photo
-is analyzed without those facts, Kova fills the category and color
+is analyzed without those facts, KCOVA fills the category and color
 from the image and sets condition to New.
 """
 
@@ -43,7 +43,7 @@ class SnapToSellBatchResult:
 
 
 class SnapToSellService:
-    """Turn product photos into a reviewable Kova business asset."""
+    """Turn product photos into a reviewable KCOVA business asset."""
 
     MAX_IMAGES = 10
     MAX_BATCH_SIZE = 10
@@ -210,7 +210,7 @@ class SnapToSellService:
                 return index, None, {
                     "index": index,
                     "filename": filename,
-                    "detail": str(exc) or "Kova could not analyze this image.",
+                    "detail": str(exc) or "KCOVA could not analyze this image.",
                 }
             except Exception:
                 logger.exception(
@@ -222,7 +222,7 @@ class SnapToSellService:
                     "index": index,
                     "filename": filename,
                     "detail": (
-                        "Kova encountered an unexpected error "
+                        "KCOVA encountered an unexpected error "
                         "while analyzing this image."
                     ),
                 }
@@ -250,7 +250,7 @@ class SnapToSellService:
 
         if not products:
             first_detail = errors[0]["detail"] if errors else (
-                "Kova could not analyze the product images."
+                "KCOVA could not analyze the product images."
             )
             raise ProductVisionError(first_detail)
 
@@ -454,7 +454,7 @@ class SnapToSellService:
             condition=condition[:100],
             offering_kind=offering_kind,
 
-            # Kova intelligence
+            # KCOVA intelligence
             short_description=(
                 analysis.get("short_description") or ""
             ),
@@ -530,7 +530,7 @@ class SnapToSellService:
 
         ProductAIAnalysis.objects.create(
             product=product,
-            model=analysis.get("model", "Kova Product Vision"),
+            model=analysis.get("model", "KCOVA Product Vision"),
             result=analysis,
             confidence=analysis.get("confidence"),
         )

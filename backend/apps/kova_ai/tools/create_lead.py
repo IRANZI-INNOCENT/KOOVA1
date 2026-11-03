@@ -1,5 +1,5 @@
 """
-Kova Create Lead Tool.
+KCOVA Create Lead Tool.
 
 Creates a real Lead record in the database when the AI detects buying
 interest or meaningful engagement.

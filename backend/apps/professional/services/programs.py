@@ -35,12 +35,12 @@ def _ai_json(system: str, user: str, *, temperature: float = 0.4) -> dict:
     try:
         raw = response["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
-        raise OpenRouterError("Kova could not finish that request.") from exc
+        raise OpenRouterError("KCOVA could not finish that request.") from exc
     if not isinstance(raw, str):
-        raise OpenRouterError("Kova returned an unexpected format.")
+        raise OpenRouterError("KCOVA returned an unexpected format.")
     parsed = _parse_json(raw)
     if not isinstance(parsed, dict):
-        raise OpenRouterError("Kova returned an unexpected format.")
+        raise OpenRouterError("KCOVA returned an unexpected format.")
     return parsed
 
 
@@ -100,7 +100,7 @@ def plan_topic_week(
     except OpenRouterError as exc:
         raise ValueError(str(exc)) from exc
     if not plan.get("posts") or len(plan["posts"]) < 3:
-        raise ValueError("Kova could not build a three-post plan. Try again.")
+        raise ValueError("KCOVA could not build a three-post plan. Try again.")
     return plan
 
 
@@ -406,7 +406,7 @@ def occasion_label(event_type: str) -> str:
 
 
 def event_share_note(event_type: str, event_title: str, note: str) -> str:
-    """What Kova should write from, even when the member only sends a photo."""
+    """What KCOVA should write from, even when the member only sends a photo."""
     written = (note or "").strip()
     title = (event_title or "").strip()
     where = occasion_label(event_type)

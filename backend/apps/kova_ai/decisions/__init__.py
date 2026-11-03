@@ -1,1 +1,1 @@
-"""Kova Decision Engine package."""
+"""KCOVA Decision Engine package."""

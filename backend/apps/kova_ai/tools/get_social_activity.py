@@ -1,5 +1,5 @@
 """
-Kova Social Activity Tool.
+KCOVA Social Activity Tool.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from .types import ToolResult, ToolStatus
 
 
 class GetSocialActivityTool(Tool):
-    """Retrieve social activity relevant to Kova."""
+    """Retrieve social activity relevant to KCOVA."""
 
     @property
     def action(self) -> str:

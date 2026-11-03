@@ -1,5 +1,5 @@
 """
-Kova Commerce Management Tool.
+KCOVA Commerce Management Tool.
 
 Reads real data from commerce models. This is the read-side companion
 to ManageProductTool and ManageOrderTool.

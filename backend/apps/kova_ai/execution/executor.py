@@ -1,5 +1,5 @@
 """
-Kova Action Executor.
+KCOVA Action Executor.
 
 The Action Executor coordinates the execution of a Decision through the
 Tool Registry.
@@ -7,7 +7,7 @@ Tool Registry.
 Its responsibility is execution lifecycle only.
 
 It does not:
-    - decide what Kova should do
+    - decide what KCOVA should do
     - determine business policy
     - verify external outcomes
     - call an AI model
@@ -29,7 +29,7 @@ from .types import ExecutionResult, ExecutionStatus
 
 
 class ActionExecutor:
-    """Execute Kova decisions through registered tools."""
+    """Execute KCOVA decisions through registered tools."""
 
     def __init__(
         self,

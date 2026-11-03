@@ -5,7 +5,7 @@ import {
 
 
 /**
- * Information about the authenticated Kova user.
+ * Information about the authenticated KCOVA user.
  */
 export interface AuthUser {
   id: number;
@@ -28,7 +28,7 @@ export interface LoginResponse {
 
 
 /**
- * Credentials required to authenticate a Kova user.
+ * Credentials required to authenticate a KCOVA user.
  */
 export interface LoginCredentials {
   email: string;
@@ -37,7 +37,7 @@ export interface LoginCredentials {
 
 
 /**
- * Information required to create a Kova account.
+ * Information required to create a KCOVA account.
  */
 export interface SignupCredentials {
   email: string;
@@ -48,7 +48,7 @@ export interface SignupCredentials {
 
 
 /**
- * Authenticate an existing Kova user.
+ * Authenticate an existing KCOVA user.
  */
 export async function login(
   credentials: LoginCredentials,
@@ -64,7 +64,7 @@ export async function login(
 
 
 /**
- * Create a new Kova user account.
+ * Create a new KCOVA user account.
  *
  * Account creation is handled by Django. Authentication is
  * intentionally separate and will be performed by the signup
@@ -83,7 +83,7 @@ export async function signup(
 }
 
 /**
- * Retrieve the currently authenticated Kova user.
+ * Retrieve the currently authenticated KCOVA user.
  *
  * The backend determines the user's identity from the supplied
  * access token rather than accepting a user ID from the frontend.
@@ -98,7 +98,7 @@ export async function getCurrentUser(
 }
 
 /**
- * End the current Kova authentication session.
+ * End the current KCOVA authentication session.
  *
  * The access token is required because the backend only allows
  * authenticated users to explicitly terminate their session.

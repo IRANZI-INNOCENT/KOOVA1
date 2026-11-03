@@ -47,7 +47,7 @@ GRAPH_URL = "https://graph.facebook.com/v21.0"
 
 
 def _local_media_path(url: str) -> str | None:
-    """Return the file on disk when the image is one Kova stored."""
+    """Return the file on disk when the image is one KCOVA stored."""
     raw = unquote(urlparse(url).path if "://" in url else url).lstrip("/")
     prefix = settings.MEDIA_URL.lstrip("/")
     if not raw.startswith(prefix):
@@ -578,7 +578,7 @@ class MetaAdapter(ChannelAdapter):
         elif image_url.startswith("http://") or image_url.startswith("https://"):
             data["url"] = image_url
         else:
-            return {"_error": "Kova could not find the product image to send with this post."}
+            return {"_error": "KCOVA could not find the product image to send with this post."}
         try:
             resp = requests.post(
                 f"{GRAPH_URL}/{account.platform_account_id}/photos",
@@ -734,7 +734,7 @@ class MetaAdapter(ChannelAdapter):
         else:
             return PublishResult(
                 success=False,
-                error="Kova could not find the video file to publish.",
+                error="KCOVA could not find the video file to publish.",
             )
         try:
             resp = requests.post(

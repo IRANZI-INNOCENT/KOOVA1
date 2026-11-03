@@ -17,7 +17,7 @@ User = get_user_model()
 
 class SignupView(generics.CreateAPIView):
     """
-    Create a new Kova user account.
+    Create a new KCOVA user account.
 
     Signup is intentionally available to unauthenticated users because
     authentication does not exist yet at the point of registration.
@@ -29,7 +29,7 @@ class SignupView(generics.CreateAPIView):
 
 class LoginView(generics.GenericAPIView):
     """
-    Authenticate a Kova user and create an application session.
+    Authenticate a KCOVA user and create an application session.
 
     The short-lived access token is returned in the response body.
 
@@ -80,7 +80,7 @@ class LoginView(generics.GenericAPIView):
 
 class RefreshTokenView(generics.GenericAPIView):
     """
-    Issue a new access token using Kova's HttpOnly refresh cookie.
+    Issue a new access token using KCOVA's HttpOnly refresh cookie.
 
     Each successful refresh also renews the HttpOnly refresh cookie so
     active PWA users stay signed in without visiting the login screen.
@@ -137,7 +137,7 @@ class RefreshTokenView(generics.GenericAPIView):
 
 class CurrentUserView(generics.RetrieveAPIView):
     """
-    Return the currently authenticated Kova user.
+    Return the currently authenticated KCOVA user.
 
     Authentication is handled by SimpleJWT. The access token identifies
     the user, and request.user is populated by Django REST Framework.
@@ -158,7 +158,7 @@ class CurrentUserView(generics.RetrieveAPIView):
 
 class LogoutView(generics.GenericAPIView):
     """
-    Log out the currently authenticated Kova user.
+    Log out the currently authenticated KCOVA user.
 
     Logout removes the refresh-token cookie from the browser.
     """
@@ -167,7 +167,7 @@ class LogoutView(generics.GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         """
-        Remove the Kova refresh-token cookie and end the session.
+        Remove the KCOVA refresh-token cookie and end the session.
         """
 
         response = Response(

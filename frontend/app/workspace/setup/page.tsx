@@ -285,7 +285,7 @@ export default function BusinessSetupPage() {
                     event.target.value,
                   )
                 }
-                placeholder="e.g. Kova Boutique"
+                placeholder="e.g. KCOVA Boutique"
               />
 
 

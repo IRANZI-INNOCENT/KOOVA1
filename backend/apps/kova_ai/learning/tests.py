@@ -1,5 +1,5 @@
 """
-Tests for the Kova Learning Engine.
+Tests for the KCOVA Learning Engine.
 """
 
 from django.test import SimpleTestCase
@@ -20,7 +20,7 @@ from .types import LearningType
 
 
 class LearningEngineTests(SimpleTestCase):
-    """Test Kova's initial learning behavior."""
+    """Test KCOVA's initial learning behavior."""
 
     def setUp(self):
         self.engine = LearningEngine()

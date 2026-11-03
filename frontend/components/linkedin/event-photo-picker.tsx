@@ -150,7 +150,7 @@ export function EventPhotoPicker({
         </Button>
       </div>
       <p className="text-xs text-kova-muted">
-        The photo goes on the post. Kova writes the caption.
+        The photo goes on the post. KCOVA writes the caption.
       </p>
     </div>
   );

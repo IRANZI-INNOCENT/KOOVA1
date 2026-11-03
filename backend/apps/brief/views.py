@@ -58,7 +58,7 @@ class LatestBriefView(BriefMixin, APIView):
             brief = generate_brief(business)
         except (OpenRouterError, Exception) as exc:
             return Response(
-                {"detail": f"Kova could not generate the brief: {exc}"},
+                {"detail": f"KCOVA could not generate the brief: {exc}"},
                 status=502,
             )
         return Response(MorningBriefSerializer(brief).data)
@@ -107,7 +107,7 @@ class LatestWeeklyReportView(BriefMixin, APIView):
             report = generate_weekly_report(business, force=force)
         except (OpenRouterError, Exception) as exc:
             return Response(
-                {"detail": f"Kova could not generate the weekly report: {exc}"},
+                {"detail": f"KCOVA could not generate the weekly report: {exc}"},
                 status=502,
             )
         return Response(WeeklyReportSerializer(report).data)

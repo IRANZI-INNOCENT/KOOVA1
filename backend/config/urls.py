@@ -19,8 +19,8 @@ def health(request):
     return JsonResponse({"status": "ok"})
 
 
-admin.site.site_header = "Kova"
-admin.site.site_title = "Kova admin"
+admin.site.site_header = "KCOVA"
+admin.site.site_title = "KCOVA admin"
 admin.site.index_title = "Operations"
 admin.site.index_template = "admin/kova_index.html"
 
@@ -97,7 +97,7 @@ urlpatterns = [
         include("apps.notifications.urls"),
     ),
 
-    # Kova AI Agent.
+    # KCOVA AI Agent.
     path(
         "api/kova/",
         include("apps.kova_ai.api.urls"),

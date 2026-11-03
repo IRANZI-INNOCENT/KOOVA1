@@ -4,7 +4,7 @@ const REFRESH_INTERVAL_MS = 45 * 60 * 1000;
 
 /**
  * Silently renew the access token and sliding refresh cookie while the
- * Kova tab or installed PWA is open.
+ * KCOVA tab or installed PWA is open.
  */
 export type RenewSessionResult =
   | { ok: true; access: string }

@@ -3,16 +3,16 @@ import type { Metadata } from "next";
 import { LegalPage, LegalSection } from "@/components/legal-page";
 
 export const metadata: Metadata = {
-  title: "AI usage — Kova",
-  description: "How Kova uses AI, what you should review, and what stays in your control.",
+  title: "AI usage — KCOVA",
+  description: "How KCOVA uses AI, what you should review, and what stays in your control.",
 };
 
 export default function AiUsagePage() {
   return (
     <LegalPage eyebrow="Legal" title="AI usage">
-      <LegalSection title="What Kova uses AI for">
+      <LegalSection title="What KCOVA uses AI for">
         <p>
-          Kova uses a language model to draft work for your business. That
+          KCOVA uses a language model to draft work for your business. That
           includes a product listing from a photo, a social post, a reply, a
           lead note, a market brief from public pages, and the daily morning
           brief from your own records.
@@ -23,13 +23,13 @@ export default function AiUsagePage() {
         <p>
           A request can include the business context you saved, the product
           photo and details, the instruction you typed, and the records needed
-          for that draft. Those materials are sent to Kova’s model provider
+          for that draft. Those materials are sent to KCOVA’s model provider
           so the draft can be written.
         </p>
         <p>
-          Kova does not train its own model on your content. The provider
+          KCOVA does not train its own model on your content. The provider
           processes the request to return the draft. Payment card numbers are
-          not part of Kova: orders continue on WhatsApp with you.
+          not part of KCOVA: orders continue on WhatsApp with you.
         </p>
       </LegalSection>
 
@@ -37,11 +37,11 @@ export default function AiUsagePage() {
         <p>
           A draft can be incomplete or wrong. Read the listing, the price, and
           the post before a customer relies on them. You can edit anything
-          Kova prepares.
+          KCOVA prepares.
         </p>
         <p>
-          Your business policy sets what Kova may do on its own and what waits
-          for your approval. When Autopilot is on, Kova carries out the content,
+          Your business policy sets what KCOVA may do on its own and what waits
+          for your approval. When Autopilot is on, KCOVA carries out the content,
           the replies, the listing wording, the day's posts, and the report.
           You remain responsible for what is published in your name.
         </p>
@@ -62,7 +62,7 @@ export default function AiUsagePage() {
 
       <LegalSection title="Your control">
         <p>
-          You choose the business facts Kova works from, you can change the
+          You choose the business facts KCOVA works from, you can change the
           operating mode, and you can ignore or rewrite a draft. The privacy
           policy explains the account and business information held alongside
           these drafts.

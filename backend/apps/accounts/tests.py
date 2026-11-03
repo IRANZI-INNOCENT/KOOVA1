@@ -7,7 +7,7 @@ User = get_user_model()
 
 
 class SignupAPITests(APITestCase):
-    """Test the Kova user signup API."""
+    """Test the KCOVA user signup API."""
 
     signup_url = "/api/auth/signup/"
 
@@ -74,7 +74,7 @@ class SignupAPITests(APITestCase):
         self.assertNotIn("password", response.data)
 
     def test_duplicate_email_is_rejected(self):
-        """An email address can only belong to one Kova account."""
+        """An email address can only belong to one KCOVA account."""
 
         User.objects.create_user(
             email="existing@example.com",
@@ -151,7 +151,7 @@ class SignupAPITests(APITestCase):
 
 
 class LoginAPITests(APITestCase):
-    """Test the Kova login API."""
+    """Test the KCOVA login API."""
 
     login_url = "/api/auth/login/"
 
@@ -279,7 +279,7 @@ class LoginAPITests(APITestCase):
         self.assertNotIn("password", response.data.get("user", {}))
 
     def test_authenticated_user_can_logout(self):
-        """Authenticated users can end their Kova session successfully."""
+        """Authenticated users can end their KCOVA session successfully."""
 
         self.client.force_authenticate(user=self.user)
         response = self.client.post("/api/auth/logout/")

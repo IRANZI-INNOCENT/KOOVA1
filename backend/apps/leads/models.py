@@ -1,7 +1,7 @@
 """
-Kova Lead models.
+KCOVA Lead models.
 
-A Lead represents a potential customer that Kova has identified through
+A Lead represents a potential customer that KCOVA has identified through
 social engagement, conversations, or manual entry. Leads are a core
 business asset that feeds into the sales pipeline.
 
@@ -16,7 +16,7 @@ from apps.businesses.models import Business
 
 class Lead(models.Model):
     """
-    A business lead tracked by Kova.
+    A business lead tracked by KCOVA.
 
     Leads are created through the CreateLeadTool when the AI detects
     customer interest, or manually by the business owner.

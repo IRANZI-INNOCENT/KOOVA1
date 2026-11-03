@@ -13,7 +13,7 @@ class ContextTask(StrEnum):
 @dataclass(frozen=True)
 class BusinessContext:
     """
-    Immutable business context assembled for one Kova task.
+    Immutable business context assembled for one KCOVA task.
 
     Products and the commerce page are part of the Business Brain because
     Commerce is not a separate intelligence system. Product information can

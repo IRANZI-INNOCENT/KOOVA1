@@ -51,7 +51,7 @@ class ProfessionalProfile(models.Model):
 
     topic_autopilot_enabled = models.BooleanField(
         default=False,
-        help_text="Kova plans, drafts, and schedules a new topic week each calendar week.",
+        help_text="KCOVA plans, drafts, and schedules a new topic week each calendar week.",
     )
     topic_autopilot_standing_topic = models.CharField(
         max_length=240,
@@ -112,7 +112,7 @@ class LinkedInConnection(models.Model):
     profile_snapshot = models.JSONField(
         default=dict,
         blank=True,
-        help_text="Cached LinkedIn profile fields Kova fetched for the brain.",
+        help_text="Cached LinkedIn profile fields KCOVA fetched for the brain.",
     )
     profile_synced_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)

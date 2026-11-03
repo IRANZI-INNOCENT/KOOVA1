@@ -1,7 +1,7 @@
 """
-Types used by the Kova Decision Engine.
+Types used by the KCOVA Decision Engine.
 
-The Decision object represents what Kova intends to do after evaluating
+The Decision object represents what KCOVA intends to do after evaluating
 a task and its available business context.
 
 A Decision does not execute anything.
@@ -33,7 +33,7 @@ class DecisionAction(StrEnum):
 
 
 class DecisionStatus(StrEnum):
-    """Current state of a Kova decision."""
+    """Current state of a KCOVA decision."""
 
     READY = "ready"
     NEEDS_INFORMATION = "needs_information"
@@ -43,7 +43,7 @@ class DecisionStatus(StrEnum):
 @dataclass(frozen=True)
 class Decision:
     """
-    Represents Kova's intended action.
+    Represents KCOVA's intended action.
 
     Decisions describe intent only. They do not perform external actions.
     """

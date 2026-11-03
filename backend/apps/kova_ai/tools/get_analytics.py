@@ -1,5 +1,5 @@
 """
-Kova Analytics Tool.
+KCOVA Analytics Tool.
 
 Reads real business data to provide analytics. Queries actual models
 to compute metrics rather than returning placeholder responses.

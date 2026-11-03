@@ -1,4 +1,4 @@
-"""LinkedIn feed best practices injected into Kova drafting prompts."""
+"""LinkedIn feed best practices injected into KCOVA drafting prompts."""
 
 LINKEDIN_ALGORITHM_RULES = """
 LinkedIn algorithm and format rules (2024–2026 feed behavior):

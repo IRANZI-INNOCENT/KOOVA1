@@ -1,4 +1,4 @@
-"""What Kova can create and publish for a business (beyond Meta OAuth scopes)."""
+"""What KCOVA can create and publish for a business (beyond Meta OAuth scopes)."""
 
 from __future__ import annotations
 

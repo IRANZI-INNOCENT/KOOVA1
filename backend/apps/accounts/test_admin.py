@@ -7,7 +7,7 @@ class KovaAdminTests(TestCase):
         self.admin = get_user_model().objects.create_superuser(
             email="admin@kova.test",
             password="StrongPassword123!",
-            first_name="Kova",
+            first_name="KCOVA",
             last_name="Admin",
         )
         self.client.force_login(self.admin)

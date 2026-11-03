@@ -1,5 +1,5 @@
 """
-Business context tool for Kova.
+Business context tool for KCOVA.
 
 This is a read-only capability that allows the AI agent to retrieve
 structured business context through the Context Engine.
@@ -16,7 +16,7 @@ from .types import ToolResult, ToolStatus
 
 
 class GetBusinessContextTool(Tool):
-    """Expose the business context engine to Kova's agent."""
+    """Expose the business context engine to KCOVA's agent."""
 
     def __init__(self) -> None:
         self.context_engine = ContextEngine()
@@ -29,11 +29,11 @@ class GetBusinessContextTool(Tool):
 
     @property
     def description(self) -> str:
-        """Describe when Kova should use this tool."""
+        """Describe when KCOVA should use this tool."""
 
         return (
             "Retrieve the current structured business context for the "
-            "business Kova is operating for. Use this when additional "
+            "business KCOVA is operating for. Use this when additional "
             "business information is needed to answer the user's request "
             "or make an informed decision."
         )
@@ -52,7 +52,7 @@ class GetBusinessContextTool(Tool):
                         for task in ContextTask
                     ],
                     "description": (
-                        "The Kova task whose relevant business context "
+                        "The KCOVA task whose relevant business context "
                         "should be retrieved."
                     ),
                 },

@@ -1,5 +1,5 @@
 """
-Tests for the Kova Agent.
+Tests for the KCOVA Agent.
 """
 
 import json
@@ -50,7 +50,7 @@ class FakeLLM:
 
 
 class KovaAgentTests(TestCase):
-    """Test the production Kova agent loop."""
+    """Test the production KCOVA agent loop."""
 
     def setUp(self):
         self.context = BusinessContext(

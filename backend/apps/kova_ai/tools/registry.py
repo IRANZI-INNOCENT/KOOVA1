@@ -1,7 +1,7 @@
 """
-Tool registry for Kova.
+Tool registry for KCOVA.
 
-The registry owns the set of tools available to Kova and provides the
+The registry owns the set of tools available to KCOVA and provides the
 controlled path for resolving and executing those tools.
 """
 
@@ -23,7 +23,7 @@ from .types import ToolResult
 
 class ToolRegistry:
     """
-    Registry of tools available to Kova.
+    Registry of tools available to KCOVA.
 
     Tools are registered explicitly so that the agent can only request
     capabilities that the application has intentionally exposed.
@@ -59,7 +59,7 @@ class ToolRegistry:
             return self._tools[name]
         except KeyError as exc:
             raise KeyError(
-                f"No Kova tool is registered with the name '{name}'."
+                f"No KCOVA tool is registered with the name '{name}'."
             ) from exc
 
     def has(self, name: str) -> bool:
@@ -69,7 +69,7 @@ class ToolRegistry:
 
     def actions(self) -> list[str]:
         """
-        Return the action names currently registered with Kova.
+        Return the action names currently registered with KCOVA.
 
         This provides a lightweight view of the registry for diagnostics,
         tests, and internal orchestration without exposing tool definitions.
@@ -147,7 +147,7 @@ class ToolRegistry:
             action=tool.action,
             status=DecisionStatus.READY,
             reason=(
-                f"Kova requested tool execution for '{tool_name}'."
+                f"KCOVA requested tool execution for '{tool_name}'."
             ),
             inputs=arguments,
         )
