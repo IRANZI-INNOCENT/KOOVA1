@@ -48,13 +48,15 @@ export function CameraNavIcon({ size = 22 }: { size?: number }) {
 /** Stroke dashboard mark — matches Settings-style nav icons. */
 export function OverviewNavIcon({
   className = "",
+  size = 18,
 }: {
   className?: string;
+  size?: number;
 }) {
   return (
     <svg
-      width="18"
-      height="18"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

@@ -63,16 +63,16 @@ export function BottomNav() {
                   prefetch={true}
                   aria-current={active ? "page" : undefined}
                   data-coach="nav-snap"
-                  className="flex h-full flex-col items-center justify-end pb-1"
+                  className="flex h-full flex-col items-center justify-end gap-0.5 pb-1.5"
                 >
                   <span
-                    className={`-mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-kova-orange text-kova-dark shadow-[0_6px_16px_rgba(23,33,29,0.28)] ring-4 ring-kova-green ${
+                    className={`-mt-2 flex h-10 w-10 items-center justify-center rounded-full bg-kova-orange text-kova-dark shadow-[0_3px_8px_rgba(23,33,29,0.22)] ring-2 ring-kova-green ${
                       active ? "ring-white/70" : ""
                     }`}
                   >
-                    <CameraNavIcon size={26} />
+                    <CameraNavIcon size={20} />
                   </span>
-                  <span className="text-[11px] font-semibold text-kova-orange">
+                  <span className="text-[11px] font-semibold text-kova-orange sm:text-xs">
                     {item.label}
                   </span>
                 </Link>
@@ -92,7 +92,7 @@ export function BottomNav() {
                       ? "nav-shop"
                       : undefined
                 }
-                className={`flex h-full flex-col items-center justify-end gap-0.5 px-0.5 pb-1.5 text-[10px] font-semibold sm:text-xs ${
+                className={`flex h-full flex-col items-center justify-end gap-0.5 px-0.5 pb-1.5 text-[11px] font-semibold sm:text-xs ${
                   active ? "text-kova-orange" : "text-white"
                 }`}
               >
@@ -117,21 +117,21 @@ function NavMark({
   if (brand === "home") {
     return (
       <NavIconSlot>
-        <OverviewNavIcon />
+        <OverviewNavIcon size={22} />
       </NavIconSlot>
     );
   }
   if (brand === "post") {
-    return <PlusNavIcon size={20} />;
+    return <PlusNavIcon size={22} />;
   }
   if (brand === "inbox") {
-    return <InboxNavIcon size={10} />;
+    return <InboxNavIcon size={14} />;
   }
   if (brand === "shop") {
     return (
       <svg
-        width="20"
-        height="20"
+        width="22"
+        height="22"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"

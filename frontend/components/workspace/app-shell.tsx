@@ -49,7 +49,7 @@ export function AppShell({
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Topbar />
-        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-[calc(5.25rem+env(safe-area-inset-bottom))] lg:pb-0">
+        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">
           {children}
         </main>
         <BottomNav />
