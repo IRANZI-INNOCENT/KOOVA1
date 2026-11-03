@@ -3,13 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { InboxNavIcon } from "@/components/social/platform-brand";
 import {
-  InboxNavIcon,
-  SocialNavIcon,
-} from "@/components/social/platform-brand";
-import {
+  CameraNavIcon,
   NavIconSlot,
   OverviewNavIcon,
+  PlusNavIcon,
 } from "@/components/workspace/nav-icon-slot";
 import { Logo } from "@/components/ui/logo";
 
@@ -46,7 +45,7 @@ function NavEmoji({
   );
 }
 
-/** Primary IA: Home · Post · Inbox · Shop · Settings */
+/** Primary IA: Home · Post · Snap · Inbox · Shop. Settings stays under Account. */
 const navigationItems: NavigationItem[] = [
   {
     label: "Home",
@@ -63,7 +62,16 @@ const navigationItems: NavigationItem[] = [
     href: "/workspace/social",
     icon: (
       <NavIconSlot>
-        <SocialNavIcon size={15} />
+        <PlusNavIcon size={18} />
+      </NavIconSlot>
+    ),
+  },
+  {
+    label: "Snap",
+    href: "/workspace/commerce/snap-to-sell",
+    icon: (
+      <NavIconSlot>
+        <CameraNavIcon size={18} />
       </NavIconSlot>
     ),
   },
@@ -109,6 +117,12 @@ export function Sidebar({
   const pathname = usePathname();
 
   function isActive(item: NavigationItem): boolean {
+    if (item.href === "/workspace/commerce") {
+      return (
+        pathname.startsWith("/workspace/commerce") &&
+        !pathname.startsWith("/workspace/commerce/snap-to-sell")
+      );
+    }
     if (item.exact || item.href === "/workspace") {
       return pathname === "/workspace";
     }
@@ -152,19 +166,33 @@ export function Sidebar({
                 data-coach={
                   item.href === "/workspace/social"
                     ? "nav-post"
-                    : item.href === "/workspace/commerce"
-                      ? "nav-shop"
-                      : undefined
+                    : item.href === "/workspace/commerce/snap-to-sell"
+                      ? "nav-snap"
+                      : item.href === "/workspace/commerce"
+                        ? "nav-shop"
+                        : undefined
                 }
                 className={`flex items-center rounded-md py-2 pl-2.5 pr-2.5 text-[13px] font-medium transition-colors ${
                   collapsed ? "justify-center px-2.5" : "gap-2.5"
                 } ${
-                  active
-                    ? "bg-kova-orange font-semibold text-kova-dark"
-                    : "text-white/85 hover:bg-white/10 hover:text-white"
+                  item.href === "/workspace/commerce/snap-to-sell"
+                    ? active
+                      ? "bg-kova-orange font-semibold text-kova-dark"
+                      : "text-kova-orange hover:bg-white/10"
+                    : active
+                      ? "bg-kova-orange font-semibold text-kova-dark"
+                      : "text-white/85 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                <span className={active ? "text-kova-dark" : "text-white/90"}>
+                <span
+                  className={
+                    active
+                      ? "text-kova-dark"
+                      : item.href === "/workspace/commerce/snap-to-sell"
+                        ? "text-kova-orange"
+                        : "text-white/90"
+                  }
+                >
                   {item.icon}
                 </span>
                 {!collapsed && item.label}

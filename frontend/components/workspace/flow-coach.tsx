@@ -55,7 +55,7 @@ const STEPS: Record<
     title: "Add a product",
     body: "Snap a photo. KCOVA writes the listing.",
     href: "/workspace/commerce/snap-to-sell",
-    nav: "nav-shop",
+    nav: "nav-snap",
   },
   post: {
     title: "Create a post",
