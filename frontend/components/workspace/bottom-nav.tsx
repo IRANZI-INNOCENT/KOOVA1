@@ -48,6 +48,13 @@ export function BottomNav() {
                 href={item.href}
                 prefetch={true}
                 aria-current={active ? "page" : undefined}
+                data-coach={
+                  item.href === "/workspace/social"
+                    ? "nav-post"
+                    : item.href === "/workspace/commerce"
+                      ? "nav-shop"
+                      : undefined
+                }
                 className={`flex h-full flex-col items-center justify-center gap-0.5 px-0.5 text-[10px] font-semibold sm:text-xs ${
                   active ? "text-kova-orange" : "text-white"
                 }`}

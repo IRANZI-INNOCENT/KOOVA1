@@ -387,6 +387,8 @@ export default function BusinessSetupPage() {
                 <Button
                   type="submit"
                   disabled={saving}
+                  data-coach="setup"
+                  data-coach-priority="page"
                 >
                   {saving ? "Saving..." : "Continue"}
                 </Button>

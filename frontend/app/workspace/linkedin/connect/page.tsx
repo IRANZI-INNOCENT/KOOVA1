@@ -233,6 +233,8 @@ function ConnectContent() {
           actions={
             <button
               type="button"
+              data-coach="li-connect"
+              data-coach-priority="page"
               disabled={loading || profileLoading || linkedin?.configured === false}
               onClick={connect}
               className="inline-flex h-10 items-center gap-2 rounded-md border border-kova-border bg-white px-3 text-sm font-semibold text-kova-dark transition hover:border-kova-dark disabled:opacity-60"

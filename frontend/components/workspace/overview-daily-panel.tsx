@@ -32,6 +32,13 @@ export function OverviewActionPanel({
           <li key={item.id}>
             <Link
               href={item.href}
+              data-coach={
+                item.id === "social-connect"
+                  ? "connect"
+                  : item.id === "no-products"
+                    ? "product"
+                    : undefined
+              }
               className="flex items-start gap-3 px-4 py-3 transition hover:bg-kova-background/80 sm:px-5"
             >
               <span

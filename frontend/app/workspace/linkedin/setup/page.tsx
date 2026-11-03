@@ -219,7 +219,13 @@ export default function LinkedInSetupPage() {
             )}
           </div>
 
-          <Button type="submit" className="w-full sm:w-auto" disabled={saving}>
+          <Button
+            type="submit"
+            className="w-full sm:w-auto"
+            disabled={saving}
+            data-coach="li-setup"
+            data-coach-priority="page"
+          >
             {saving ? "Saving…" : "Continue to LinkedIn workspace"}
           </Button>
         </form>

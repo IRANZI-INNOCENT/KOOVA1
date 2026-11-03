@@ -149,6 +149,13 @@ export function Sidebar({
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 title={item.label}
+                data-coach={
+                  item.href === "/workspace/social"
+                    ? "nav-post"
+                    : item.href === "/workspace/commerce"
+                      ? "nav-shop"
+                      : undefined
+                }
                 className={`flex items-center rounded-md py-2 pl-2.5 pr-2.5 text-[13px] font-medium transition-colors ${
                   collapsed ? "justify-center px-2.5" : "gap-2.5"
                 } ${

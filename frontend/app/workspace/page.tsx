@@ -260,6 +260,7 @@ export default function OverviewPage() {
                   description: "Facebook or Instagram",
                   href: "/workspace/social/channels",
                   done: socialConnected,
+                  coach: "connect",
                 },
                 {
                   letter: "2",
@@ -270,6 +271,7 @@ export default function OverviewPage() {
                       ? "/workspace/commerce/products"
                       : "/workspace/commerce/snap-to-sell",
                   done: products.length > 0,
+                  coach: "product",
                 },
                 {
                   letter: "3",
@@ -277,6 +279,7 @@ export default function OverviewPage() {
                   description: "Product, tip, or short video",
                   href: "/workspace/social/studio",
                   done: publishedContent.length > 0,
+                  coach: "post",
                 },
               ]}
             />

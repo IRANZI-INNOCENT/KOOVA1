@@ -328,6 +328,8 @@ export default function ChannelsPage() {
         <div className="flex flex-wrap items-center justify-end gap-2">
           <button
             type="button"
+            data-coach="connect"
+            data-coach-priority="page"
             onClick={() => connectMeta("facebook")}
             className="inline-flex h-10 items-center gap-2 rounded-md border border-kova-border bg-white px-3 text-sm font-semibold text-kova-dark transition hover:border-kova-orange"
           >

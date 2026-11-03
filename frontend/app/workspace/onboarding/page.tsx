@@ -166,7 +166,7 @@ export default function OnboardingPage() {
           </p>
         )}
 
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
+        <div className="mt-8 grid gap-4 md:grid-cols-3" data-coach="choose">
           {choices.map((item) => {
             const busy = saving === item.path;
             return (

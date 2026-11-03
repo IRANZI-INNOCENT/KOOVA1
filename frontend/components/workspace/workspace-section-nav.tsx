@@ -7,6 +7,7 @@ export interface SectionTab {
   href: string;
   label: string;
   exact?: boolean;
+  coach?: string;
 }
 
 interface WorkspaceSectionNavProps {
@@ -47,6 +48,7 @@ export function WorkspaceSectionNav({
                 <Link
                   href={tab.href}
                   prefetch
+                  data-coach={tab.coach}
                   className={navLinkClass(active)}
                 >
                   {tab.label}

@@ -1369,6 +1369,8 @@ export default function SnapToSellModal({
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <button
                   type="button"
+                  data-coach="product"
+                  data-coach-priority="page"
                   onClick={openManualCamera}
                   className="flex min-h-[130px] flex-col items-center justify-center gap-3 border border-[#176B4D] bg-[#176B4D] px-5 py-5 text-sm font-semibold text-white transition hover:bg-[#12583F]"
                 >

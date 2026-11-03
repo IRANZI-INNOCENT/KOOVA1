@@ -8,10 +8,10 @@ import { LinkedInProfileGate } from "@/components/linkedin/linkedin-profile-gate
 import { AppShell } from "@/components/workspace/app-shell";
 
 const tabs = [
-  { href: "/workspace/linkedin/topic-week", label: "Posts" },
-  { href: "/workspace/linkedin/event", label: "Moment" },
-  { href: "/workspace/linkedin/calendar", label: "Calendar" },
-  { href: "/workspace/linkedin/connect", label: "Connect" },
+  { href: "/workspace/linkedin/topic-week", label: "Posts", coach: "" },
+  { href: "/workspace/linkedin/event", label: "Moment", coach: "li-post" },
+  { href: "/workspace/linkedin/calendar", label: "Calendar", coach: "" },
+  { href: "/workspace/linkedin/connect", label: "Connect", coach: "li-connect" },
 ];
 
 export default function LinkedInLayout({ children }: { children: ReactNode }) {
@@ -34,6 +34,7 @@ export default function LinkedInLayout({ children }: { children: ReactNode }) {
                   <Link
                     key={tab.href}
                     href={tab.href}
+                    data-coach={tab.coach || undefined}
                     className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition ${
                       active
                         ? "border-kova-green text-kova-green"

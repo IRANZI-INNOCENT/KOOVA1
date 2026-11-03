@@ -509,6 +509,8 @@ export default function ContentStudioPage() {
 
             <button
               type="button"
+              data-coach="post"
+              data-coach-priority="page"
               onClick={generateCampaign}
               disabled={generating}
               className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-kova-orange px-5 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e] disabled:opacity-60 sm:h-11 sm:w-auto"

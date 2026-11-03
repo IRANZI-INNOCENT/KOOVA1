@@ -150,7 +150,13 @@ export default function EventMomentPage() {
                 disabled={loading}
               />
             </label>
-            <Button type="button" disabled={loading} onClick={writePost}>
+            <Button
+              type="button"
+              disabled={loading}
+              data-coach="li-post"
+              data-coach-priority="page"
+              onClick={writePost}
+            >
               {loading ? "KCOVA is writing…" : "Write my post"}
             </Button>
           </div>

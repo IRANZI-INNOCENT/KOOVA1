@@ -6,6 +6,7 @@ export interface KovaStep {
   description?: string;
   href: string;
   done?: boolean;
+  coach?: string;
 }
 
 interface KovaStepsGuideProps {
@@ -36,6 +37,7 @@ export function KovaStepsGuide({
               <Link
                 href={step.href}
                 title={step.description}
+                data-coach={step.coach}
                 className={`px-1 py-0.5 transition ${
                   step.done
                     ? "text-kova-green line-through decoration-kova-green/40"

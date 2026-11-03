@@ -7,8 +7,8 @@ import { WorkspaceSectionNav } from "@/components/workspace/workspace-section-na
 
 const TABS = [
   { href: "/workspace/social", label: "Post", exact: true },
-  { href: "/workspace/social/channels", label: "Connect" },
-  { href: "/workspace/social/studio", label: "Create" },
+  { href: "/workspace/social/channels", label: "Connect", coach: "connect" },
+  { href: "/workspace/social/studio", label: "Create", coach: "post" },
   { href: "/workspace/social/calendar", label: "Calendar" },
 ] as const;
 

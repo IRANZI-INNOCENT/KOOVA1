@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 
 import { BottomNav } from "./bottom-nav";
+import { FlowCoach } from "./flow-coach";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 
@@ -52,6 +53,7 @@ export function AppShell({
           {children}
         </main>
         <BottomNav />
+        <FlowCoach />
       </div>
 
     </div>
