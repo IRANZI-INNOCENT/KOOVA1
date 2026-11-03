@@ -34,10 +34,12 @@ from apps.commerce.services.storefront import (
 )
 from apps.content.models import Content, ContentBatch
 from apps.content.services.content_quality import (
+    DESTINATION_COPY_RULE,
     assign_slide_media,
     can_publish_native_carousel,
     formats_for_channel,
     image_count,
+    place_destination,
     sanitize_copy,
 )
 from apps.kova_ai.services.openrouter import OpenRouterError, OpenRouterService
@@ -201,6 +203,8 @@ def draft_campaign(
             caption = format_skit_into_caption(caption, skit)
             slides = skit_beats_as_slides(skit)
 
+        destination = facts.get("destination_url") or absolute_product_url(product) or ""
+        caption, cta = place_destination(caption, cta, destination)
         content = Content.objects.create(
             business=business,
             batch=batch,
@@ -260,6 +264,12 @@ def _build_facts(business: Business, note: str, product: Product | None) -> dict
     }
     if note.strip():
         facts["owner_brief"] = note.strip()
+
+    from apps.commerce.services.storefront import business_destination_url
+
+    destination = business_destination_url(business)
+    if destination:
+        facts["destination_url"] = destination
 
     profile = BusinessProfile.objects.filter(business=business).first()
     if profile:
@@ -364,6 +374,7 @@ def _call_ai(
         "Do not invent prices, stock, awards, or offers not in the facts. "
         "When product.public_url is present, end the caption with that exact address "
         "and do not write any other web address. "
+        f"{DESTINATION_COPY_RULE} "
         "Reply with one JSON object and no markdown."
         f"{locale_system_addon(facts)}"
         f"{reel_skit_system_addon(facts)}"

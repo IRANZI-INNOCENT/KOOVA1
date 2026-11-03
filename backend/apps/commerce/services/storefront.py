@@ -121,6 +121,56 @@ def absolute_media_url(url: str) -> str:
     return f"{base.rstrip('/')}{path}"
 
 
+def _public_site_base() -> str:
+    """Frontend origin that customers can open. Local bind addresses are skipped."""
+
+    base = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
+    if not base.startswith(("http://", "https://")):
+        return ""
+    host = base.split("://", 1)[-1].split("/", 1)[0].split(":")[0].lower()
+    if host in {"localhost", "127.0.0.1", "0.0.0.0", "::1"}:
+        return ""
+    return base
+
+
+def business_destination_url(business) -> str:
+    """The one public address a post may send people to.
+
+    The business website comes first. A published KCOVA store is the fallback.
+    """
+
+    if business is None:
+        return ""
+    from apps.business_brain.models import BusinessProfile
+
+    profile = BusinessProfile.objects.filter(business=business).first()
+    website = (getattr(profile, "website", "") or "").strip()
+    if website:
+        if not website.startswith(("http://", "https://")):
+            website = f"https://{website}"
+        return website
+
+    page = CommercePage.objects.filter(business=business, is_published=True).first()
+    store_path = store_paths(page).get("store_path")
+    base = _public_site_base()
+    if not store_path or not base:
+        return ""
+    return f"{base}{store_path}"
+
+
+def owner_destination_urls(user_id: int) -> list[str]:
+    """Distinct public addresses across the businesses this person owns."""
+
+    from apps.businesses.models import Business
+
+    found: list[str] = []
+    for business in Business.objects.filter(owner_id=user_id).order_by("id"):
+        url = business_destination_url(business)
+        if url and url not in found:
+            found.append(url)
+    return found
+
+
 def absolute_product_url(product: Product | None) -> str:
     """Full public address for one product page."""
 

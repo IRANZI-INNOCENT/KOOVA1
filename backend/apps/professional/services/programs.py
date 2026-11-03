@@ -236,12 +236,24 @@ DRAFTS_PROMPT = (
     "outline point in carousel_slides as plain sentences (no \"Slide 1\", no deck labels).\n"
     "Keep each text post under 2800 characters. Strong hook in line 1.\n"
     "Each post should connect to the primary pillar when one is listed.\n"
-    "When program input mentions event photos or image hints, weave them into the event post naturally.\n\n"
+    "When program input mentions event photos or image hints, weave them into the event post naturally.\n"
+    "If a public URL is provided and the post invites a visit, put that exact URL "
+    "on its own line after the story. If no public URL is provided, leave websites, "
+    "platforms, and links out of the copy.\n\n"
     "Return JSON only:\n"
     '{"posts": [{"arc_index": 1, "post_role": "...", "format": "text|carousel_outline", '
     '"title": "...", "body": "full post text for text format", '
     '"carousel_slides": ["First outline point as a sentence.", "..."]}]}\n'
 )
+
+
+def _public_url_line(profile: ProfessionalProfile) -> str:
+    from apps.commerce.services.storefront import owner_destination_urls
+
+    urls = owner_destination_urls(profile.user_id)
+    if len(urls) == 1:
+        return f"Public URL: {urls[0]}\n"
+    return "Public URL: none\n"
 
 
 def generate_drafts_for_program(program: ProfessionalProgram) -> list[ProfessionalPost]:
@@ -266,6 +278,7 @@ def generate_drafts_for_program(program: ProfessionalProgram) -> list[Profession
         extra=(
             f"Program type: {program.program_type}\n"
             f"Program title: {program.title or plan.get('title', '')}\n"
+            f"{_public_url_line(profile)}"
             f"Plan:\n{json.dumps(plan, indent=2)}\n"
             f"Program input:\n{json.dumps(program.input_data, indent=2)}"
             f"{image_note}"

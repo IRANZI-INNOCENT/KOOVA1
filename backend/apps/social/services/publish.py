@@ -16,12 +16,19 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from apps.commerce.services.storefront import absolute_media_url, append_product_link
+from apps.commerce.services.storefront import (
+    absolute_media_url,
+    absolute_product_url,
+    append_product_link,
+    business_destination_url,
+)
 from apps.content.models import Content
 from apps.content.services.content_quality import (
     can_publish_native_carousel,
     carousel_image_urls_from_content,
+    first_http_url,
     merge_slide_captions_into_body,
+    place_destination,
     sanitize_copy,
     strip_swipe_language,
 )
@@ -255,6 +262,14 @@ def dispatch_post(post: SocialPost) -> SocialPost:
             image_url = first
             image_urls = [first] if first else []
 
+    link = ""
+    if (
+        account.platform == SocialAccount.Platform.FACEBOOK_PAGE
+        and not video_url
+        and not image_url
+        and not image_urls
+    ):
+        link = first_http_url(caption)
     try:
         result = MetaAdapter().publish_post(
             account,
@@ -262,6 +277,7 @@ def dispatch_post(post: SocialPost) -> SocialPost:
             image_url=image_url,
             image_urls=image_urls or None,
             video_url=video_url,
+            link=link,
         )
     except Exception as exc:
         result_ok = False
@@ -497,6 +513,12 @@ def outgoing_text(content, *, native_carousel: bool | None = None) -> str:
     else:
         body = strip_swipe_language(caption)
 
+    product = getattr(content, "product", None)
+    destination = absolute_product_url(product) or business_destination_url(
+        getattr(content, "business", None)
+    )
+    body, action = place_destination(body, action, destination)
+
     parts: list[str] = []
     if body:
         parts.append(body)
@@ -506,7 +528,10 @@ def outgoing_text(content, *, native_carousel: bool | None = None) -> str:
         tags = " ".join(f"#{tag.lstrip('#')}" for tag in content.hashtags if tag)
         if tags:
             parts.append(tags)
-    return append_product_link("\n\n".join(parts), getattr(content, "product", None))
+    text = "\n\n".join(parts)
+    if product is not None:
+        return append_product_link(text, product)
+    return text
 
 
 def parse_when(value) -> datetime | None:

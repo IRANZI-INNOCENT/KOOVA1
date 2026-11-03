@@ -28,6 +28,25 @@ _SWIPE_PATTERNS = [
 
 _MULTI_SPACE = re.compile(r"[ \t]{2,}")
 _MULTI_NL = re.compile(r"\n{3,}")
+_HTTP_URL = re.compile(r"https?://[^\s<>\"']+", re.IGNORECASE)
+# A line that sends the reader somewhere. Credible only when a real URL is with it.
+_POINTS_SOMEWHERE = re.compile(
+    r"\b(?:visit|check out|head over to|head to|go to|find us at|find us on)\b"
+    r".{0,80}\b(?:platform|website|site|webpage|page|store|shop|app)\b"
+    r"|\blink in (?:the )?bio\b"
+    r"|\b(?:click|tap) (?:the |our )?link\b"
+    r"|\b(?:the |our )?link (?:below|above|in the (?:comments|bio))\b",
+    re.IGNORECASE,
+)
+
+DESTINATION_COPY_RULE = (
+    "When destination_url is provided and the post invites a visit, "
+    "put that exact URL on its own line at the end of the caption. "
+    "A line such as “visit our platform”, “our website”, “link in bio”, "
+    "or “click the link” is allowed only together with that exact URL. "
+    "When destination_url is absent, invite a comment or a message, "
+    "and leave websites, platforms, and links out of the copy."
+)
 
 
 def image_count(urls: list[str] | None) -> int:
@@ -65,6 +84,67 @@ def strip_swipe_language(text: str) -> str:
     cleaned = _MULTI_SPACE.sub(" ", cleaned)
     cleaned = _MULTI_NL.sub("\n\n", cleaned)
     return cleaned.strip(" \n\t-–—")
+
+
+def first_http_url(text: str) -> str:
+    match = _HTTP_URL.search(text or "")
+    if not match:
+        return ""
+    return match.group(0).rstrip(".,);]")
+
+
+def points_at_a_destination(text: str) -> bool:
+    return bool(_POINTS_SOMEWHERE.search(text or ""))
+
+
+def _drop_unlinked_destination(text: str) -> str:
+    """Remove sentences that send people somewhere when no address exists."""
+
+    kept_lines: list[str] = []
+    for line in (text or "").splitlines():
+        if first_http_url(line):
+            kept_lines.append(line)
+            continue
+        sentences = re.split(r"(?<=[.!?])\s+", line.strip())
+        kept = [
+            sentence
+            for sentence in sentences
+            if sentence.strip() and not _POINTS_SOMEWHERE.search(sentence)
+        ]
+        rebuilt = " ".join(kept).strip()
+        if rebuilt:
+            kept_lines.append(rebuilt)
+    cleaned = _MULTI_NL.sub("\n\n", "\n".join(kept_lines))
+    return cleaned.strip()
+
+
+def ensure_real_destination(text: str, url: str) -> str:
+    """A visit invitation ships with the real address, or it does not ship."""
+
+    body = (text or "").strip()
+    link = (url or "").strip()
+    if not body or not points_at_a_destination(body):
+        return body
+    if link and link in body:
+        return body
+    if link:
+        return f"{body}\n\n{link}"
+    return _drop_unlinked_destination(body)
+
+
+def place_destination(
+    caption: str,
+    call_to_action: str,
+    url: str,
+) -> tuple[str, str]:
+    """Keep the link on the caption when the call to action is the visit."""
+
+    body = (caption or "").strip()
+    action = (call_to_action or "").strip()
+    if points_at_a_destination(action):
+        merged = "\n\n".join(part for part in (body, action) if part)
+        return ensure_real_destination(merged, url), ""
+    return ensure_real_destination(body, url), action
 
 
 def sanitize_copy(

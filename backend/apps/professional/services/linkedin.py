@@ -362,8 +362,29 @@ def outbound_text(post: ProfessionalPost) -> str:
     if post.format == ProfessionalPost.Format.CAROUSEL_OUTLINE:
         from apps.professional.services.carousel_copy import linkedin_carousel_copy
 
-        return linkedin_carousel_copy(post.body, post.carousel_slides)
-    return post.body or ""
+        text = linkedin_carousel_copy(post.body, post.carousel_slides)
+    else:
+        text = post.body or ""
+    return _with_real_destination(post, text)
+
+
+def _with_real_destination(post: ProfessionalPost, text: str) -> str:
+    """Attach the owner's only public address when the copy sends people there."""
+
+    from apps.commerce.services.storefront import owner_destination_urls
+    from apps.content.services.content_quality import ensure_real_destination
+
+    profile_id = getattr(post, "profile_id", None)
+    if not profile_id:
+        return text
+    try:
+        user_id = post.profile.user_id
+    except Exception:
+        return text
+    urls = owner_destination_urls(user_id)
+    if len(urls) != 1:
+        return ensure_real_destination(text, "")
+    return ensure_real_destination(text, urls[0])
 
 
 def publish_text_post(

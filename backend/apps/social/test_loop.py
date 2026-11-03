@@ -350,6 +350,32 @@ class LoopTests(TestCase):
             text,
         )
 
+    def test_visit_our_platform_publishes_the_business_website(self):
+        from apps.business_brain.models import BusinessProfile
+
+        BusinessProfile.objects.create(
+            business=self.business,
+            website="https://skills.example",
+        )
+        content = Content.objects.create(
+            business=self.business,
+            platform="facebook",
+            content_type="post",
+            caption=(
+                "A generic CV rarely hits the mark.\n\n"
+                "Visit our platform to start refining your professional profile today."
+            ),
+            hashtags=["CareerGrowth"],
+        )
+        text = outgoing_text(content)
+        self.assertIn("https://skills.example", text)
+        self.assertIn("Visit our platform", text)
+        self.assertIn("#CareerGrowth", text)
+        self.assertLess(
+            text.index("Visit our platform"),
+            text.index("https://skills.example"),
+        )
+
     def test_performance_counts_messages(self):
         record_inbound(
             business=self.business,

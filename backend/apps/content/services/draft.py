@@ -26,11 +26,17 @@ from apps.business_brain.models import (
 from apps.business_brain.services.draft import _parse_json
 from apps.businesses.models import Business
 from apps.commerce.models import Product
-from apps.commerce.services.storefront import absolute_product_url, append_product_link
+from apps.commerce.services.storefront import (
+    absolute_product_url,
+    append_product_link,
+    business_destination_url,
+)
 from apps.content.models import Content
 from apps.content.services.content_quality import (
+    DESTINATION_COPY_RULE,
     assign_slide_media,
     can_publish_native_carousel,
+    place_destination,
     sanitize_copy,
 )
 from apps.kova_ai.services.openrouter import OpenRouterError, OpenRouterService
@@ -115,6 +121,14 @@ def draft_post(
         skit = result.get("skit_brief")
         result["caption"] = format_skit_into_caption(result["caption"], skit)
         result["slides"] = skit_beats_as_slides(skit)
+    destination = facts.get("destination_url") or ""
+    if product is not None:
+        destination = absolute_product_url(product) or destination
+    result["caption"], result["call_to_action"] = place_destination(
+        result["caption"],
+        result["call_to_action"],
+        destination,
+    )
     if product is not None:
         result["caption"] = append_product_link(result["caption"], product)
         result["product_url"] = absolute_product_url(product)
@@ -151,6 +165,10 @@ def _build_facts(
     }
     if note.strip():
         facts["owner_note"] = note.strip()
+
+    destination = business_destination_url(business)
+    if destination:
+        facts["destination_url"] = destination
 
     profile = BusinessProfile.objects.filter(business=business).first()
     if profile:
@@ -224,6 +242,7 @@ def _system_prompt(content_type: str, facts: dict | None = None) -> str:
         "Do not invent prices, addresses, awards, stock levels, or offers "
         "that were not provided. "
         "Write the way the brand voice asks. "
+        f"{DESTINATION_COPY_RULE} "
         "Reply with one JSON object and no markdown."
         f"{locale_system_addon(facts)}"
     )

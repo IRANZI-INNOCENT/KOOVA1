@@ -14,9 +14,11 @@ from apps.content.services.campaign import (
     get_connected_channels,
 )
 from apps.content.services.content_quality import (
+    DESTINATION_COPY_RULE,
     can_publish_native_carousel,
     formats_for_channel,
     image_count,
+    place_destination,
     sanitize_copy,
 )
 from apps.social.models import SocialAccount
@@ -154,9 +156,10 @@ def _call_organic_ai(
         "Create ORGANIC content — not a product ad. "
         "When multiple accounts are listed, tailor copy to each account_name. "
         "Goals: educate, inform, build trust, and stay top of mind. "
-        "Do not invent products, prices, discounts, or URLs. "
+        "Do not invent products, prices, discounts, or a URL that is not in the facts. "
         "Do not name specific catalog SKUs or prices. "
-        "Do not push a hard sell; one soft CTA is enough (visit, DM, follow). "
+        "One soft close is enough: a comment, a message, or the destination_url when it is in the facts. "
+        f"{DESTINATION_COPY_RULE} "
         f"{carousel_note}"
         "Each format must feel native to its platform. "
         "Reply with one JSON object and no markdown."
@@ -291,6 +294,11 @@ def draft_organic_campaign(
             caption = format_skit_into_caption(caption, skit)
             slides = skit_beats_as_slides(skit)
 
+        caption, cta = place_destination(
+            caption,
+            cta,
+            str(facts.get("destination_url") or ""),
+        )
         content = Content.objects.create(
             business=business,
             batch=batch,

@@ -107,6 +107,16 @@ class CreateContentTool(Tool):
             return self._failure("call_to_action must be a string.")
 
         business_id = context.business["id"]
+        from apps.businesses.models import Business
+        from apps.commerce.services.storefront import business_destination_url
+        from apps.content.services.content_quality import place_destination
+
+        business = Business.objects.filter(id=business_id).first()
+        caption, call_to_action = place_destination(
+            caption,
+            call_to_action.strip(),
+            business_destination_url(business) if business is not None else "",
+        )
 
         try:
             content = Content.objects.create(
@@ -114,7 +124,7 @@ class CreateContentTool(Tool):
                 platform=platform.lower(),
                 content_type=content_type.lower(),
                 caption=caption,
-                call_to_action=call_to_action.strip(),
+                call_to_action=call_to_action,
                 status=Content.Status.DRAFT,
                 created_by_ai=True,
             )

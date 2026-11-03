@@ -3,8 +3,10 @@ from django.test import SimpleTestCase
 from apps.content.services.content_quality import (
     assign_slide_media,
     can_publish_native_carousel,
+    ensure_real_destination,
     formats_for_channel,
     merge_slide_captions_into_body,
+    place_destination,
     sanitize_copy,
     strip_swipe_language,
 )
@@ -12,6 +14,45 @@ from apps.social.models import SocialAccount
 
 
 class ContentQualityTests(SimpleTestCase):
+    def test_visit_line_gains_the_real_address(self):
+        text = ensure_real_destination(
+            "You have the skills.\n\n"
+            "Visit our platform to start refining your professional profile today.",
+            "https://studiocv.example",
+        )
+        self.assertIn("Visit our platform", text)
+        self.assertIn("https://studiocv.example", text)
+
+    def test_visit_line_without_an_address_is_removed(self):
+        text = ensure_real_destination(
+            "You have the skills. Let's make sure they are front and center.\n\n"
+            "Visit our platform to start refining your professional profile today.",
+            "",
+        )
+        self.assertNotIn("platform", text.lower())
+        self.assertIn("front and center", text)
+
+    def test_talking_about_the_platform_is_not_treated_as_a_visit(self):
+        original = "Building our platform taught me to keep the brief short."
+        self.assertEqual(
+            ensure_real_destination(original, "https://skills.example"),
+            original,
+        )
+
+    def test_a_post_that_does_not_invite_a_visit_stays_as_written(self):
+        original = "A generic CV rarely hits the mark. Tailor it to the role."
+        self.assertEqual(ensure_real_destination(original, "https://studiocv.example"), original)
+
+    def test_visit_call_to_action_moves_onto_the_caption_with_the_link(self):
+        caption, action = place_destination(
+            "Your CV is the first handshake.",
+            "Visit our website.",
+            "https://skills.example",
+        )
+        self.assertIn("https://skills.example", caption)
+        self.assertIn("Visit our website.", caption)
+        self.assertEqual(action, "")
+
     def test_strip_swipe_language(self):
         text = strip_swipe_language(
             "Swipe through to see why this bag works. Order now."
