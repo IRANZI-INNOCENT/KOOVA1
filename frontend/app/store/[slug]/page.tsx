@@ -89,7 +89,7 @@ function OfferingCard({
   const image = productImage(product);
   return (
     <Link href={`/store/${slug}/${product.slug}`} className="group block">
-      <div className="aspect-square overflow-hidden bg-[var(--store-secondary-soft)]">
+      <div className="aspect-square overflow-hidden rounded-md border border-kova-orange bg-[var(--store-secondary-soft)]">
         {image?.url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -287,7 +287,7 @@ export default async function PublicStorePage({
               <img
                 src={aboutPhoto}
                 alt=""
-                className="mt-6 h-28 w-full rounded-lg object-cover"
+                className="mt-6 h-28 w-full rounded-md border border-kova-orange object-cover"
               />
             ) : null}
           </aside>
