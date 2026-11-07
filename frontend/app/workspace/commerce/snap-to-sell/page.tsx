@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { useWorkspace } from "@/lib/workspace-context";
@@ -15,8 +16,10 @@ const SnapToSellModal = dynamic(
   },
 );
 
-export default function SnapToSellPage() {
+function SnapToSellBody() {
   const router = useRouter();
+  const params = useSearchParams();
+  const manual = params.get("entry") === "manual";
   const {
     business,
     businessId,
@@ -70,11 +73,28 @@ export default function SnapToSellPage() {
     accessToken && (
       <SnapToSellModal
         open={true}
+        presentation="page"
+        initialStep={manual ? "manual" : "capture"}
+        allowManual={manual}
         onClose={handleClose}
         businessId={businessId}
         accessToken={accessToken}
         onCreated={handleCreated}
       />
     )
+  );
+}
+
+export default function SnapToSellPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className={WORKSPACE_PAGE}>
+          <p className="text-sm text-gray-500">Loading…</p>
+        </div>
+      }
+    >
+      <SnapToSellBody />
+    </Suspense>
   );
 }

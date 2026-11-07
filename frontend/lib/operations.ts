@@ -81,6 +81,7 @@ export interface OrderRecord {
   id: number;
   product: number | null;
   product_name: string;
+  offering_kind?: "product" | "service";
   customer_name: string;
   phone: string;
   note: string;

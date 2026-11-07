@@ -34,15 +34,18 @@ export default function OneWorkspaceSection() {
         />
 
         <div className="mt-12 grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:gap-14">
-          <div className="relative min-h-[300px] overflow-hidden lg:min-h-full">
+          <figure className="relative min-h-[320px] overflow-hidden lg:min-h-full">
             <Image
-              src="/landing/shop-owner.jpg"
-              alt="Business owner reviewing their day in the shop"
+              src="/landing/morning-shop.jpg"
+              alt="Shop owner checking her phone among folded cloth and a bag before opening"
               fill
-              className="object-cover"
+              className="object-cover object-[center_15%]"
               sizes="(max-width: 1024px) 100vw, 480px"
             />
-          </div>
+            <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-kova-dark/85 via-kova-dark/45 to-transparent px-5 pb-5 pt-16 text-sm font-medium leading-6 text-white">
+              Morning in the shop: who wrote, what sold, and what to post next.
+            </figcaption>
+          </figure>
 
           <div className="space-y-8">
             {areas.map((area) => (

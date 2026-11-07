@@ -26,6 +26,9 @@ interface SnapToSellModalProps {
   businessId: number;
   accessToken: string;
   onCreated?: (product: Product) => void;
+  presentation?: "dialog" | "page";
+  initialStep?: Step;
+  allowManual?: boolean;
 }
 
 type Step =
@@ -72,6 +75,9 @@ export default function SnapToSellModal({
   businessId,
   accessToken,
   onCreated,
+  presentation = "dialog",
+  initialStep = "capture",
+  allowManual = true,
 }: SnapToSellModalProps) {
   const cameraInputRef =
     useRef<HTMLInputElement | null>(null);
@@ -85,7 +91,7 @@ export default function SnapToSellModal({
   const manualCameraInputRef =
     useRef<HTMLInputElement | null>(null);
 
-  const [step, setStep] = useState<Step>("capture");
+  const [step, setStep] = useState<Step>(initialStep);
 
   const [images, setImages] = useState<ImagePreview[]>(
     [],
@@ -146,7 +152,7 @@ export default function SnapToSellModal({
       return;
     }
 
-    setStep("capture");
+    setStep(initialStep);
     setError("");
     setProduct(null);
     setSnapMode("single");
@@ -174,7 +180,7 @@ export default function SnapToSellModal({
     }
 
     setManualImagePreview(null);
-  }, [open]);
+  }, [open, initialStep]);
 
   /*
    * Clean up object URLs when the component is unmounted.
@@ -689,10 +695,14 @@ export default function SnapToSellModal({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close Snap to Sell"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xl leading-none text-gray-400 transition hover:bg-kova-background hover:text-kova-dark"
+          aria-label={presentation === "page" ? "Back to shop" : "Close Snap to Sell"}
+          className={
+            presentation === "page"
+              ? "shrink-0 text-sm font-semibold text-kova-green"
+              : "flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xl leading-none text-gray-400 transition hover:bg-kova-background hover:text-kova-dark"
+          }
         >
-          ×
+          {presentation === "page" ? "Shop" : "×"}
         </button>
       </div>
     );
@@ -733,8 +743,8 @@ export default function SnapToSellModal({
         </div>
         <p className="text-xs leading-5 text-gray-500">
           {offeringKind === "service"
-            ? "Photograph the work, the space, or the result. KCOVA writes a service people can book."
-            : "Photograph the item. KCOVA writes a product people can order."}
+            ? "Photograph the work or the result. You set the price next. The customer reaches you on WhatsApp."
+            : "Photograph the item. You set the price next. KCOVA writes the listing."}
         </p>
 
         {/* Camera input */}
@@ -758,11 +768,11 @@ export default function SnapToSellModal({
         />
 
         {images.length === 0 ? (
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <div className="flex flex-col gap-2">
             <button
               type="button"
               onClick={openCamera}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-kova-border bg-white px-3 py-2.5 text-sm font-semibold text-kova-dark transition hover:border-kova-dark sm:w-auto"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-[#176B4D] px-3 text-sm font-semibold text-white transition hover:bg-[#12583F]"
             >
               <CameraIcon />
               Take photo
@@ -770,19 +780,21 @@ export default function SnapToSellModal({
             <button
               type="button"
               onClick={openFilePicker}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-kova-border bg-white px-3 py-2.5 text-sm font-semibold text-kova-dark transition hover:border-kova-dark sm:w-auto"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-md border border-kova-border bg-white px-3 text-sm font-semibold text-kova-dark transition hover:border-kova-dark"
             >
               <GalleryIcon />
               From device
             </button>
-            <button
-              type="button"
-              onClick={openManualMode}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-kova-border bg-white px-3 py-2.5 text-sm font-semibold text-kova-dark transition hover:border-kova-dark sm:w-auto"
-            >
-              <PencilIcon />
-              Type it in
-            </button>
+            {allowManual ? (
+              <button
+                type="button"
+                onClick={openManualMode}
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-md border border-kova-border bg-white px-3 text-sm font-semibold text-kova-dark transition hover:border-kova-dark"
+              >
+                <PencilIcon />
+                Type it in
+              </button>
+            ) : null}
           </div>
         ) : (
           <>
@@ -928,6 +940,24 @@ export default function SnapToSellModal({
                 </div>
               )}
             </div>
+
+            {(snapMode === "single" || images.length === 1) && (
+              <label className="block">
+                <span className="text-sm font-semibold text-[#17211D]">
+                  Selling price
+                </span>
+                <input
+                  inputMode="decimal"
+                  value={price}
+                  onChange={(event) => setPrice(event.target.value)}
+                  placeholder="1800"
+                  className="mt-2 h-12 w-full border border-[#E5E7E5] px-4 text-sm text-[#17211D] outline-none focus:border-[#176B4D]"
+                />
+                <span className="mt-1 block text-xs text-gray-500">
+                  Whole shillings. KCOVA does not guess this.
+                </span>
+              </label>
+            )}
 
             {error && renderError()}
 
@@ -2133,28 +2163,40 @@ export default function SnapToSellModal({
    * ---------------------------------------------------------------
    */
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-kova-dark/50 p-0 sm:items-center sm:p-4">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="snap-to-sell-title"
-        className="flex max-h-[min(100dvh,720px)] w-full max-w-xl flex-col overflow-hidden rounded-t-xl bg-white shadow-xl sm:rounded-xl"
-      >
-        {renderHeader()}
+  const panel = (
+    <div
+      role={presentation === "page" ? undefined : "dialog"}
+      aria-modal={presentation === "page" ? undefined : true}
+      aria-labelledby="snap-to-sell-title"
+      className={
+        presentation === "page"
+          ? "flex min-h-[70vh] w-full flex-col overflow-hidden bg-white"
+          : "flex max-h-[min(100dvh,720px)] w-full max-w-xl flex-col overflow-hidden rounded-t-xl bg-white shadow-xl sm:rounded-xl"
+      }
+    >
+      {renderHeader()}
 
-        <div className="min-h-0 flex-1 overflow-y-auto bg-kova-background">
-          <div className="px-4 py-4 sm:px-5 sm:py-5">
-            {step === "capture" && renderCaptureStep()}
-            {step === "price" && renderPriceStep()}
-            {step === "processing" && renderProcessingStep()}
-            {step === "review" && renderReviewStep()}
-            {step === "batchReview" && renderBatchReviewStep()}
-            {step === "manual" && renderManualStep()}
-            {step === "live" && renderLiveStep()}
-          </div>
+      <div className="min-h-0 flex-1 overflow-y-auto bg-kova-background">
+        <div className="px-4 py-4 sm:px-5 sm:py-5">
+          {step === "capture" && renderCaptureStep()}
+          {step === "price" && renderPriceStep()}
+          {step === "processing" && renderProcessingStep()}
+          {step === "review" && renderReviewStep()}
+          {step === "batchReview" && renderBatchReviewStep()}
+          {step === "manual" && renderManualStep()}
+          {step === "live" && renderLiveStep()}
         </div>
       </div>
+    </div>
+  );
+
+  if (presentation === "page") {
+    return <div className="mx-auto w-full max-w-xl">{panel}</div>;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-kova-dark/50 p-0 sm:items-center sm:p-4">
+      {panel}
     </div>
   );
 }

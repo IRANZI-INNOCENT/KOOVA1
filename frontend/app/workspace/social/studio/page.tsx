@@ -77,6 +77,11 @@ export default function ContentStudioPage() {
     "product" | "organic" | "video"
   >("product");
   const [productId, setProductId] = useState("");
+
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("product");
+    if (id) setProductId(id);
+  }, []);
   const [organicSeeds, setOrganicSeeds] = useState<OrganicContentSeed[]>([]);
   const [selectedSeedId, setSelectedSeedId] = useState<string | null>(null);
   const [seedsLoading, setSeedsLoading] = useState(false);

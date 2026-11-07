@@ -74,6 +74,8 @@ export function buildOverviewActions(input: {
   dueFollowUps?: number;
   lowStockCount?: number;
   packingOrders?: number;
+  failedPosts?: number;
+  deadPages?: { id: number; name: string }[];
   socialConnected: boolean;
   approvedContentCount: number;
   pendingSocialActions: number;
@@ -82,6 +84,29 @@ export function buildOverviewActions(input: {
   totalProductCount: number;
 }): OverviewActionItem[] {
   const items: OverviewActionItem[] = [];
+
+  if ((input.failedPosts || 0) > 0) {
+    items.push({
+      id: "failed-posts",
+      title:
+        input.failedPosts === 1
+          ? "1 post did not go out"
+          : `${input.failedPosts} posts did not go out`,
+      detail: "Open Post and send them again.",
+      href: "/workspace/social",
+      priority: "high",
+    });
+  }
+
+  for (const page of input.deadPages ?? []) {
+    items.push({
+      id: `page-${page.id}`,
+      title: `Reconnect ${page.name}`,
+      detail: "This page is disconnected. Posts and messages from it have stopped.",
+      href: "/workspace/social/channels",
+      priority: "high",
+    });
+  }
 
   if ((input.dueFollowUps || 0) > 0) {
     items.push({
@@ -119,15 +144,26 @@ export function buildOverviewActions(input: {
     });
   }
 
-  for (const lead of input.newLeads.slice(0, 5)) {
+  const leadsByPerson = new Map<string, typeof input.newLeads>();
+  for (const lead of input.newLeads) {
     const name = lead.customer_name?.trim() || "Unnamed lead";
-    const detail = [lead.interest, lead.source]
+    const key = name.toLowerCase();
+    const group = leadsByPerson.get(key) ?? [];
+    group.push(lead);
+    leadsByPerson.set(key, group);
+  }
+  for (const group of Array.from(leadsByPerson.values()).slice(0, 5)) {
+    const name = group[0].customer_name?.trim() || "Unnamed lead";
+    const detail = [group[0].interest, group[0].source]
       .map((s) => s?.trim())
       .filter(Boolean)
       .join(" · ");
     items.push({
-      id: `lead-${lead.id}`,
-      title: `New lead: ${name}`,
+      id: `lead-${group[0].id}`,
+      title:
+        group.length === 1
+          ? `Reply to ${name}`
+          : `Reply to ${name} · ${group.length} messages`,
       detail: detail || undefined,
       href: "/workspace/inbox?tab=leads",
       priority: "high",

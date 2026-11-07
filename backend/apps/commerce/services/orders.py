@@ -59,6 +59,21 @@ def _transition_status(order: Order, previous: str, new_status: str) -> None:
     if previous == new_status:
         return
 
+    product = order.product
+    if (
+        product is not None
+        and getattr(product, "offering_kind", "product") == "service"
+        and new_status
+        in {
+            Order.Status.PACKING,
+            Order.Status.OUT_FOR_DELIVERY,
+            Order.Status.DELIVERED,
+        }
+    ):
+        raise OrderUpdateError(
+            "A service stays a message. It does not go through packing or delivery."
+        )
+
     entering_held = new_status in STOCK_HELD and previous not in STOCK_HELD
     leaving_held = previous in STOCK_HELD and new_status == Order.Status.CANCELLED
 

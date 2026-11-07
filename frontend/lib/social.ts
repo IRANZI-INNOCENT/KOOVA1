@@ -260,6 +260,28 @@ export async function getSocialActions(
 
 export type OperatingMode = "assist" | "approval" | "autopilot";
 
+export const OPERATING_MODES: {
+  value: OperatingMode;
+  label: string;
+  detail: string;
+}[] = [
+  {
+    value: "assist",
+    label: "Help me",
+    detail: "KCOVA drafts. You post and reply yourself.",
+  },
+  {
+    value: "approval",
+    label: "You approve",
+    detail: "KCOVA prepares posts. Nothing goes out until you approve.",
+  },
+  {
+    value: "autopilot",
+    label: "Autopilot",
+    detail: "KCOVA drafts, schedules, and replies for you.",
+  },
+];
+
 export interface BusinessPolicy {
   id: number;
   business: number;

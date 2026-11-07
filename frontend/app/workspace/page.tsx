@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import { MetricStrip } from "@/components/ui/metric-strip";
 import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { KovaStepsGuide } from "@/components/workspace/kova-steps-guide";
 import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
@@ -14,6 +13,7 @@ import {
 } from "@/components/workspace/overview-daily-panel";
 import { ApiError } from "@/lib/api";
 import { getLatestBrief, type MorningBrief } from "@/lib/brief";
+import { getSocialPosts } from "@/lib/operations";
 import { getSocialOverview } from "@/lib/social";
 import {
   getConnectedChannels,
@@ -21,9 +21,7 @@ import {
   getCommercePage,
   getContents,
   getLeads,
-  getProductContentPlans,
   type Product,
-  type ProductContentPlan,
   type CommercePage,
   type Content,
   type Lead,
@@ -54,9 +52,10 @@ export default function OverviewPage() {
   const [contents, setContents] = useState<Content[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
-  const [contentPlans, setContentPlans] = useState<
-    Record<number, ProductContentPlan>
-  >({});
+  const [failedPosts, setFailedPosts] = useState(0);
+  const [deadPages, setDeadPages] = useState<{ id: number; name: string }[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -94,17 +93,15 @@ export default function OverviewPage() {
         setCommercePage(page);
         setLoading(false);
 
-        const [contentList, leadList, orderList, plans, channels, social, dailyBrief] =
+        const [contentList, leadList, orderList, channels, social, dailyBrief, postList] =
           await Promise.all([
             getContents(bizId, token).catch(() => [] as Content[]),
             getLeads(bizId, token).catch(() => [] as Lead[]),
             getOrders(bizId, token).catch(() => [] as OrderRecord[]),
-            getProductContentPlans(bizId, token).catch(
-              () => [] as ProductContentPlan[],
-            ),
             getConnectedChannels(bizId, token).catch(() => null),
             getSocialOverview(bizId, token).catch(() => null),
             getLatestBrief(bizId, token).catch(() => null),
+            getSocialPosts(bizId, token).catch(() => []),
           ]);
 
         if (cancelled) return;
@@ -112,8 +109,23 @@ export default function OverviewPage() {
         setContents(contentList);
         setLeads(leadList);
         setOrders(orderList);
-        setContentPlans(
-          Object.fromEntries(plans.map((plan) => [plan.product_id, plan])),
+        const failedFromPosts = postList.filter(
+          (item) => item.publishing_status === "failed",
+        ).length;
+        const failedFromContent = contentList.filter(
+          (item) => item.queue_status === "failed",
+        ).length;
+        setFailedPosts(Math.max(failedFromPosts, failedFromContent));
+        setDeadPages(
+          (social?.channels?.accounts ?? [])
+            .filter((account) => !account.is_healthy)
+            .map((account) => ({
+              id: account.id,
+              name:
+                account.account_name ||
+                account.account_username ||
+                "Disconnected page",
+            })),
         );
         setSocialConnected(!!channels?.connected);
         setPendingSocialActions(social?.pending_actions ?? 0);
@@ -183,10 +195,11 @@ export default function OverviewPage() {
   const lowStockCount = activeProducts.filter(
     (product) => product.stock !== null && product.stock <= 2,
   ).length;
-  const packingOrders = orders.filter((order) =>
-    ["confirmed", "packing", "out_for_delivery"].includes(order.status),
+  const packingOrders = orders.filter(
+    (order) =>
+      order.offering_kind !== "service" &&
+      ["confirmed", "packing", "out_for_delivery"].includes(order.status),
   ).length;
-  const draftContent = contents.filter((c) => c.status === "draft");
   const approvedContent = contents.filter((c) => c.status === "approved");
   const publishedContent = contents.filter((c) => c.status === "published");
   const storeIsLive = !!commercePage?.is_published;
@@ -195,6 +208,8 @@ export default function OverviewPage() {
     dueFollowUps,
     lowStockCount,
     packingOrders,
+    failedPosts,
+    deadPages,
     socialConnected,
     approvedContentCount: approvedContent.length,
     pendingSocialActions,
@@ -205,8 +220,7 @@ export default function OverviewPage() {
   const storeUrl = commercePage?.slug
     ? `/store/${commercePage.slug}`
     : null;
-  const showSetup =
-    !socialConnected || products.length === 0 || publishedContent.length === 0;
+  const showSetup = products.length === 0;
 
   return (
     <WorkspacePageFrame loading={false}>
@@ -223,7 +237,7 @@ export default function OverviewPage() {
               <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
                 <Link
                   href="/workspace/kova"
-                  className="inline-flex h-10 items-center rounded-lg bg-kova-orange px-4 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e]"
+                  className="inline-flex h-10 items-center rounded-lg border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark transition hover:border-kova-orange/50"
                 >
                   Talk to KCOVA
                 </Link>
@@ -276,7 +290,7 @@ export default function OverviewPage() {
                 {
                   letter: "3",
                   title: "Create a post",
-                  description: "Product, tip, or short video",
+                  description: "A photo and a caption",
                   href: "/workspace/social/studio",
                   done: publishedContent.length > 0,
                   coach: "post",
@@ -318,93 +332,7 @@ export default function OverviewPage() {
             </Link>
           )}
 
-          <MetricStrip
-            items={[
-              {
-                label: "Products",
-                value: products.length,
-                hint: `${activeProducts.length} active`,
-                tone: "green",
-              },
-              {
-                label: "Leads",
-                value: leads.length,
-                hint: `${newLeads.length} new`,
-              },
-              {
-                label: "Posts",
-                value: contents.length,
-                hint: `${publishedContent.length} live · ${draftContent.length} draft`,
-                tone: "orange",
-              },
-              {
-                label: "Store",
-                value: storeIsLive ? "Live" : "Draft",
-                tone: storeIsLive ? "green" : "default",
-              },
-            ]}
-          />
-
-          {products.length > 0 ? (
-            <section>
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold text-kova-dark">
-                  Products
-                </h2>
-                <Link
-                  href="/workspace/commerce/products"
-                  className="text-sm font-semibold text-kova-green hover:underline"
-                >
-                  All
-                </Link>
-              </div>
-
-              <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-                {products.slice(0, 4).map((product) => {
-                  const plan = contentPlans[product.id];
-                  const image =
-                    product.images.find((i) => i.is_primary) ??
-                    product.images[0];
-                  return (
-                    <Link
-                      key={product.id}
-                      href={`/workspace/commerce/products/${product.id}`}
-                      className="group overflow-hidden rounded-md border border-kova-border/80 bg-white transition hover:border-kova-orange/50"
-                    >
-                      <div className="aspect-square max-h-36 bg-kova-background sm:max-h-none">
-                        {image?.url ? (
-                          <img
-                            src={image.url}
-                            alt={image.alt_text || product.name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-sm text-gray-400">
-                            No image
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-2.5 sm:p-3">
-                        <h3 className="line-clamp-2 text-sm font-semibold text-kova-dark">
-                          {product.name}
-                        </h3>
-                        <p className="mt-1 text-sm font-bold text-kova-orange">
-                          {product.price
-                            ? `${product.currency} ${product.price}`
-                            : "Price on request"}
-                        </p>
-                        {plan && plan.scheduled > 0 ? (
-                          <p className="mt-1 text-xs font-semibold text-kova-green">
-                            Scheduled
-                          </p>
-                        ) : null}
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </section>
-          ) : loading ? null : (
+          {products.length === 0 && !loading ? (
             <section className="border border-kova-border bg-white px-5 py-6">
               <p className="font-semibold text-kova-dark">No products yet</p>
               <p className="mt-1 text-sm text-gray-500">
@@ -414,10 +342,10 @@ export default function OverviewPage() {
                 href="/workspace/commerce/snap-to-sell"
                 className="mt-4 inline-flex h-12 w-full items-center justify-center rounded-md bg-kova-orange px-5 text-sm font-bold text-kova-dark transition hover:bg-[#f0a46e] sm:h-10 sm:w-auto"
               >
-                Add listing
+                Snap a photo
               </Link>
             </section>
-          )}
+          ) : null}
         </div>
       </div>
     </WorkspacePageFrame>

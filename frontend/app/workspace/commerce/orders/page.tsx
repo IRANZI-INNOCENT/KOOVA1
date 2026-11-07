@@ -49,7 +49,12 @@ export default function OrdersPage() {
   }, [accessToken, isAuthenticated]);
 
   async function advance(order: OrderRecord) {
-    const status = NEXT[order.status];
+    const status =
+      order.offering_kind === "service"
+        ? order.status === "new"
+          ? "confirmed"
+          : null
+        : NEXT[order.status];
     if (!status || !accessToken || !businessId) return;
     setError("");
     try {
@@ -104,7 +109,14 @@ export default function OrdersPage() {
           </p>
         ) : (
           <div className="space-y-3">
-            {orders.map((order) => (
+            {orders.map((order) => {
+              const next =
+                order.offering_kind === "service"
+                  ? order.status === "new"
+                    ? "confirmed"
+                    : null
+                  : NEXT[order.status];
+              return (
               <article
                 key={order.id}
                 className="rounded-lg border border-kova-border bg-white p-4"
@@ -131,13 +143,13 @@ export default function OrdersPage() {
                   </span>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {NEXT[order.status] ? (
+                  {next ? (
                     <button
                       type="button"
                       onClick={() => advance(order)}
                       className="inline-flex h-11 items-center rounded-md bg-kova-green px-3 text-xs font-bold text-white"
                     >
-                      Mark {LABEL[NEXT[order.status]!] || NEXT[order.status]}
+                      Mark {LABEL[next] || next}
                     </button>
                   ) : null}
                   {order.status !== "cancelled" &&
@@ -162,7 +174,8 @@ export default function OrdersPage() {
                   ) : null}
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

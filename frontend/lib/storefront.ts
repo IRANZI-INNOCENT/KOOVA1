@@ -17,8 +17,11 @@ export function whatsappOrderLink(input: {
   service?: boolean;
 }) {
   const cleaned = input.number.replace(/\D/g, "");
-  const verb = input.service ? "book" : "order";
-  const lines = [`Hi, I want to ${verb} ${input.productName}.`];
+  const lines = [
+    input.service
+      ? `Hi, I want to ask about ${input.productName}.`
+      : `Hi, I want to order ${input.productName}.`,
+  ];
   if (input.priceLabel) lines.push(input.priceLabel);
   if (input.productUrl) {
     lines.push("", input.productUrl);

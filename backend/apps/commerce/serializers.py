@@ -569,9 +569,15 @@ class BusinessExpenseSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     product_name = serializers.SerializerMethodField()
+    offering_kind = serializers.SerializerMethodField()
 
     def get_product_name(self, obj):
         return obj.product.name if obj.product_id else ""
+
+    def get_offering_kind(self, obj):
+        if obj.product_id and obj.product:
+            return obj.product.offering_kind
+        return "product"
 
     class Meta:
         model = Order
@@ -580,6 +586,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "business",
             "product",
             "product_name",
+            "offering_kind",
             "customer_name",
             "phone",
             "note",
@@ -597,6 +604,7 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "business",
+            "offering_kind",
             "source",
             "stock_adjusted",
             "review_ask_draft",

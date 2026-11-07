@@ -6,52 +6,49 @@ import Link from "next/link";
 import { ApiError } from "@/lib/api";
 import { PlatformAvatar } from "@/components/social/platform-avatar";
 import { ActivityColumns } from "@/components/ui/activity-columns";
-import { MetricStrip } from "@/components/ui/metric-strip";
 import { WORKSPACE_PAGE } from "@/components/ui/page-header";
+import {
+  getSocialPosts,
+  retrySocialPost,
+  type SocialPostRecord,
+} from "@/lib/operations";
 import { useWorkspace } from "@/lib/workspace-context";
 import {
   getBusinessPolicy,
   getSocialOverview,
+  OPERATING_MODES,
   resumeScheduledPublishing,
-  updateOperatingMode,
   type OperatingMode,
   type SocialOverview,
 } from "@/lib/social";
 
-const MODE_META: Record<
-  OperatingMode,
-  { label: string; description: string }
-> = {
-  assist: {
-    label: "Help me",
-    description: "KCOVA suggests. You choose what to publish.",
-  },
-  approval: {
-    label: "You approve",
-    description: "Nothing goes live until you say yes.",
-  },
-  autopilot: {
-    label: "Autopilot",
-    description: "KCOVA drafts, schedules, and replies for you.",
-  },
-};
-
-const MODES: OperatingMode[] = ["assist", "approval", "autopilot"];
-
 function modeCopy(current: string) {
-  return MODE_META[current as OperatingMode] ?? MODE_META.assist;
+  return (
+    OPERATING_MODES.find((item) => item.value === current) ??
+    OPERATING_MODES[0]
+  );
 }
 
 function knownMode(value: string | null | undefined): value is OperatingMode {
-  return Boolean(value && (MODES as readonly string[]).includes(value));
+  return OPERATING_MODES.some((item) => item.value === value);
 }
+
+const POST_GROUPS: {
+  status: SocialPostRecord["publishing_status"];
+  label: string;
+}[] = [
+  { status: "failed", label: "Failed" },
+  { status: "scheduled", label: "Scheduled" },
+  { status: "published", label: "Published" },
+];
 
 export default function SocialOverviewPage() {
   const { businessId, accessToken, workspaceLoading, workspaceError } =
     useWorkspace();
   const [overview, setOverview] = useState<SocialOverview | null>(null);
+  const [posts, setPosts] = useState<SocialPostRecord[]>([]);
   const [mode, setMode] = useState<OperatingMode>("assist");
-  const [modeUpdating, setModeUpdating] = useState(false);
+  const [retryingId, setRetryingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -71,12 +68,14 @@ export default function SocialOverviewPage() {
 
     async function load() {
       try {
-        const [data, policy] = await Promise.all([
+        const [data, policy, postList] = await Promise.all([
           getSocialOverview(bizId, token),
           getBusinessPolicy(bizId, token).catch(() => null),
+          getSocialPosts(bizId, token).catch(() => [] as SocialPostRecord[]),
         ]);
         if (cancelled) return;
         setOverview(data);
+        setPosts(postList);
         if (knownMode(policy?.social_operating_mode)) {
           setMode(policy.social_operating_mode);
         }
@@ -99,22 +98,21 @@ export default function SocialOverviewPage() {
     };
   }, [workspaceLoading, businessId, accessToken]);
 
-  async function handleModeChange(next: OperatingMode) {
-    if (!businessId || !accessToken || next === mode) return;
-    setModeUpdating(true);
+  async function retryPost(postId: number) {
+    if (!businessId || !accessToken) return;
+    setRetryingId(postId);
+    setError("");
     try {
-      const policy = await updateOperatingMode(businessId, next, accessToken);
-      if (knownMode(policy.social_operating_mode)) {
-        setMode(policy.social_operating_mode);
-      }
+      const updated = await retrySocialPost(businessId, postId, accessToken);
+      setPosts((current) =>
+        current.map((item) => (item.id === postId ? updated : item)),
+      );
     } catch (err) {
       setError(
-        err instanceof ApiError
-          ? err.message
-          : "Could not update operating mode.",
+        err instanceof ApiError ? err.message : "Could not send that post again.",
       );
     } finally {
-      setModeUpdating(false);
+      setRetryingId(null);
     }
   }
 
@@ -122,17 +120,7 @@ export default function SocialOverviewPage() {
     return (
       <div className={WORKSPACE_PAGE}>
         <div className="space-y-6">
-          <p className="text-sm text-gray-500">{modeCopy(mode).description}</p>
-          <div className="grid w-full grid-cols-3 rounded-lg border border-kova-border bg-white p-0.5 sm:flex sm:w-auto">
-            {MODES.map((m) => (
-              <span
-                key={m}
-                className="inline-flex h-11 items-center justify-center px-2 text-xs font-semibold text-gray-400 sm:h-9 sm:px-3.5"
-              >
-                {MODE_META[m].label}
-              </span>
-            ))}
-          </div>
+          <p className="text-sm text-gray-500">{modeCopy(mode).detail}</p>
           {error ? (
             <div
               role="alert"
@@ -156,7 +144,7 @@ export default function SocialOverviewPage() {
     return (
       <div className={WORKSPACE_PAGE}>
         <div className="space-y-6">
-          <p className="text-sm text-gray-500">{modeCopy(mode).description}</p>
+          <p className="text-sm text-gray-500">{modeCopy(mode).detail}</p>
           <div
             role="alert"
             className="rounded-lg border border-kova-border bg-white px-4 py-3 text-sm text-kova-dark"
@@ -175,44 +163,35 @@ export default function SocialOverviewPage() {
   const drafts = overview.content?.drafts ?? 0;
   const hasChannels = (overview.channels.total ?? accounts.length) > 0;
   const recommendations = (overview.command?.recommendations ?? []).filter(
-    (item) =>
-      Boolean(
-        item &&
-          typeof item.href === "string" &&
-          item.href &&
-          typeof item.title === "string" &&
-          item.title,
-      ),
+    (item) => {
+      if (
+        !item ||
+        typeof item.href !== "string" ||
+        !item.href ||
+        typeof item.title !== "string" ||
+        !item.title
+      ) {
+        return false;
+      }
+      const title = item.title.toLowerCase();
+      if (title.includes("reconnect")) return false;
+      if (title.includes("did not go out") || title.includes("failed")) {
+        return false;
+      }
+      return true;
+    },
   );
+  const currentMode = modeCopy(mode);
 
   return (
     <div className={WORKSPACE_PAGE}>
       <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-gray-500">{modeCopy(mode).description}</p>
-          <div className="grid w-full grid-cols-3 rounded-lg border border-kova-border bg-white p-0.5 sm:flex sm:w-auto sm:shrink-0">
-            {MODES.map((m) => {
-              const active = m === mode;
-              return (
-                <button
-                  key={m}
-                  type="button"
-                  disabled={modeUpdating}
-                  onClick={() => handleModeChange(m)}
-                  className={`h-11 rounded-md px-2 text-xs font-semibold transition sm:h-9 sm:px-3.5 ${
-                    active
-                      ? m === "autopilot"
-                        ? "bg-kova-orange text-kova-dark"
-                        : "bg-kova-green text-white"
-                      : "text-gray-400 hover:text-kova-dark"
-                  } ${modeUpdating ? "opacity-60" : ""}`}
-                >
-                  {MODE_META[m].label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <p className="text-sm leading-6 text-gray-500">
+          {currentMode.label}: {currentMode.detail}{" "}
+          <Link href="/workspace/settings" className="font-semibold text-kova-green hover:underline">
+            Change in Settings
+          </Link>
+        </p>
 
         {error ? (
           <div
@@ -223,33 +202,54 @@ export default function SocialOverviewPage() {
           </div>
         ) : null}
 
-        <MetricStrip
-          items={[
-            {
-              label: "Scheduled",
-              value: overview.command?.scheduled_posts ?? 0,
-              tone: "orange",
-            },
-            {
-              label: "Inbox",
-              value: overview.command?.conversations_to_review ?? 0,
-            },
-            {
-              label: "Leads",
-              value: overview.command?.potential_leads ?? 0,
-              tone: "green",
-            },
-            {
-              label: "Verified today",
-              value: overview.command?.actions_verified_today ?? 0,
-              tone: "green",
-            },
-          ]}
-        />
-
-        {overview.command?.plan ? (
-          <p className="text-sm leading-6 text-kova-dark">{overview.command.plan}</p>
-        ) : null}
+        <section className="space-y-4">
+          {POST_GROUPS.map((group) => {
+            const matching = posts.filter(
+              (post) => post.publishing_status === group.status,
+            );
+            const rows = matching.slice(0, 8);
+            if (!rows.length) return null;
+            return (
+              <div key={group.status}>
+                <h2 className="text-sm font-semibold text-kova-dark">
+                  {group.label}{" "}
+                  <span className="font-medium text-gray-400">{matching.length}</span>
+                </h2>
+                <ul className="mt-2 divide-y divide-kova-border overflow-hidden rounded-lg border border-kova-border bg-white">
+                  {rows.map((post) => (
+                    <li
+                      key={post.id}
+                      className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <Link
+                        href="/workspace/social/calendar"
+                        className="min-w-0"
+                      >
+                        <p className="truncate text-sm font-semibold text-kova-dark">
+                          {post.caption?.trim() || "Untitled post"}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-gray-500">
+                          {post.account_name || post.platform}
+                          {post.publishing_error ? ` · ${post.publishing_error}` : ""}
+                        </p>
+                      </Link>
+                      {group.status === "failed" ? (
+                        <button
+                          type="button"
+                          onClick={() => void retryPost(post.id)}
+                          disabled={retryingId === post.id}
+                          className="inline-flex h-9 items-center justify-center rounded-md bg-kova-green px-3 text-xs font-bold text-white disabled:opacity-60"
+                        >
+                          {retryingId === post.id ? "Sending…" : "Send again"}
+                        </button>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </section>
 
         {overview.command?.automation_paused ? (
           <div className="flex flex-col gap-3 rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between">
@@ -335,6 +335,14 @@ export default function SocialOverviewPage() {
                 <span className="truncate">
                   {acc.account_name || acc.account_username}
                 </span>
+                {acc.is_healthy ? null : (
+                  <Link
+                    href="/workspace/social/channels"
+                    className="shrink-0 font-semibold underline"
+                  >
+                    Reconnect
+                  </Link>
+                )}
               </span>
             ))}
           </div>

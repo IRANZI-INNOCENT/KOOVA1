@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   PlatformBrandIcon,
@@ -11,7 +11,6 @@ import { useWorkspace } from "@/lib/workspace-context";
 import {
   draftReply,
   getMessages,
-  logMessage,
   replyToMessage,
   type SocialMessageRecord,
 } from "@/lib/operations";
@@ -57,29 +56,38 @@ function channelLabel(channel: string) {
   return channel;
 }
 
+function emptyInboxCopy(filter: KindFilter, names: string[]) {
+  if (filter === "comment") return "No comments yet.";
+  if (filter === "message") return "No messages yet.";
+  if (!names.length) {
+    return "No messages yet. Comments and messages from a connected page land here.";
+  }
+  const list = names.join(", ");
+  const verb = names.length === 1 ? "is" : "are";
+  const pages = names.length === 1 ? "that page" : "those pages";
+  return `No messages yet. ${list} ${verb} disconnected, so comments from ${pages} do not arrive here.`;
+}
+
 export function MessageDesk({
   channels,
   title,
   intro,
+  disconnectedAccounts = [],
 }: {
   channels?: string[];
   /** When omitted, skip the page-style header (parent already titled the screen). */
   title?: string;
   intro?: string;
+  disconnectedAccounts?: string[];
 }) {
   const { accessToken, isAuthenticated } = useAuth();
   const { businessId: workspaceBusinessId, workspaceLoading } = useWorkspace();
   const [businessId, setBusinessId] = useState<number | null>(null);
   const [messages, setMessages] = useState<SocialMessageRecord[]>([]);
-  const [body, setBody] = useState("");
-  const [name, setName] = useState("");
-  const [channel, setChannel] = useState(channels?.[0] || "whatsapp");
-  const [kind, setKind] = useState<"message" | "comment">("message");
   const [filter, setFilter] = useState<KindFilter>("all");
   const [reply, setReply] = useState<Record<number, string>>({});
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<number | null>(null);
-  const [logOpen, setLogOpen] = useState(false);
 
   async function load(token: string, id: number) {
     const list = await getMessages(id, token);
@@ -104,26 +112,6 @@ export function MessageDesk({
     setBusinessId(bizId);
     load(token, bizId).catch(() => setError("Could not load the inbox."));
   }, [accessToken, isAuthenticated, workspaceBusinessId, workspaceLoading]);
-
-  async function onLog(event: FormEvent) {
-    event.preventDefault();
-    if (!accessToken || !businessId || !body.trim()) return;
-    setError("");
-    try {
-      await logMessage(businessId, accessToken, {
-        body: body.trim(),
-        channel,
-        kind,
-        customer_name: name.trim(),
-      });
-      setBody("");
-      setName("");
-      setLogOpen(false);
-      await load(accessToken, businessId);
-    } catch {
-      setError("Could not save that item.");
-    }
-  }
 
   async function onDraft(messageId: number) {
     if (!accessToken || !businessId) return;
@@ -246,9 +234,7 @@ export function MessageDesk({
       <div className="space-y-3">
         {shown.length === 0 && (
           <p className="py-10 text-center text-sm leading-6 text-gray-500">
-            {filter === "all"
-              ? "No messages yet."
-              : `No ${filter === "comment" ? "comments" : "messages"} yet.`}
+            {emptyInboxCopy(filter, disconnectedAccounts)}
           </p>
         )}
         {shown.map((message) => {
@@ -364,61 +350,6 @@ export function MessageDesk({
         })}
       </div>
 
-      <div className="border-t border-kova-border pt-4">
-        <button
-          type="button"
-          onClick={() => setLogOpen((open) => !open)}
-          className="text-sm font-semibold text-kova-green hover:underline"
-        >
-          {logOpen ? "Hide manual entry" : "Log a comment or message manually"}
-        </button>
-        {logOpen && (
-          <form onSubmit={onLog} className="mt-3 space-y-3 rounded-lg bg-kova-orange/10 p-4">
-            <p className="text-xs leading-5 text-gray-600">
-              Paste something a customer sent outside the webhook. KCOVA will read it and draft a
-              reply.
-            </p>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Customer name"
-                className="h-10 rounded-md border border-kova-border bg-white px-3 text-sm"
-              />
-              <select
-                value={channel}
-                onChange={(event) => setChannel(event.target.value)}
-                className="h-10 rounded-md border border-kova-border bg-white px-3 text-sm"
-              >
-                <option value="whatsapp">WhatsApp</option>
-                <option value="instagram">Instagram</option>
-                <option value="facebook">Facebook</option>
-              </select>
-              <select
-                value={kind}
-                onChange={(event) => setKind(event.target.value as "message" | "comment")}
-                className="h-10 rounded-md border border-kova-border bg-white px-3 text-sm"
-              >
-                <option value="message">Direct message</option>
-                <option value="comment">Comment</option>
-              </select>
-            </div>
-            <textarea
-              value={body}
-              onChange={(event) => setBody(event.target.value)}
-              rows={3}
-              placeholder="Paste what the customer wrote"
-              className="w-full rounded-md border border-kova-border bg-white px-3 py-2 text-sm"
-            />
-            <button
-              type="submit"
-              className="inline-flex h-12 w-full items-center justify-center rounded-md bg-kova-green px-4 text-xs font-bold text-white sm:h-11 sm:w-auto"
-            >
-              Let KCOVA read it
-            </button>
-          </form>
-        )}
-      </div>
     </div>
   );
 }

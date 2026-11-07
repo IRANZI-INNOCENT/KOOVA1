@@ -6,6 +6,12 @@ import Link from "next/link";
 import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { authenticatedApiRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import {
+  getBusinessPolicy,
+  OPERATING_MODES,
+  updateOperatingMode,
+  type OperatingMode,
+} from "@/lib/social";
 import { useWorkspace } from "@/lib/workspace-context";
 
 interface BrainProgress {
@@ -117,6 +123,8 @@ export default function SettingsPage() {
           }
         />
 
+        <OperatingModeCard />
+
         {!workspaceLoading && businesses.length > 1 ? (
           <section className="space-y-2">
             <h2 className="text-sm font-semibold text-kova-dark">Companies</h2>
@@ -197,5 +205,81 @@ export default function SettingsPage() {
         </section>
       </div>
     </div>
+  );
+}
+
+function OperatingModeCard() {
+  const { businessId, accessToken, workspaceLoading } = useWorkspace();
+  const [mode, setMode] = useState<OperatingMode>("assist");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (workspaceLoading || !businessId || !accessToken) return;
+    const token = accessToken;
+    const bizId = businessId;
+    getBusinessPolicy(bizId, token)
+      .then((policy) => {
+        if (
+          OPERATING_MODES.some(
+            (item) => item.value === policy.social_operating_mode,
+          )
+        ) {
+          setMode(policy.social_operating_mode);
+        }
+      })
+      .catch(() => undefined);
+  }, [workspaceLoading, businessId, accessToken]);
+
+  async function choose(next: OperatingMode) {
+    if (!businessId || !accessToken || next === mode) return;
+    setBusy(true);
+    setError("");
+    try {
+      const policy = await updateOperatingMode(businessId, next, accessToken);
+      if (
+        OPERATING_MODES.some(
+          (item) => item.value === policy.social_operating_mode,
+        )
+      ) {
+        setMode(policy.social_operating_mode);
+      }
+    } catch {
+      setError("Could not update how KCOVA publishes.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="rounded-lg border border-kova-border bg-white p-4 sm:p-5">
+      <h2 className="text-sm font-semibold text-kova-dark">Publishing</h2>
+      <p className="mt-1 text-xs leading-5 text-gray-500">
+        This is what KCOVA will do with posts and replies.
+      </p>
+      <div className="mt-3 space-y-2">
+        {OPERATING_MODES.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            disabled={busy}
+            onClick={() => void choose(item.value)}
+            className={`block w-full rounded-md border px-3 py-3 text-left disabled:opacity-60 ${
+              mode === item.value
+                ? "border-kova-green bg-kova-green/5"
+                : "border-kova-border bg-white"
+            }`}
+          >
+            <span className="text-sm font-semibold text-kova-dark">
+              {item.label}
+            </span>
+            <span className="mt-0.5 block text-xs leading-5 text-gray-500">
+              {item.detail}
+            </span>
+          </button>
+        ))}
+      </div>
+      {error ? <p className="mt-2 text-xs text-red-700">{error}</p> : null}
+    </section>
   );
 }
