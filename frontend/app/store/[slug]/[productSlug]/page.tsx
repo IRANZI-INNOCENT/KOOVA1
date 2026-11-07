@@ -10,7 +10,7 @@ import { mediaSrc } from "@/lib/media";
 import { fetchPublicProduct } from "@/lib/public-store-api";
 import { buildPageMetadata } from "@/lib/seo";
 import { absoluteUrl } from "@/lib/site-url";
-import { formatPrice } from "@/lib/storefront";
+import { formatPrice, listingFacts } from "@/lib/storefront";
 
 type Params = { slug: string; productSlug: string };
 
@@ -58,11 +58,16 @@ export default async function PublicProductPage({
   const facts = [
     product.brand && ["Brand", product.brand],
     product.material && ["Material", product.material],
-    product.size && ["Size", product.size],
-    product.color && ["Color", product.color],
     product.condition && ["Condition", product.condition],
-    product.sku && ["SKU", product.sku],
   ].filter(Boolean) as [string, string][];
+  const shortCopy = product.short_description?.trim() || "";
+  const longCopy = product.description?.trim() || "";
+  const aboutCopy =
+    longCopy && longCopy !== shortCopy && !shortCopy.includes(longCopy) && !longCopy.includes(shortCopy)
+      ? longCopy
+      : "";
+  const leadCopy = shortCopy || longCopy;
+  const fit = listingFacts(product);
 
   const productUrl = absoluteUrl(`/store/${slug}/${productSlug}`);
   const availability =
@@ -138,18 +143,19 @@ export default async function PublicProductPage({
           >
             {formatPrice(product.currency, product.price)}
           </p>
+          {fit ? (
+            <p className="mt-2 text-sm font-medium text-kova-dark">{fit}</p>
+          ) : null}
           {product.offering_kind !== "service" && product.stock != null && (
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-500">
               {product.stock > 0
                 ? `${product.stock} in stock`
                 : "Currently unavailable"}
             </p>
           )}
-          {product.short_description && (
-            <p className="mt-5 text-base leading-7 text-gray-600">
-              {product.short_description}
-            </p>
-          )}
+          {leadCopy ? (
+            <p className="mt-5 text-base leading-7 text-gray-600">{leadCopy}</p>
+          ) : null}
 
           {page.whatsapp && (
             <StoreOrderButton
@@ -206,16 +212,16 @@ export default async function PublicProductPage({
             </ul>
           )}
 
-          {product.description && (
+          {aboutCopy ? (
             <div className="mt-8">
               <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-gray-400">
                 About this product
               </h2>
               <p className="mt-3 whitespace-pre-line text-sm leading-7 text-gray-600">
-                {product.description}
+                {aboutCopy}
               </p>
             </div>
-          )}
+          ) : null}
 
           {facts.length > 0 && (
             <dl className="mt-8 overflow-hidden rounded-lg border border-kova-border bg-white">
@@ -268,6 +274,9 @@ export default async function PublicProductPage({
                     >
                       {item.name}
                     </p>
+                    {listingFacts(item) ? (
+                      <p className="mt-0.5 text-xs text-gray-500">{listingFacts(item)}</p>
+                    ) : null}
                     <p
                       className="mt-1 text-sm font-bold"
                       style={{ color: "var(--store-accent)" }}

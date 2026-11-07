@@ -7,22 +7,22 @@ export const LAYOUT_PRESETS = [
   {
     id: "compact",
     label: "Compact catalog",
-    blurb: "Dense product grid — great for many SKUs.",
+    blurb: "More products in each row.",
   },
   {
     id: "editorial",
     label: "Editorial",
-    blurb: "Hero story first, then a calmer product list.",
+    blurb: "Fewer, wider cards under the banner.",
   },
   {
     id: "whatsapp_first",
     label: "WhatsApp-first",
-    blurb: "Big order CTA above the fold for chat-heavy shops.",
+    blurb: "Contact line under the banner.",
   },
   {
     id: "gallery",
     label: "Gallery",
-    blurb: "Large image cards — beauty, fashion, décor.",
+    blurb: "Large photos. Fits fashion and décor.",
   },
 ] as const;
 
@@ -107,6 +107,12 @@ export function storeThemeStyle(
     ["--store-border" as string]: `color-mix(in srgb, ${secondary} 14%, #E5E7E5)`,
     ["--store-font" as string]: font,
     fontFamily: "var(--store-font)",
+    letterSpacing:
+      page.font_preset === "modern"
+        ? "-0.02em"
+        : page.font_preset === "soft"
+          ? "0.01em"
+          : "0",
     backgroundColor: "var(--store-surface)",
   };
 }

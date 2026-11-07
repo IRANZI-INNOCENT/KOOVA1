@@ -9,6 +9,7 @@ import {
 import { useRouter } from "next/navigation";
 
 import { StoreShareLink } from "@/components/commerce/store-share-link";
+import { StoreEditorPreview } from "@/components/store/store-editor-preview";
 import { WORKSPACE_PAGE } from "@/components/ui/page-header";
 
 import {
@@ -41,7 +42,6 @@ import {
   FONT_PRESETS,
   KCOVA_STORE_COLORS,
   LAYOUT_PRESETS,
-  storeThemeStyle,
 } from "@/lib/store-theme";
 
 
@@ -614,7 +614,7 @@ export default function StorefrontPage() {
                   Store
                 </h1>
                 <p className="mt-1.5 max-w-xl text-sm leading-6 text-gray-500">
-                  Your public shop page — colors, logo, and layout.
+                  What you set here is what customers see on the public shop. Save to publish the changes.
                 </p>
               </div>
 
@@ -670,8 +670,9 @@ export default function StorefrontPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-kova-dark">
-                    Title
+                    Shop name
                   </label>
+                  <p className="mt-0.5 text-xs text-gray-500">Header and footer on the public shop.</p>
 
                   <input
                     type="text"
@@ -693,8 +694,9 @@ export default function StorefrontPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-kova-dark">
-                    Tagline
+                    Banner headline
                   </label>
+                  <p className="mt-0.5 text-xs text-gray-500">Large text on the banner. Location sits under it.</p>
 
                   <input
                     type="text"
@@ -705,7 +707,7 @@ export default function StorefrontPage() {
                         event.target.value,
                       )
                     }
-                    placeholder="Headline on the banner"
+                    placeholder="Shop KOVA FASHIONS"
                     className="mt-1.5 w-full border border-kova-border px-3 py-2.5 text-sm outline-none focus:border-kova-green"
                   />
                 </div>
@@ -713,8 +715,11 @@ export default function StorefrontPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-kova-dark">
-                    Description
+                    Shop story
                   </label>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    The first sentence is on the banner. The full text is in About.
+                  </p>
 
                   <textarea
                     value={form.description}
@@ -725,7 +730,7 @@ export default function StorefrontPage() {
                       )
                     }
                     rows={3}
-                    placeholder="Shown on the banner and in About"
+                    placeholder="Who you sell to, and what you sell."
                     className="mt-1.5 w-full resize-y border border-kova-border px-3 py-2.5 text-sm leading-6 outline-none focus:border-kova-green"
                   />
                 </div>
@@ -1186,6 +1191,9 @@ export default function StorefrontPage() {
                         <span className="font-semibold text-kova-dark">
                           {preset.label}
                         </span>
+                        <span className="mt-0.5 block text-xs font-normal text-gray-500">
+                          {preset.blurb}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -1209,6 +1217,9 @@ export default function StorefrontPage() {
                       </button>
                     ))}
                   </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    {FONT_PRESETS.find((preset) => preset.id === form.font_preset)?.blurb}
+                  </p>
 
                   <div className="mt-5 space-y-2 text-sm">
                     <label className="flex items-center gap-2 text-kova-dark">
@@ -1366,107 +1377,19 @@ export default function StorefrontPage() {
               </div>
 
 
-              <div className="border border-kova-border bg-white p-6">
-                <p className="text-sm font-semibold text-kova-dark">Preview</p>
-                <div
-                  className="mt-4 overflow-hidden rounded-md border"
-                  style={{
-                    ...storeThemeStyle({
-                      primary_color: form.primary_color,
-                      secondary_color: form.secondary_color,
-                      accent_color: form.accent_color,
-                      font_preset: form.font_preset,
-                    }),
-                    borderColor: "var(--store-border)",
-                  }}
-                >
-                  <div
-                    className="flex items-center justify-between gap-3 px-3 py-2.5"
-                    style={{
-                      backgroundColor: "var(--store-primary)",
-                      color: "var(--store-on-primary)",
-                    }}
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      {page?.logo_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={mediaSrc(page.logo_url)}
-                          alt=""
-                          className="h-7 w-7 rounded object-cover"
-                        />
-                      ) : (
-                        <span className="flex h-7 w-7 items-center justify-center rounded bg-white/15 text-[10px] font-bold">
-                          {(form.title || "S").slice(0, 1).toUpperCase()}
-                        </span>
-                      )}
-                      <span className="truncate text-sm font-bold">
-                        {form.title.trim() || "Your shop"}
-                      </span>
-                    </div>
-                    <span
-                      className="shrink-0 rounded px-2 py-1 text-[10px] font-bold"
-                      style={{
-                        backgroundColor: "var(--store-accent)",
-                        color: "var(--store-on-accent)",
-                      }}
-                    >
-                      WhatsApp
-                    </span>
-                  </div>
-                  <div
-                    className="h-0.5 w-full"
-                    style={{ backgroundColor: "var(--store-secondary)" }}
-                    aria-hidden
-                  />
-                  <div className="px-3 py-3">
-                    <p
-                      className="text-xs font-semibold"
-                      style={{ color: "var(--store-secondary)" }}
-                    >
-                      Sample product
-                    </p>
-                    <p
-                      className="mt-1 text-sm font-bold"
-                      style={{ color: "var(--store-accent)" }}
-                    >
-                      KES 1,200
-                    </p>
-                    {form.location.trim() ? (
-                      <p className="mt-2 text-xs font-semibold" style={{ color: "var(--store-accent)" }}>
-                        {form.location.trim()}
-                      </p>
-                    ) : null}
-                    {form.phone.trim() ? (
-                      <p className="mt-1 text-xs" style={{ color: "var(--store-secondary)" }}>
-                        {form.phone.trim()}
-                      </p>
-                    ) : null}
-                    <p className="mt-2 text-[11px] text-gray-500">
-                      Layout:{" "}
-                      {LAYOUT_PRESETS.find((p) => p.id === form.layout_preset)
-                        ?.label || form.layout_preset}
-                      {" · "}
-                      {FONT_PRESETS.find((p) => p.id === form.font_preset)
-                        ?.label || form.font_preset}
-                    </p>
-                  </div>
-                </div>
-                {page?.slug && page.is_published && (
-                  <a
-                    href={`/store/${page.slug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 inline-flex text-sm font-semibold text-kova-green hover:underline"
-                  >
-                    Open live store
-                  </a>
-                )}
-              </div>
-
             </aside>
 
           </div>
+
+          <section className="mt-8">
+            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-sm font-semibold text-kova-dark">What customers see</h2>
+              <p className="text-xs text-gray-500">
+                This uses the same banner, colors, and listings as the public shop. Save to update the live page.
+              </p>
+            </div>
+            <StoreEditorPreview draft={form} page={page} products={products} />
+          </section>
 
         </div>
       </div>

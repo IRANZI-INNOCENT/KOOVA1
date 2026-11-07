@@ -12,7 +12,15 @@ import { fetchPublicStore } from "@/lib/public-store-api";
 import { buildPageMetadata } from "@/lib/seo";
 import { absoluteUrl } from "@/lib/site-url";
 import { resolveStoreImage } from "@/lib/store-theme";
-import { formatPrice, whatsappLink } from "@/lib/storefront";
+import {
+  displayStorePhone,
+  formatPrice,
+  listingFacts,
+  offeringGridClass,
+  storeHeadline,
+  storeHeroSubtitle,
+  whatsappLink,
+} from "@/lib/storefront";
 
 type Params = { slug: string };
 
@@ -52,33 +60,6 @@ function productImage(product: Product) {
   return product.images.find((i) => i.is_primary) ?? product.images[0];
 }
 
-function headlineParts(page: CommercePage) {
-  const location = page.location?.trim() || "";
-  let raw = (page.tagline || page.title || page.business_name).trim();
-  if (location && raw.toLowerCase().endsWith(location.toLowerCase())) {
-    raw = raw.slice(0, raw.length - location.length).replace(/[,\s]+$/, "");
-  }
-  return {
-    lead: raw || page.business_name,
-    accent: location,
-  };
-}
-
-function heroSubtitle(page: CommercePage) {
-  const text = (page.description || page.tagline || "").trim();
-  if (!text) return "";
-  const sentence = text.split(/(?<=[.!?])\s+/)[0] || text;
-  return sentence.length > 180 ? `${sentence.slice(0, 177).trim()}…` : sentence;
-}
-
-function displayPhone(raw: string) {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.startsWith("254") && digits.length >= 12) {
-    return `+254 ${digits.slice(3, 6)} ${digits.slice(6, 9)} ${digits.slice(9, 12)}`;
-  }
-  return raw.trim();
-}
-
 function OfferingCard({
   product,
   slug,
@@ -107,6 +88,9 @@ function OfferingCard({
       >
         {product.name}
       </p>
+      {listingFacts(product) ? (
+        <p className="mt-0.5 text-xs text-gray-500">{listingFacts(product)}</p>
+      ) : null}
       <p className="mt-1 text-sm font-bold" style={{ color: "var(--store-accent)" }}>
         {formatPrice(product.currency, product.price)}
       </p>
@@ -134,8 +118,8 @@ export default async function PublicStorePage({
   if (!data) notFound();
 
   const { page, products } = data;
-  const { lead, accent } = headlineParts(page);
-  const subtitle = heroSubtitle(page);
+  const { lead, accent } = storeHeadline(page);
+  const subtitle = storeHeroSubtitle(page);
   const bannerSlides =
     page.banners && page.banners.length > 0
       ? page.banners
@@ -161,14 +145,9 @@ export default async function PublicStorePage({
   const popular = products.slice(0, 4);
   const aboutCopy = (page.description || "").trim();
   const aboutPhoto = resolveStoreImage(page.cover_url || page.logo_url);
-  const phoneLabel = page.phone ? displayPhone(page.phone) : "";
-  const whatsappLabel = page.whatsapp ? displayPhone(page.whatsapp) : "";
-  const offeringGrid =
-    layout === "gallery"
-      ? "grid-cols-1 sm:grid-cols-2"
-      : layout === "editorial"
-        ? "grid-cols-2 lg:grid-cols-3"
-        : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4";
+  const phoneLabel = page.phone ? displayStorePhone(page.phone) : "";
+  const whatsappLabel = page.whatsapp ? displayStorePhone(page.whatsapp) : "";
+  const offeringGrid = offeringGridClass(layout);
 
   const storeLd = {
     "@context": "https://schema.org",
@@ -332,7 +311,7 @@ function ContactStrip({
             rel="noopener noreferrer"
             className="hover:underline"
           >
-            WhatsApp {displayPhone(page.whatsapp)}
+            WhatsApp {displayStorePhone(page.whatsapp)}
           </a>
         ) : null}
       </div>
