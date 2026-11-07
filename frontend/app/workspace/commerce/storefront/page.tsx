@@ -14,6 +14,7 @@ import { WORKSPACE_PAGE } from "@/components/ui/page-header";
 import {
   useAuth,
 } from "@/lib/auth-context";
+import { useWorkspace } from "@/lib/workspace-context";
 
 import {
   ApiError,
@@ -24,6 +25,7 @@ import {
   deleteCommercePageBanner,
   getBusiness,
   getCommercePage,
+  peekCommercePage,
   getProducts,
   publishCommercePage,
   reorderCommercePageBanners,
@@ -57,17 +59,28 @@ export default function StorefrontPage() {
     isAuthenticated,
     isLoading: authLoading,
   } = useAuth();
+  const { businessId: workspaceBusinessId } = useWorkspace();
 
   const [business, setBusiness] =
     useState<Business | null>(null);
 
   const [page, setPage] =
-    useState<CommercePage | null>(null);
+    useState<CommercePage | null>(
+      () =>
+        (workspaceBusinessId
+          ? peekCommercePage(workspaceBusinessId)
+          : undefined) ?? null,
+    );
 
   const [products, setProducts] = useState<Product[]>([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(
+    () =>
+      !(
+        workspaceBusinessId &&
+        peekCommercePage(workspaceBusinessId)
+      ),
+  );
 
   const [saving, setSaving] =
     useState(false);
@@ -139,7 +152,6 @@ export default function StorefrontPage() {
     let cancelled = false;
 
     async function loadStorefront(): Promise<void> {
-      setLoading(true);
       setError("");
 
       try {
@@ -551,20 +563,7 @@ export default function StorefrontPage() {
 
 
   if (authLoading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-kova-background">
-        <div className="text-center">
-          <div
-            aria-hidden="true"
-            className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-kova-green border-t-transparent"
-          />
-
-          <p className="mt-4 text-sm text-gray-500">
-            Loading your workspace...
-          </p>
-        </div>
-      </main>
-    );
+    return null;
   }
 
 
@@ -579,23 +578,12 @@ export default function StorefrontPage() {
   }
 
 
-  if (loading) {
-    return (
+  if (!page) {
+    return error ? (
       <div className={WORKSPACE_PAGE}>
-        <div className="flex min-h-[60vh] items-center justify-center">
-          <div className="text-center">
-            <div
-              aria-hidden="true"
-              className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-kova-green border-t-transparent"
-            />
-
-            <p className="mt-4 text-sm text-gray-500">
-              Loading your storefront...
-            </p>
-          </div>
-        </div>
+        <p className="text-sm text-red-700">{error}</p>
       </div>
-    );
+    ) : null;
   }
 
 

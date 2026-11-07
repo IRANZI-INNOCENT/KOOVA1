@@ -191,14 +191,6 @@ export default function BusinessMarketPage() {
     }
   }
 
-  if (authLoading || loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-kova-background">
-        <p className="text-sm text-gray-500">Loading your workspace...</p>
-      </main>
-    );
-  }
-
   const stepIndex = SETUP_SECTIONS.indexOf("market");
   const hasBrief = researched || status !== "empty";
 
@@ -354,7 +346,7 @@ export default function BusinessMarketPage() {
               <button
                 type="button"
                 onClick={() => decide(false)}
-                disabled={deciding || researching}
+                disabled={deciding || researching || loading}
                 className="inline-flex h-10 items-center justify-center rounded-md border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark hover:border-kova-green disabled:opacity-60"
               >
                 {deciding
@@ -368,7 +360,7 @@ export default function BusinessMarketPage() {
             <button
               type="button"
               onClick={() => decide(false)}
-              disabled={deciding || researching}
+              disabled={deciding || researching || loading}
               className="inline-flex h-10 items-center justify-center rounded-md border border-kova-border bg-white px-4 text-sm font-semibold text-kova-dark hover:border-kova-green disabled:opacity-60"
             >
               Leave it out
@@ -377,7 +369,7 @@ export default function BusinessMarketPage() {
             <button
               type="button"
               onClick={() => decide(true)}
-              disabled={deciding || researching || !hasBrief}
+              disabled={deciding || researching || loading || !hasBrief}
               className="inline-flex h-10 items-center justify-center rounded-md bg-kova-green px-4 text-sm font-semibold text-white hover:bg-[#12563d] disabled:opacity-60"
             >
               {deciding ? "Saving..." : "Keep this brief"}

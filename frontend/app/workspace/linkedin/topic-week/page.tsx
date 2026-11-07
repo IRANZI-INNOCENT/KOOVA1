@@ -47,7 +47,6 @@ export default function TopicWeekPage() {
   const [posts, setPosts] = useState<ProfessionalPost[]>([]);
   const [step, setStep] = useState<Step>("topic");
   const [loading, setLoading] = useState("");
-  const [bootLoading, setBootLoading] = useState(true);
   const [error, setError] = useState("");
   const [autopilotSaving, setAutopilotSaving] = useState(false);
   const [autopilotRunning, setAutopilotRunning] = useState(false);
@@ -88,7 +87,7 @@ export default function TopicWeekPage() {
 
   useEffect(() => {
     if (!accessToken) return;
-    hydrateFromServer(accessToken).finally(() => setBootLoading(false));
+    void hydrateFromServer(accessToken);
   }, [accessToken, hydrateFromServer]);
 
   async function createPlan() {
@@ -212,14 +211,6 @@ export default function TopicWeekPage() {
 
   const mode = profile?.operating_mode ?? "approval";
   const autopilotOn = profile?.topic_autopilot_enabled ?? false;
-
-  if (bootLoading) {
-    return (
-      <WorkspacePageFrame embedded requireBusiness={false}>
-        <div className="p-8 text-sm text-kova-muted">Loading this week…</div>
-      </WorkspacePageFrame>
-    );
-  }
 
   return (
     <WorkspacePageFrame embedded requireBusiness={false}>

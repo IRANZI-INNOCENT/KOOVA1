@@ -271,7 +271,7 @@ function ConnectContent() {
               />
               <div>
                 <p className="font-semibold text-kova-dark">
-                  {profileLoading ? "Checking LinkedIn…" : displayName}
+                  {displayName || "LinkedIn"}
                 </p>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
                   <span className="inline-flex items-center gap-1 font-medium text-gray-500">
@@ -365,11 +365,7 @@ function ConnectContent() {
 export default function LinkedInConnectPage() {
   return (
     <WorkspacePageFrame embedded requireBusiness={false}>
-      <Suspense
-        fallback={
-          <div className="p-8 text-sm text-kova-muted">Loading…</div>
-        }
-      >
+      <Suspense fallback={null}>
         <ConnectContent />
       </Suspense>
     </WorkspacePageFrame>

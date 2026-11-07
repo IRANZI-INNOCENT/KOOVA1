@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { WORKSPACE_PAGE } from "@/components/ui/page-header";
-import { useAuth } from "@/lib/auth-context";
-import { getBusiness } from "@/lib/commerce";
+import { useWorkspace } from "@/lib/workspace-context";
 import {
   getOrders,
+  peekOrders,
   updateOrder,
   type OrderRecord,
   type OrderStatus,
@@ -32,21 +32,22 @@ const LABEL: Record<OrderStatus, string> = {
 };
 
 export default function OrdersPage() {
-  const { accessToken, isAuthenticated } = useAuth();
-  const [businessId, setBusinessId] = useState<number | null>(null);
-  const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const { accessToken, businessId, workspaceLoading } = useWorkspace();
+  const [orders, setOrders] = useState<OrderRecord[]>(
+    () => (businessId ? peekOrders(businessId) : undefined) ?? [],
+  );
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!isAuthenticated || !accessToken) return;
+    if (workspaceLoading || !businessId || !accessToken) return;
     const token = accessToken;
-    getBusiness(token)
-      .then(async (business) => {
-        setBusinessId(business.id);
-        setOrders(await getOrders(business.id, token));
-      })
+    const bizId = businessId;
+    const cached = peekOrders(bizId);
+    if (cached) setOrders(cached);
+    getOrders(bizId, token)
+      .then(setOrders)
       .catch(() => setOrders([]));
-  }, [accessToken, isAuthenticated]);
+  }, [accessToken, businessId, workspaceLoading]);
 
   async function advance(order: OrderRecord) {
     const status =

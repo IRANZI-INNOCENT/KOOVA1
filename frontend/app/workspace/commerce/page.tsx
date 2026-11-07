@@ -1,13 +1,6 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-
-/** Shop opens on Products — Snap is a CTA there. */
+/** Shop opens on Products. The redirect is instant, with no blank screen. */
 export default function CommerceOverviewRedirectPage() {
-  const router = useRouter();
-  useEffect(() => {
-    router.replace("/workspace/commerce/products");
-  }, [router]);
-  return null;
+  redirect("/workspace/commerce/products");
 }

@@ -3,7 +3,8 @@
 import { FormEvent, useEffect, useState } from "react";
 
 import { useAuth } from "@/lib/auth-context";
-import { getBusiness, getContents, type Content } from "@/lib/commerce";
+import { getContents, type Content } from "@/lib/commerce";
+import { useWorkspace } from "@/lib/workspace-context";
 import {
   dispatchDuePosts,
   getSocialPosts,
@@ -15,7 +16,7 @@ import { authenticatedApiRequest } from "@/lib/api";
 
 export default function CalendarPage() {
   const { accessToken, isAuthenticated } = useAuth();
-  const [businessId, setBusinessId] = useState<number | null>(null);
+  const { businessId, workspaceLoading } = useWorkspace();
   const [posts, setPosts] = useState<SocialPostRecord[]>([]);
   const [drafts, setDrafts] = useState<Content[]>([]);
   const [contentId, setContentId] = useState("");
@@ -23,25 +24,21 @@ export default function CalendarPage() {
   const [error, setError] = useState("");
 
   async function refresh(token: string, id: number) {
-    await dispatchDuePosts(id, token).catch(() => null);
     const [queue, pieces] = await Promise.all([
       getSocialPosts(id, token),
       getContents(id, token),
     ]);
     setPosts(queue);
     setDrafts(pieces.filter((piece) => piece.status === "draft" || piece.status === "approved"));
+    void dispatchDuePosts(id, token).catch(() => null);
   }
 
   useEffect(() => {
-    if (!isAuthenticated || !accessToken) return;
+    if (!isAuthenticated || !accessToken || workspaceLoading || !businessId) return;
     const token = accessToken;
-    getBusiness(token)
-      .then(async (business) => {
-        setBusinessId(business.id);
-        await refresh(token, business.id);
-      })
-      .catch(() => setError("Could not load the publishing queue."));
-  }, [accessToken, isAuthenticated]);
+    const bizId = businessId;
+    refresh(token, bizId).catch(() => setError("Could not load the publishing queue."));
+  }, [accessToken, isAuthenticated, businessId, workspaceLoading]);
 
   async function schedule(event: FormEvent) {
     event.preventDefault();

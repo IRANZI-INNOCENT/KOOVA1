@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { WORKSPACE_PAGE } from "@/components/ui/page-header";
-import { ListSkeleton } from "@/components/workspace/page-skeleton";
 import { ApiError } from "@/lib/api";
 import {
   createBroadcastPack,
@@ -216,9 +215,7 @@ export default function ProductsPage() {
           message from what is in stock.
         </p>
 
-        {loading && products.length === 0 ? (
-          <ListSkeleton rows={4} />
-        ) : products.length ? (
+        {products.length ? (
           <div className="overflow-hidden rounded-lg border border-kova-border bg-white">
             <div className="hidden grid-cols-[minmax(0,1fr)_120px_88px_88px] gap-4 border-b border-kova-border px-5 py-3 text-xs font-medium text-gray-500 md:grid">
               <span>Listing</span>
@@ -311,7 +308,7 @@ export default function ProductsPage() {
               );
             })}
           </div>
-        ) : (
+        ) : !loading ? (
           <div className="border border-kova-border bg-white px-5 py-6">
             <p className="font-semibold text-kova-dark">No products yet</p>
             <Link
@@ -321,7 +318,7 @@ export default function ProductsPage() {
               Add listing
             </Link>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

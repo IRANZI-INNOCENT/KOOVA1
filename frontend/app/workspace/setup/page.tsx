@@ -105,9 +105,6 @@ export default function BusinessSetupPage() {
   const [original, setOriginal] =
     useState<BusinessForm>(initialForm);
 
-  const [loading, setLoading] =
-    useState(true);
-
   const [saving, setSaving] =
     useState(false);
 
@@ -131,8 +128,7 @@ export default function BusinessSetupPage() {
         };
         setOriginal(loaded);
         setForm(loaded);
-      })
-      .finally(() => setLoading(false));
+      });
   }, [accessToken, authLoading, isAuthenticated]);
 
 
@@ -230,18 +226,7 @@ export default function BusinessSetupPage() {
   }
 
 
-  if (authLoading || (isAuthenticated && loading)) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-kova-background">
-        <p className="text-sm text-gray-500">
-          Loading your workspace...
-        </p>
-      </main>
-    );
-  }
-
-
-  if (!isAuthenticated) {
+  if (!authLoading && !isAuthenticated) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-kova-background">
         <p className="text-sm text-gray-500">

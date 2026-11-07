@@ -281,16 +281,6 @@ export default function BusinessGoalsPage() {
     }
   }
 
-  if (authLoading || loading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-kova-background">
-        <p className="text-sm text-gray-500">
-          Loading your workspace...
-        </p>
-      </main>
-    );
-  }
-
   return (
           <div className="p-6 sm:p-8">
         <div className="mx-auto max-w-3xl">
@@ -434,7 +424,7 @@ export default function BusinessGoalsPage() {
               <Button
                 type="submit"
                 loading={saving}
-                disabled={saving}
+                disabled={saving || loading}
               >
                 {setup.isSetup ? "Continue" : "Save business goals"}
               </Button>

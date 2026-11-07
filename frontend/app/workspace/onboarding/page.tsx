@@ -82,7 +82,6 @@ function PathMark({ kind }: { kind: "person" | "shop" | "both" }) {
 export default function OnboardingPage() {
   const router = useRouter();
   const { accessToken, isAuthenticated, isLoading: authLoading } = useAuth();
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<OnboardingPath | null>(null);
   const [error, setError] = useState("");
 
@@ -111,8 +110,7 @@ export default function OnboardingPage() {
           router.replace("/workspace/linkedin");
         }
       })
-      .catch(() => undefined)
-      .finally(() => setLoading(false));
+      .catch(() => undefined);
   }, [accessToken, authLoading, isAuthenticated, router]);
 
   async function choose(path: OnboardingPath) {
@@ -135,16 +133,6 @@ export default function OnboardingPage() {
     } finally {
       setSaving(null);
     }
-  }
-
-  if (authLoading || loading) {
-    return (
-      <AppShell>
-        <div className="flex min-h-[40vh] items-center justify-center text-sm text-kova-muted">
-          Loading…
-        </div>
-      </AppShell>
-    );
   }
 
   return (

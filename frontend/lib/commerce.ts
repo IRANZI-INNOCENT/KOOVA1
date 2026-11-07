@@ -217,6 +217,10 @@ export async function getProduct(
 /**
  * Get the business Commerce Page.
  */
+export function peekCommercePage(businessId: number): CommercePage | undefined {
+  return peekResourceCache<CommercePage>(`commerce-page:${businessId}`);
+}
+
 export async function getCommercePage(
   businessId: number,
   token: string,
@@ -650,15 +654,26 @@ export interface Lead {
   updated_at: string;
 }
 
+export function peekLeads(businessId: number, due = false): Lead[] | undefined {
+  return peekResourceCache<Lead[]>(`leads:${businessId}:${due ? "due" : "all"}`);
+}
+
 export async function getLeads(
   businessId: number,
   token: string,
   opts?: { due?: boolean },
 ): Promise<Lead[]> {
-  const query = opts?.due ? "?due=1" : "";
-  return authenticatedApiRequest<Lead[]>(
-    `/leads/${businessId}/${query}`,
-    token,
+  const due = Boolean(opts?.due);
+  const query = due ? "?due=1" : "";
+  return cachedResource(
+    `leads:${businessId}:${due ? "due" : "all"}`,
+    LIST_CACHE_TTL_MS,
+    () =>
+      authenticatedApiRequest<Lead[]>(
+        `/leads/${businessId}/${query}`,
+        token,
+        { timeoutMs: 8000 },
+      ),
   );
 }
 
@@ -667,11 +682,13 @@ export async function markLeadFollowedUp(
   leadId: number,
   token: string,
 ): Promise<Lead> {
-  return authenticatedApiRequest<Lead>(
+  const updated = await authenticatedApiRequest<Lead>(
     `/leads/${businessId}/${leadId}/`,
     token,
     { method: "PATCH", body: JSON.stringify({ mark_followed_up: true }) },
   );
+  invalidateResourceCache(`leads:${businessId}`);
+  return updated;
 }
 
 export interface BusinessExpense {
@@ -685,16 +702,24 @@ export interface BusinessExpense {
   created_at: string;
 }
 
+export function peekExpenses(businessId: number): BusinessExpense[] | undefined {
+  return peekResourceCache<BusinessExpense[]>(`expenses:${businessId}`);
+}
+
 export async function getExpenses(
   businessId: number,
   token: string,
   spentOn?: string,
 ): Promise<BusinessExpense[]> {
   const query = spentOn ? `?spent_on=${encodeURIComponent(spentOn)}` : "";
-  return authenticatedApiRequest<BusinessExpense[]>(
-    `/commerce/${businessId}/expenses/${query}`,
-    token,
-  );
+  const request = () =>
+    authenticatedApiRequest<BusinessExpense[]>(
+      `/commerce/${businessId}/expenses/${query}`,
+      token,
+      { timeoutMs: 8000 },
+    );
+  if (spentOn) return request();
+  return cachedResource(`expenses:${businessId}`, LIST_CACHE_TTL_MS, request);
 }
 
 export async function createExpense(
@@ -708,11 +733,13 @@ export async function createExpense(
     currency?: string;
   },
 ): Promise<BusinessExpense> {
-  return authenticatedApiRequest<BusinessExpense>(
+  const created = await authenticatedApiRequest<BusinessExpense>(
     `/commerce/${businessId}/expenses/`,
     token,
     { method: "POST", body: JSON.stringify(body) },
   );
+  invalidateResourceCache(`expenses:${businessId}`);
+  return created;
 }
 
 export async function deleteExpense(
@@ -725,6 +752,7 @@ export async function deleteExpense(
     token,
     { method: "DELETE" },
   );
+  invalidateResourceCache(`expenses:${businessId}`);
 }
 
 export interface BroadcastPack {

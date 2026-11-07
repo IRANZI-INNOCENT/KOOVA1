@@ -21,23 +21,44 @@ import {
 } from "@/lib/business";
 import {
   getCommercePage,
+  getExpenses,
+  getLeads,
   getProducts,
   invalidateCommerceCaches,
   type Business,
 } from "@/lib/commerce";
+import { getOrders, getSocialPosts } from "@/lib/operations";
+import { getSocialAccounts, getSocialOverview } from "@/lib/social";
 
 const WORKSPACE_PREFETCH_ROUTES = [
   "/workspace",
-  "/workspace/kova",
   "/workspace/inbox",
   "/workspace/social",
-  "/workspace/commerce",
+  "/workspace/social/channels",
+  "/workspace/social/studio",
+  "/workspace/social/calendar",
   "/workspace/commerce/products",
+  "/workspace/commerce/storefront",
+  "/workspace/commerce/orders",
+  "/workspace/commerce/expenses",
   "/workspace/commerce/snap-to-sell",
+  "/workspace/settings",
+  "/workspace/settings/business",
+  "/workspace/settings/business-profile",
+  "/workspace/settings/business-brand",
+  "/workspace/settings/business-goals",
+  "/workspace/settings/business-audience",
+  "/workspace/settings/business-market",
+  "/workspace/settings/business-policy",
+  "/workspace/settings/email",
+  "/workspace/analytics",
+  "/workspace/kova",
   "/workspace/linkedin",
   "/workspace/linkedin/topic-week",
   "/workspace/linkedin/event",
   "/workspace/linkedin/calendar",
+  "/workspace/linkedin/connect",
+  "/workspace/linkedin/profile",
 ] as const;
 
 interface WorkspaceContextValue {
@@ -63,9 +84,13 @@ function prefetchWorkspaceData(
   token: string,
 ): void {
   void getProducts(businessId, token);
-  void getCommercePage(businessId, token).catch(
-    () => undefined,
-  );
+  void getCommercePage(businessId, token).catch(() => undefined);
+  void getSocialOverview(businessId, token).catch(() => undefined);
+  void getSocialAccounts(businessId, token).catch(() => undefined);
+  void getSocialPosts(businessId, token).catch(() => undefined);
+  void getLeads(businessId, token).catch(() => undefined);
+  void getOrders(businessId, token).catch(() => undefined);
+  void getExpenses(businessId, token).catch(() => undefined);
 }
 
 export function WorkspaceProvider({
@@ -242,7 +267,7 @@ export function WorkspaceProvider({
       for (const href of WORKSPACE_PREFETCH_ROUTES) {
         router.prefetch(href);
       }
-    }, 1500);
+    }, 0);
 
     return () => window.clearTimeout(timer);
   }, [authLoading, isAuthenticated, router]);

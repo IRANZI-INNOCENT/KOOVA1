@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import {
   getLeads,
   markLeadFollowedUp,
+  peekLeads,
   type Lead,
 } from "@/lib/commerce";
 import { useWorkspace } from "@/lib/workspace-context";
@@ -14,19 +15,22 @@ export function LeadsPanel() {
   const { accessToken } = useAuth();
   const { businessId: workspaceBusinessId, workspaceLoading } = useWorkspace();
   const [businessId, setBusinessId] = useState<number | null>(null);
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [leads, setLeads] = useState<Lead[]>(
+    () =>
+      (workspaceBusinessId ? peekLeads(workspaceBusinessId) : undefined) ?? [],
+  );
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
     if (workspaceLoading) return;
     if (!accessToken || !workspaceBusinessId) {
-      setLoading(false);
       return;
     }
     const token = accessToken;
     const bizId = workspaceBusinessId;
+    const cached = peekLeads(bizId);
+    if (cached) setLeads(cached);
     let cancelled = false;
     async function load() {
       try {
@@ -37,8 +41,6 @@ export function LeadsPanel() {
         }
       } catch {
         if (!cancelled) setError("Could not load leads.");
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     }
     void load();
@@ -78,10 +80,7 @@ export function LeadsPanel() {
     }
   }
 
-  if (loading) {
-    return <p className="text-sm text-gray-500">Loading leads…</p>;
-  }
-  if (error) {
+  if (error && leads.length === 0) {
     return (
       <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
         {error}

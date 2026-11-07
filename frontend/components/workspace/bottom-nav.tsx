@@ -28,7 +28,7 @@ const items: SideItem[] = [
     brand: "snap",
   },
   { href: "/workspace/inbox", label: "Inbox", exact: false, brand: "inbox" },
-  { href: "/workspace/commerce", label: "Shop", exact: false, brand: "shop" },
+  { href: "/workspace/commerce/products", label: "Shop", exact: false, brand: "shop" },
 ];
 
 function isCurrent(pathname: string, item: SideItem) {
@@ -88,7 +88,7 @@ export function BottomNav() {
                 data-coach={
                   item.href === "/workspace/social"
                     ? "nav-post"
-                    : item.href === "/workspace/commerce"
+                    : item.href === "/workspace/commerce/products"
                       ? "nav-shop"
                       : undefined
                 }

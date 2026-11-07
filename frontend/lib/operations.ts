@@ -1,4 +1,5 @@
 import { apiRequest, authenticatedApiRequest } from "./api";
+import { cachedResource, peekResourceCache } from "./resource-cache";
 
 export interface SocialPostRecord {
   id: number;
@@ -96,10 +97,20 @@ export interface OrderRecord {
   created_at: string;
 }
 
+export function peekSocialPosts(businessId: number): SocialPostRecord[] | undefined {
+  return peekResourceCache<SocialPostRecord[]>(`social-posts:${businessId}`);
+}
+
 export function getSocialPosts(businessId: number, token: string) {
-  return authenticatedApiRequest<SocialPostRecord[]>(
-    `/social/${businessId}/posts/`,
-    token,
+  return cachedResource(
+    `social-posts:${businessId}`,
+    60_000,
+    () =>
+      authenticatedApiRequest<SocialPostRecord[]>(
+        `/social/${businessId}/posts/`,
+        token,
+        { timeoutMs: 8000 },
+      ),
   );
 }
 
@@ -174,10 +185,20 @@ export function replyToMessage(
   );
 }
 
+export function peekOrders(businessId: number): OrderRecord[] | undefined {
+  return peekResourceCache<OrderRecord[]>(`orders:${businessId}`);
+}
+
 export function getOrders(businessId: number, token: string) {
-  return authenticatedApiRequest<OrderRecord[]>(
-    `/commerce/${businessId}/orders/`,
-    token,
+  return cachedResource(
+    `orders:${businessId}`,
+    60_000,
+    () =>
+      authenticatedApiRequest<OrderRecord[]>(
+        `/commerce/${businessId}/orders/`,
+        token,
+        { timeoutMs: 8000 },
+      ),
   );
 }
 

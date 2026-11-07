@@ -28,12 +28,10 @@ export default function AnalyticsPage() {
   const [brief, setBrief] = useState<MorningBrief | null>(null);
   const [weekly, setWeekly] = useState<WeeklyReport | null>(null);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<"daily" | "weekly" | null>(null);
 
   const load = useCallback(async () => {
     if (!businessId || !accessToken) return;
-    setLoading(true);
     setError("");
     try {
       const [dailyResult, weeklyResult] = await Promise.allSettled([
@@ -50,8 +48,6 @@ export default function AnalyticsPage() {
       setError(
         err instanceof ApiError ? err.message : "Unable to load reports.",
       );
-    } finally {
-      setLoading(false);
     }
   }, [accessToken, businessId]);
 
@@ -163,15 +159,7 @@ export default function AnalyticsPage() {
         ) : null}
 
         <div className="mt-6">
-          {loading ? (
-            <div className="space-y-3">
-              <div className="h-8 w-48 animate-pulse rounded bg-gray-200" />
-              <div className="h-40 animate-pulse rounded-xl bg-gray-100" />
-              <div className="h-40 animate-pulse rounded-xl bg-gray-100" />
-            </div>
-          ) : null}
-
-          {!loading && tab === "daily" ? (
+          {tab === "daily" ? (
             brief && brief.status === "ready" ? (
               <DailyBriefPanel brief={brief} />
             ) : brief && brief.status === "failed" ? (
@@ -187,7 +175,7 @@ export default function AnalyticsPage() {
             )
           ) : null}
 
-          {!loading && tab === "weekly" ? (
+          {tab === "weekly" ? (
             weekly && weekly.status === "ready" ? (
               <WeeklyReportPanel report={weekly} />
             ) : weekly && weekly.status === "failed" ? (
@@ -203,7 +191,7 @@ export default function AnalyticsPage() {
             )
           ) : null}
 
-          {!loading && tab === "activity" ? (
+          {tab === "activity" ? (
             <ActivityBoard
               title="Recent activity"
               intro="Orders, leads, published posts, and replies in one feed."

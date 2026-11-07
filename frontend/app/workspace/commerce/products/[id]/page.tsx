@@ -10,16 +10,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import {
-  getBusiness,
   deleteProduct,
   getProduct,
   getProductContentPlans,
+  peekProducts,
   polishProduct,
   updateProduct,
   type Product,
   type ProductContentPlan,
 } from "@/lib/commerce";
 import { useAuth } from "@/lib/auth-context";
+import { useWorkspace } from "@/lib/workspace-context";
 
 const STATUS_LABELS: Record<Product["status"], string> = {
   draft: "Draft",
@@ -37,10 +38,18 @@ export default function ProductDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading, accessToken } = useAuth();
+  const { businessId: workspaceBusinessId, workspaceLoading } = useWorkspace();
+  const cachedProduct =
+    workspaceBusinessId != null
+      ? peekProducts(workspaceBusinessId)?.find(
+          (item) => String(item.id) === params.id,
+        ) ?? null
+      : null;
 
-  const [product, setProduct] = useState<Product | null>(null);
-  const [businessId, setBusinessId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [product, setProduct] = useState<Product | null>(cachedProduct);
+  const [businessId, setBusinessId] = useState<number | null>(
+    workspaceBusinessId,
+  );
   const [saving, setSaving] = useState(false);
   const [polishing, setPolishing] = useState(false);
   const [statusAction, setStatusAction] = useState<string | null>(null);
@@ -52,19 +61,25 @@ export default function ProductDetailPage() {
   );
 
   useEffect(() => {
-    if (authLoading || !accessToken || !isAuthenticated) return;
+    if (authLoading || workspaceLoading || !accessToken || !isAuthenticated) return;
+    if (!workspaceBusinessId) return;
     const token = accessToken;
+    const bizId = workspaceBusinessId;
+    const known = peekProducts(bizId)?.find((item) => String(item.id) === params.id);
+    if (known) {
+      setProduct(known);
+      setBusinessId(bizId);
+    }
 
     async function load() {
       try {
-        const business = await getBusiness(token);
         const [found, plans] = await Promise.all([
-          getProduct(business.id, Number(params.id), token),
-          getProductContentPlans(business.id, token).catch(
+          getProduct(bizId, Number(params.id), token),
+          getProductContentPlans(bizId, token).catch(
             () => [] as ProductContentPlan[],
           ),
         ]);
-        setBusinessId(business.id);
+        setBusinessId(bizId);
         setProduct(found);
         setContentPlan(
           plans.find((plan) => plan.product_id === found.id) ?? null,
@@ -75,13 +90,11 @@ export default function ProductDetailPage() {
             ? err.message
             : "Could not load the product.",
         );
-      } finally {
-        setLoading(false);
       }
     }
 
     load();
-  }, [authLoading, accessToken, isAuthenticated, params.id, router]);
+  }, [authLoading, workspaceLoading, workspaceBusinessId, accessToken, isAuthenticated, params.id]);
 
   async function save() {
     if (!product || !businessId || !accessToken) return;
@@ -186,12 +199,8 @@ export default function ProductDetailPage() {
     }
   }
 
-  if (authLoading || loading || !product) {
-    return (
-      <div className={`${WORKSPACE_PAGE} flex min-h-[50vh] items-center justify-center`}>
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-kova-green border-t-transparent" />
-      </div>
-    );
+  if (!product) {
+    return null;
   }
 
   const primary =

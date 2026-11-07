@@ -568,22 +568,7 @@ export default function BusinessPolicyPage() {
     }
   };
 
-  if (authLoading || isLoading) {
-    return (
-              <div className="mx-auto max-w-3xl px-6 py-10">
-          <div className="h-5 w-32 animate-pulse rounded bg-gray-200" />
-          <div className="mt-4 h-9 w-72 animate-pulse rounded bg-gray-200" />
-          <div className="mt-3 h-5 w-full max-w-xl animate-pulse rounded bg-gray-100" />
-
-          <div className="mt-10 space-y-6">
-            <div className="h-64 animate-pulse rounded-xl bg-gray-100" />
-            <div className="h-64 animate-pulse rounded-xl bg-gray-100" />
-          </div>
-        </div>
-          );
-  }
-
-  if (!user) {
+  if (!user && !authLoading) {
     return null;
   }
 
@@ -832,7 +817,7 @@ export default function BusinessPolicyPage() {
           <div className="flex justify-end pt-2">
             <button
               type="submit"
-              disabled={isSaving}
+              disabled={isSaving || isLoading}
               className="rounded-lg bg-[#176B4D] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#12563D] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSaving ? "Saving…" : setup.isSetup ? "Continue" : "Save"}

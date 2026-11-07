@@ -14,13 +14,11 @@ export function LinkedInBrainCard({ topic }: { topic?: string }) {
     getLinkedInBrain(accessToken, topic).then(setBrain);
   }, [accessToken, topic]);
 
-  if (!brain) {
-    return (
-      <p className="text-sm text-kova-muted">Loading LinkedIn brain…</p>
-    );
-  }
-
-  const { identity, voice, pillars, matched_pillar, linkedin_account } = brain;
+  const identity = brain?.identity;
+  const voice = brain?.voice;
+  const pillars = brain?.pillars ?? [];
+  const matched_pillar = brain?.matched_pillar;
+  const linkedin_account = brain?.linkedin_account;
 
   return (
     <section className="rounded-xl border border-kova-border bg-kova-cream/30 p-4">
@@ -33,7 +31,7 @@ export function LinkedInBrainCard({ topic }: { topic?: string }) {
       <dl className="mt-4 space-y-2 text-sm">
         <div>
           <dt className="font-medium text-kova-ink">Headline</dt>
-          <dd className="text-kova-muted">{identity.headline || "—"}</dd>
+          <dd className="text-kova-muted">{identity?.headline || "—"}</dd>
         </div>
         {linkedin_account?.available && linkedin_account.headline && (
           <div>
@@ -51,7 +49,7 @@ export function LinkedInBrainCard({ topic }: { topic?: string }) {
         )}
         <div>
           <dt className="font-medium text-kova-ink">Voice</dt>
-          <dd className="text-kova-muted">{voice.summary}</dd>
+          <dd className="text-kova-muted">{voice?.summary || "—"}</dd>
         </div>
         {matched_pillar && topic && (
           <div>

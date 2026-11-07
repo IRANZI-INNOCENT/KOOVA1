@@ -114,27 +114,31 @@ export default function LinkedInSetupPage() {
     }
   }
 
-  if (authLoading || loadingProfile) {
+  if (!profile) {
+    if (loadError || !loadingProfile) {
+      return (
+        <div className={WORKSPACE_PAGE}>
+          <div className="mx-auto max-w-lg space-y-4">
+            <PageHeader
+              title="LinkedIn profile"
+              description={loadError || "Headline, role, and one content pillar."}
+            />
+            {loadError ? (
+              <Button type="button" onClick={() => void loadProfile()}>
+                Try again
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      );
+    }
     return (
       <div className={WORKSPACE_PAGE}>
         <div className="mx-auto max-w-lg">
-          <p className="text-sm text-gray-500">Loading your profile…</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (loadError || !profile) {
-    return (
-      <div className={WORKSPACE_PAGE}>
-        <div className="mx-auto max-w-lg space-y-4">
           <PageHeader
-            title="Could not load"
-            description={loadError || "Something went wrong."}
+            title="LinkedIn profile"
+            description="Headline, role, and one content pillar."
           />
-          <Button type="button" onClick={() => void loadProfile()}>
-            Try again
-          </Button>
         </div>
       </div>
     );

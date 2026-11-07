@@ -69,7 +69,6 @@ export default function ContentStudioPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [batches, setBatches] = useState<ContentBatch[]>([]);
   const [mode, setMode] = useState<OperatingMode>("assist");
-  const [loading, setLoading] = useState(true);
 
   const [capabilities, setCapabilities] =
     useState<ContentCapabilities | null>(null);
@@ -149,8 +148,6 @@ export default function ContentStudioPage() {
             ? err.message
             : "Could not load content studio.",
         );
-      } finally {
-        setLoading(false);
       }
     }
 
@@ -264,12 +261,8 @@ export default function ContentStudioPage() {
     }
   }
 
-  if (authLoading || loading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-kova-green border-t-transparent" />
-      </div>
-    );
+  if (authLoading) {
+    return null;
   }
 
   /* ──── Gate: no channels ──── */
@@ -416,10 +409,7 @@ export default function ContentStudioPage() {
                     {seedsLoading ? "Refreshing…" : "Refresh"}
                   </button>
                 </div>
-                {seedsLoading && organicSeeds.length === 0 ? (
-                  <p className="py-4 text-sm text-gray-500">Loading ideas…</p>
-                ) : (
-                  <ul className="grid gap-2 sm:grid-cols-2">
+                <ul className="grid gap-2 sm:grid-cols-2">
                     {organicSeeds.map((seed) => {
                       const active = seed.id === selectedSeedId;
                       return (
@@ -446,8 +436,7 @@ export default function ContentStudioPage() {
                         </li>
                       );
                     })}
-                  </ul>
-                )}
+                </ul>
               </div>
             )}
 

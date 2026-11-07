@@ -86,7 +86,7 @@ const navigationItems: NavigationItem[] = [
   },
   {
     label: "Shop",
-    href: "/workspace/commerce",
+    href: "/workspace/commerce/products",
     icon: (
       <NavIconSlot>
         <NavEmoji symbol="🛍️" label="Shop" />
@@ -117,7 +117,7 @@ export function Sidebar({
   const pathname = usePathname();
 
   function isActive(item: NavigationItem): boolean {
-    if (item.href === "/workspace/commerce") {
+    if (item.href === "/workspace/commerce/products") {
       return (
         pathname.startsWith("/workspace/commerce") &&
         !pathname.startsWith("/workspace/commerce/snap-to-sell")
@@ -168,8 +168,8 @@ export function Sidebar({
                     ? "nav-post"
                     : item.href === "/workspace/commerce/snap-to-sell"
                       ? "nav-snap"
-                      : item.href === "/workspace/commerce"
-                        ? "nav-shop"
+                        : item.href === "/workspace/commerce/products"
+                          ? "nav-shop"
                         : undefined
                 }
                 className={`flex items-center rounded-md py-2 pl-2.5 pr-2.5 text-[13px] font-medium transition-colors ${

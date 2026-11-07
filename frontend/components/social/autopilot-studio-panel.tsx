@@ -17,7 +17,6 @@ export function AutopilotStudioPanel({
   accessToken: string;
 }) {
   const [desk, setDesk] = useState<AutopilotDesk | null>(null);
-  const [loading, setLoading] = useState(true);
   const [startingShift, setStartingShift] = useState(false);
   const [error, setError] = useState("");
 
@@ -28,8 +27,6 @@ export function AutopilotStudioPanel({
       setError("");
     } catch {
       setError("Could not load autopilot status.");
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -92,15 +89,11 @@ export function AutopilotStudioPanel({
       </div>
 
       <div className="space-y-3 px-4 py-3 sm:px-5">
-        {loading ? (
-          <p className="text-sm text-gray-500">Loading…</p>
-        ) : null}
-
         {busy ? (
           <p className="text-sm text-kova-dark">Shift in progress…</p>
         ) : null}
 
-        {!loading && postItems.length > 0 ? (
+        {postItems.length > 0 ? (
           <ul className="space-y-1.5 text-sm">
             {postItems.slice(0, 4).map((item) => (
               <li

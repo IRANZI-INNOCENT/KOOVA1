@@ -3,14 +3,14 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { WORKSPACE_PAGE } from "@/components/ui/page-header";
-import { useAuth } from "@/lib/auth-context";
 import {
   createExpense,
   deleteExpense,
-  getBusiness,
   getExpenses,
+  peekExpenses,
   type BusinessExpense,
 } from "@/lib/commerce";
+import { useWorkspace } from "@/lib/workspace-context";
 
 const CATEGORIES = [
   { value: "rider", label: "Rider" },
@@ -25,9 +25,10 @@ function todayISO() {
 }
 
 export default function ExpensesPage() {
-  const { accessToken, isAuthenticated } = useAuth();
-  const [businessId, setBusinessId] = useState<number | null>(null);
-  const [expenses, setExpenses] = useState<BusinessExpense[]>([]);
+  const { accessToken, businessId, workspaceLoading } = useWorkspace();
+  const [expenses, setExpenses] = useState<BusinessExpense[]>(
+    () => (businessId ? peekExpenses(businessId) : undefined) ?? [],
+  );
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("rider");
   const [note, setNote] = useState("");
@@ -40,15 +41,23 @@ export default function ExpensesPage() {
   }
 
   useEffect(() => {
-    if (!isAuthenticated || !accessToken) return;
+    if (workspaceLoading || !businessId || !accessToken) return;
+    const cached = peekExpenses(businessId);
+    if (cached) setExpenses(cached);
     const token = accessToken;
-    getBusiness(token)
-      .then(async (business) => {
-        setBusinessId(business.id);
-        await reload(business.id, token);
+    const bizId = businessId;
+    let cancelled = false;
+    getExpenses(bizId, token)
+      .then((rows) => {
+        if (!cancelled) setExpenses(rows);
       })
-      .catch(() => setExpenses([]));
-  }, [accessToken, isAuthenticated]);
+      .catch(() => {
+        if (!cancelled) setExpenses([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, businessId, workspaceLoading]);
 
   const todayTotal = useMemo(() => {
     const today = todayISO();
@@ -151,7 +160,7 @@ export default function ExpensesPage() {
           </div>
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || !businessId}
             className="inline-flex h-12 w-full items-center justify-center rounded-md bg-kova-green px-4 text-sm font-semibold text-white disabled:opacity-60 sm:h-10 sm:w-auto"
           >
             {saving ? "Saving…" : "Add expense"}

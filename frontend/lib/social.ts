@@ -6,6 +6,7 @@
 
 import { authenticatedApiRequest } from "./api";
 import { getPublicApiBaseUrl } from "./api-config";
+import { cachedResource, peekResourceCache } from "./resource-cache";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -92,23 +93,47 @@ export interface SocialActionRecord {
 /* API calls                                                           */
 /* ------------------------------------------------------------------ */
 
+const SCREEN_CACHE_TTL_MS = 60_000;
+
+export function peekSocialOverview(businessId: number): SocialOverview | undefined {
+  return peekResourceCache<SocialOverview>(`social-overview:${businessId}`);
+}
+
 export async function getSocialOverview(
   businessId: number,
   token: string,
+  options?: { revalidate?: boolean },
 ): Promise<SocialOverview> {
-  return authenticatedApiRequest<SocialOverview>(
-    `/social/${businessId}/overview/`,
-    token,
+  return cachedResource(
+    `social-overview:${businessId}`,
+    SCREEN_CACHE_TTL_MS,
+    () =>
+      authenticatedApiRequest<SocialOverview>(
+        `/social/${businessId}/overview/`,
+        token,
+        { timeoutMs: 8000 },
+      ),
+    options,
   );
+}
+
+export function peekSocialAccounts(businessId: number): SocialAccount[] | undefined {
+  return peekResourceCache<SocialAccount[]>(`social-accounts:${businessId}`);
 }
 
 export async function getSocialAccounts(
   businessId: number,
   token: string,
 ): Promise<SocialAccount[]> {
-  return authenticatedApiRequest<SocialAccount[]>(
-    `/social/${businessId}/accounts/`,
-    token,
+  return cachedResource(
+    `social-accounts:${businessId}`,
+    SCREEN_CACHE_TTL_MS,
+    () =>
+      authenticatedApiRequest<SocialAccount[]>(
+        `/social/${businessId}/accounts/`,
+        token,
+        { timeoutMs: 8000 },
+      ),
   );
 }
 

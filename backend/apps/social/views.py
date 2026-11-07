@@ -288,9 +288,11 @@ class SocialPostListView(APIView):
         business = get_object_or_404(
             Business, id=business_id, owner=request.user,
         )
-        posts = SocialPost.objects.filter(
-            social_account__business=business,
-        ).select_related("social_account", "content")
+        posts = (
+            SocialPost.objects.filter(social_account__business=business)
+            .select_related("social_account", "content")
+            .order_by("-id")[:80]
+        )
         return Response(SocialPostSerializer(posts, many=True).data)
 
 

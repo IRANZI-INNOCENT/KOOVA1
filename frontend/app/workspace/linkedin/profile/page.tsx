@@ -75,7 +75,16 @@ export default function LinkedInProfilePage() {
   if (!profile) {
     return (
       <WorkspacePageFrame embedded requireBusiness={false}>
-        <div className="p-8 text-sm text-kova-muted">Loading profile…</div>
+        <div className="mx-auto max-w-2xl px-4 py-8">
+          <h1 className="text-2xl font-semibold">Profile & pillars</h1>
+          <p className="mt-1 text-sm text-kova-muted">
+            This is your LinkedIn brain — topic weeks, event posts, and autopilot
+            all pull from here.
+          </p>
+          <div className="mt-6">
+            <LinkedInBrainCard key={brainKey} />
+          </div>
+        </div>
       </WorkspacePageFrame>
     );
   }

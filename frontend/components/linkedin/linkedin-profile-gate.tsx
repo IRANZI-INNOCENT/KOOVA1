@@ -3,19 +3,20 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
-import { PageSkeleton } from "@/components/workspace/page-skeleton";
 import { useAuth } from "@/lib/auth-context";
 import { getProfessionalProfile } from "@/lib/professional";
 
 const SETUP_PREFIX = "/workspace/linkedin/setup";
 const CONNECT_PREFIX = "/workspace/linkedin/connect";
 
+let profileReadyCache: boolean | null = null;
+
 export function LinkedInProfileGate({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { accessToken, isLoading: authLoading } = useAuth();
-  const [checking, setChecking] = useState(true);
-  const [ready, setReady] = useState(false);
+  const [checking, setChecking] = useState(profileReadyCache === null);
+  const [ready, setReady] = useState(profileReadyCache === true);
   const onSetupRoute = pathname.startsWith(SETUP_PREFIX);
   const onConnectRoute = pathname.startsWith(CONNECT_PREFIX);
   const openWithoutProfile = onSetupRoute || onConnectRoute;
@@ -30,8 +31,16 @@ export function LinkedInProfileGate({ children }: { children: ReactNode }) {
       return;
     }
 
+    if (profileReadyCache === true) {
+      setReady(true);
+      setChecking(false);
+      if (onSetupRoute) {
+        router.replace("/workspace/linkedin");
+      }
+      return;
+    }
+
     let cancelled = false;
-    setChecking(true);
 
     getProfessionalProfile(accessToken)
       .then((profile) => {
@@ -39,6 +48,7 @@ export function LinkedInProfileGate({ children }: { children: ReactNode }) {
           return;
         }
         const isReady = profile.profile_ready === true;
+        profileReadyCache = isReady;
         setReady(isReady);
 
         if (!isReady && !openWithoutProfile) {
@@ -51,6 +61,7 @@ export function LinkedInProfileGate({ children }: { children: ReactNode }) {
         if (cancelled) {
           return;
         }
+        profileReadyCache = false;
         setReady(false);
         if (!openWithoutProfile) {
           router.replace(SETUP_PREFIX);
@@ -67,8 +78,8 @@ export function LinkedInProfileGate({ children }: { children: ReactNode }) {
     };
   }, [accessToken, authLoading, onSetupRoute, openWithoutProfile, router, pathname]);
 
-  if (authLoading || checking) {
-    return <PageSkeleton />;
+  if ((authLoading || checking) && profileReadyCache === null && !openWithoutProfile) {
+    return null;
   }
 
   if (!ready && !openWithoutProfile) {

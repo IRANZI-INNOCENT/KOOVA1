@@ -58,10 +58,8 @@ export default function KovaChatPage() {
   const [input, setInput] = useState("");
   const [task, setTask] = useState("general");
   const [sending, setSending] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [suggestionsLoading, setSuggestionsLoading] = useState(true);
   const [desk, setDesk] = useState<{
     mode: OperatingMode;
     paused: boolean;
@@ -84,8 +82,7 @@ export default function KovaChatPage() {
         setBusiness(current);
         void getKovaStarters(current.id, accessToken)
           .then(setSuggestions)
-          .catch(() => setSuggestions([]))
-          .finally(() => setSuggestionsLoading(false));
+          .catch(() => setSuggestions([]));
         void Promise.all([
           getSocialOverview(current.id, accessToken),
           getBusinessPolicy(current.id, accessToken),
@@ -100,8 +97,7 @@ export default function KovaChatPage() {
           })
           .catch(() => setDesk(null));
       })
-      .catch(() => router.replace("/workspace/setup"))
-      .finally(() => setLoading(false));
+      .catch(() => router.replace("/workspace/setup"));
   }, [authLoading, isAuthenticated, accessToken, router]);
 
   useEffect(() => {
@@ -159,19 +155,6 @@ export default function KovaChatPage() {
     inputRef.current?.focus();
   }
 
-  if (authLoading || loading) {
-    return (
-      <AppShell>
-        <div className="flex min-h-[80vh] items-center justify-center">
-          <div className="text-center">
-            <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-kova-green border-t-transparent" />
-            <p className="mt-4 text-sm text-gray-500">Starting KCOVA...</p>
-          </div>
-        </div>
-      </AppShell>
-    );
-  }
-
   return (
     <AppShell>
       <div className="flex min-h-0 flex-1 flex-col">
@@ -183,7 +166,6 @@ export default function KovaChatPage() {
                 businessName={business?.name || "your business"}
                 desk={desk}
                 suggestions={suggestions}
-                loading={suggestionsLoading}
                 onSuggestion={handleSuggestion}
               />
             ) : (
@@ -269,7 +251,6 @@ function EmptyState({
   businessName,
   desk,
   suggestions,
-  loading,
   onSuggestion,
 }: {
   businessName: string;
@@ -280,7 +261,6 @@ function EmptyState({
     plan: string;
   } | null;
   suggestions: string[];
-  loading: boolean;
   onSuggestion: (text: string) => void;
 }) {
   return (
@@ -313,30 +293,20 @@ function EmptyState({
         </div>
       ) : null}
 
-      {loading || suggestions.length > 0 ? (
+      {suggestions.length > 0 ? (
         <div className="mt-6">
           <p className="text-sm font-semibold text-kova-dark">Suggestions</p>
           <p className="mt-0.5 text-xs text-gray-500">
             Tap to fill the box — edit before you send.
           </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {loading
-              ? Array.from({ length: 4 }).map((_, i) => (
-                  <div
-                    key={`sk-${i}`}
-                    className="h-14 animate-pulse border border-kova-border bg-white"
-                  />
-                ))
-              : null}
-            {!loading
-              ? suggestions.map((text) => (
-                  <SuggestionCard
-                    key={text}
-                    text={text}
-                    onSelect={() => onSuggestion(text)}
-                  />
-                ))
-              : null}
+            {suggestions.map((text) => (
+              <SuggestionCard
+                key={text}
+                text={text}
+                onSelect={() => onSuggestion(text)}
+              />
+            ))}
           </div>
         </div>
       ) : null}

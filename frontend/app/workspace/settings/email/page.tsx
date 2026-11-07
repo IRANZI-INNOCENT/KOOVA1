@@ -53,13 +53,11 @@ function EmailSettingsInner() {
   const [prefs, setPrefs] = useState<EmailPreference | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      setLoading(true);
       setError("");
       try {
         const data = tokenParam
@@ -80,8 +78,6 @@ function EmailSettingsInner() {
               : "Unable to load email preferences.",
           );
         }
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     }
     void load();
@@ -133,16 +129,15 @@ function EmailSettingsInner() {
           {success}
         </div>
       ) : null}
-      {loading ? (
-        <div className="mt-8 h-40 animate-pulse rounded-xl bg-gray-100" />
-      ) : prefs ? (
-        <section className="mt-8 divide-y divide-[#E5E7E5] rounded-xl border border-[#E5E7E5] bg-white px-6">
-          {prefs.email ? (
-            <p className="py-4 text-sm text-gray-500">
-              Managing emails for <span className="font-medium text-[#17211D]">{prefs.email}</span>
-            </p>
-          ) : null}
-          {TOGGLES.map((item) => (
+      <section className="mt-8 divide-y divide-[#E5E7E5] rounded-xl border border-[#E5E7E5] bg-white px-6">
+        {prefs?.email ? (
+          <p className="py-4 text-sm text-gray-500">
+            Managing emails for <span className="font-medium text-[#17211D]">{prefs.email}</span>
+          </p>
+        ) : null}
+        {TOGGLES.map((item) => {
+          const on = Boolean(prefs?.[item.key]);
+          return (
             <div
               key={item.key}
               className="flex items-center justify-between gap-6 py-5"
@@ -154,23 +149,23 @@ function EmailSettingsInner() {
               <button
                 type="button"
                 role="switch"
-                aria-checked={Boolean(prefs[item.key])}
-                disabled={saving}
-                onClick={() => void toggle(item.key, !prefs[item.key])}
+                aria-checked={on}
+                disabled={!prefs || saving}
+                onClick={() => prefs && void toggle(item.key, !prefs[item.key])}
                 className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-                  prefs[item.key] ? "bg-[#176B4D]" : "bg-gray-300"
+                  on ? "bg-[#176B4D]" : "bg-gray-300"
                 }`}
               >
                 <span
                   className={`absolute top-1 h-4 w-4 rounded-full bg-white transition ${
-                    prefs[item.key] ? "left-6" : "left-1"
+                    on ? "left-6" : "left-1"
                   }`}
                 />
               </button>
             </div>
-          ))}
-        </section>
-      ) : null}
+          );
+        })}
+      </section>
     </div>
   );
 
@@ -183,7 +178,7 @@ function EmailSettingsInner() {
 
 export default function EmailSettingsPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-sm text-gray-500">Loading…</div>}>
+    <Suspense fallback={null}>
       <EmailSettingsInner />
     </Suspense>
   );

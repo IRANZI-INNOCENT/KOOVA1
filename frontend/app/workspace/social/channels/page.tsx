@@ -90,7 +90,6 @@ export default function ChannelsPage() {
   } = useWorkspace();
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [pendingPages, setPendingPages] = useState<PendingMetaPage[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [verifyNote, setVerifyNote] = useState("");
@@ -115,14 +114,13 @@ export default function ChannelsPage() {
     async function load() {
       if (!businessId) return;
       try {
-        const list = await getSocialAccounts(businessId, token);
+        const [list, pending, readiness] = await Promise.all([
+          getSocialAccounts(businessId, token),
+          getPendingMetaPages(token).catch(() => []),
+          getInstagramReadiness(businessId, token).catch(() => null),
+        ]);
         setAccounts(list);
-        const pending = await getPendingMetaPages(token).catch(() => []);
         setPendingPages(pending);
-        const readiness = await getInstagramReadiness(
-          businessId,
-          token,
-        ).catch(() => null);
         setInstagramReadiness(readiness);
         if (
           readiness?.facebook_connected &&
@@ -139,8 +137,6 @@ export default function ChannelsPage() {
         setError(
           err instanceof ApiError ? err.message : "Could not load channels.",
         );
-      } finally {
-        setLoading(false);
       }
     }
 
@@ -314,12 +310,8 @@ export default function ChannelsPage() {
     await refreshBusiness();
   }
 
-  if (authLoading || loading || workspaceLoading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-kova-green border-t-transparent" />
-      </div>
-    );
+  if (authLoading) {
+    return null;
   }
 
   return (

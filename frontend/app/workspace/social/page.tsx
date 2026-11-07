@@ -9,6 +9,7 @@ import { ActivityColumns } from "@/components/ui/activity-columns";
 import { WORKSPACE_PAGE } from "@/components/ui/page-header";
 import {
   getSocialPosts,
+  peekSocialPosts,
   retrySocialPost,
   type SocialPostRecord,
 } from "@/lib/operations";
@@ -17,6 +18,7 @@ import {
   getBusinessPolicy,
   getSocialOverview,
   OPERATING_MODES,
+  peekSocialOverview,
   resumeScheduledPublishing,
   type OperatingMode,
   type SocialOverview,
@@ -43,13 +45,11 @@ const POST_GROUPS: {
 ];
 
 export default function SocialOverviewPage() {
-  const { businessId, accessToken, workspaceLoading, workspaceError } =
-    useWorkspace();
+  const { businessId, accessToken, workspaceLoading } = useWorkspace();
   const [overview, setOverview] = useState<SocialOverview | null>(null);
   const [posts, setPosts] = useState<SocialPostRecord[]>([]);
   const [mode, setMode] = useState<OperatingMode>("assist");
   const [retryingId, setRetryingId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -58,40 +58,41 @@ export default function SocialOverviewPage() {
     }
 
     if (!businessId || !accessToken) {
-      setLoading(false);
       return;
     }
 
     const token = accessToken;
     const bizId = businessId;
     let cancelled = false;
+    const cachedOverview = peekSocialOverview(bizId);
+    const cachedPosts = peekSocialPosts(bizId);
+    if (cachedOverview) setOverview(cachedOverview);
+    if (cachedPosts) setPosts(cachedPosts);
 
-    async function load() {
-      try {
-        const [data, policy, postList] = await Promise.all([
-          getSocialOverview(bizId, token),
-          getBusinessPolicy(bizId, token).catch(() => null),
-          getSocialPosts(bizId, token).catch(() => [] as SocialPostRecord[]),
-        ]);
-        if (cancelled) return;
-        setOverview(data);
-        setPosts(postList);
-        if (knownMode(policy?.social_operating_mode)) {
-          setMode(policy.social_operating_mode);
-        }
-      } catch (err) {
-        if (cancelled) return;
+    void getSocialOverview(bizId, token)
+      .then((data) => {
+        if (!cancelled) setOverview(data);
+      })
+      .catch((err) => {
+        if (cancelled || cachedOverview) return;
         setError(
           err instanceof ApiError
             ? err.message
             : "Could not load social overview.",
         );
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    void load();
+      });
+    void getSocialPosts(bizId, token)
+      .then((postList) => {
+        if (!cancelled) setPosts(postList);
+      })
+      .catch(() => undefined);
+    void getBusinessPolicy(bizId, token)
+      .then((policy) => {
+        if (!cancelled && knownMode(policy?.social_operating_mode)) {
+          setMode(policy.social_operating_mode);
+        }
+      })
+      .catch(() => undefined);
 
     return () => {
       cancelled = true;
@@ -116,53 +117,24 @@ export default function SocialOverviewPage() {
     }
   }
 
-  if ((workspaceLoading || loading) && !overview) {
-    return (
-      <div className={WORKSPACE_PAGE}>
-        <div className="space-y-6">
-          <p className="text-sm text-gray-500">{modeCopy(mode).detail}</p>
-          {error ? (
-            <div
-              role="alert"
-              className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-            >
-              {error}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">Loading posts…</p>
-          )}
-        </div>
-      </div>
-    );
-  }
+  const visibleOverview =
+    overview ?? (businessId ? peekSocialOverview(businessId) ?? null : null);
+  const visiblePosts =
+    posts.length > 0
+      ? posts
+      : businessId
+        ? peekSocialPosts(businessId) ?? []
+        : [];
 
-  if (!overview?.channels || !Array.isArray(overview.channels.accounts)) {
-    const notice =
-      error ||
-      workspaceError ||
-      "Posting will show here once your business is ready.";
-    return (
-      <div className={WORKSPACE_PAGE}>
-        <div className="space-y-6">
-          <p className="text-sm text-gray-500">{modeCopy(mode).detail}</p>
-          <div
-            role="alert"
-            className="rounded-lg border border-kova-border bg-white px-4 py-3 text-sm text-kova-dark"
-          >
-            {notice}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const accounts = overview.channels.accounts;
-  const recentActions = Array.isArray(overview.recent_actions)
-    ? overview.recent_actions
+  const accounts = Array.isArray(visibleOverview?.channels?.accounts)
+    ? visibleOverview.channels.accounts
     : [];
-  const drafts = overview.content?.drafts ?? 0;
-  const hasChannels = (overview.channels.total ?? accounts.length) > 0;
-  const recommendations = (overview.command?.recommendations ?? []).filter(
+  const recentActions = Array.isArray(visibleOverview?.recent_actions)
+    ? visibleOverview.recent_actions
+    : [];
+  const drafts = visibleOverview?.content?.drafts ?? 0;
+  const hasChannels = (visibleOverview?.channels?.total ?? accounts.length) > 0;
+  const recommendations = (visibleOverview?.command?.recommendations ?? []).filter(
     (item) => {
       if (
         !item ||
@@ -204,7 +176,7 @@ export default function SocialOverviewPage() {
 
         <section className="space-y-4">
           {POST_GROUPS.map((group) => {
-            const matching = posts.filter(
+            const matching = visiblePosts.filter(
               (post) => post.publishing_status === group.status,
             );
             const rows = matching.slice(0, 8);
@@ -251,9 +223,9 @@ export default function SocialOverviewPage() {
           })}
         </section>
 
-        {overview.command?.automation_paused ? (
+        {visibleOverview?.command?.automation_paused ? (
           <div className="flex flex-col gap-3 rounded-lg border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between">
-            <p>{overview.command.pause_reason || "Scheduled publishing is paused."}</p>
+            <p>{visibleOverview.command.pause_reason || "Scheduled publishing is paused."}</p>
             <button
               type="button"
               className="inline-flex h-11 w-full items-center justify-center rounded-md bg-kova-green px-4 text-xs font-bold text-white sm:h-9 sm:w-auto"
@@ -301,7 +273,7 @@ export default function SocialOverviewPage() {
           </section>
         ) : null}
 
-        {(overview.pending_actions ?? 0) > 0 ? (
+        {(visibleOverview?.pending_actions ?? 0) > 0 ? (
           <Link
             href="/workspace/social/studio"
             className="flex items-center justify-between gap-3 border border-kova-border bg-white px-4 py-3 text-sm"
@@ -310,7 +282,7 @@ export default function SocialOverviewPage() {
               Waiting for your approval
             </span>
             <span className="font-semibold text-kova-dark">
-              {overview.pending_actions}
+              {visibleOverview?.pending_actions}
             </span>
           </Link>
         ) : null}

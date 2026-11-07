@@ -125,7 +125,7 @@ export default function InboxPage() {
     <AppShell>
       <Suspense
         fallback={
-          <div className="p-8 text-sm text-gray-500">Loading inbox…</div>
+          <div className="p-8" />
         }
       >
         <InboxInner />

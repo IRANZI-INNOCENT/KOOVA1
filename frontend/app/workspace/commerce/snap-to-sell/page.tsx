@@ -61,11 +61,7 @@ function SnapToSellBody() {
   }
 
   if (workspaceLoading) {
-    return (
-      <div className={WORKSPACE_PAGE}>
-        <p className="text-sm text-gray-500">Loading…</p>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -88,11 +84,7 @@ function SnapToSellBody() {
 export default function SnapToSellPage() {
   return (
     <Suspense
-      fallback={
-        <div className={WORKSPACE_PAGE}>
-          <p className="text-sm text-gray-500">Loading…</p>
-        </div>
-      }
+        fallback={null}
     >
       <SnapToSellBody />
     </Suspense>

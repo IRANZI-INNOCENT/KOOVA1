@@ -7,7 +7,6 @@ import { PlatformAvatar } from "@/components/social/platform-avatar";
 import { PlatformBrandIcon } from "@/components/social/platform-brand";
 import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { KovaStepsGuide } from "@/components/workspace/kova-steps-guide";
-import { PageSkeleton } from "@/components/workspace/page-skeleton";
 import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -23,7 +22,6 @@ export default function LinkedInHomePage() {
   const { accessToken } = useAuth();
   const [profile, setProfile] = useState<ProfessionalProfile | null>(null);
   const [posts, setPosts] = useState<ProfessionalPost[]>([]);
-  const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [connectMessage, setConnectMessage] = useState("");
 
@@ -36,8 +34,7 @@ export default function LinkedInHomePage() {
       .then(([prof, postList]) => {
         setProfile(prof);
         setPosts(postList.slice(0, 5));
-      })
-      .finally(() => setLoading(false));
+      });
   }, [accessToken]);
 
   const linkedin = profile?.linkedin;
@@ -60,14 +57,6 @@ export default function LinkedInHomePage() {
       );
       setConnecting(false);
     }
-  }
-
-  if (loading) {
-    return (
-      <WorkspacePageFrame embedded requireBusiness={false}>
-        <PageSkeleton />
-      </WorkspacePageFrame>
-    );
   }
 
   return (
