@@ -13,13 +13,43 @@ export interface OverviewActionItem {
 /**
  * Only real workspace state — no AI narrative or filler cards.
  */
+export function TodayStrip({
+  items,
+}: {
+  items: { label: string; value: string; href: string }[];
+}) {
+  return (
+    <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {items.map((item) => (
+        <Link
+          key={item.label}
+          href={item.href}
+          className="rounded-lg border border-kova-border bg-white px-4 py-3 transition hover:border-kova-green/40"
+        >
+          <p className="text-xs text-gray-500">{item.label}</p>
+          <p className="mt-1 text-2xl font-semibold tracking-tight text-kova-dark">
+            {item.value}
+          </p>
+        </Link>
+      ))}
+    </section>
+  );
+}
+
 export function OverviewActionPanel({
   items,
 }: {
   items: OverviewActionItem[];
 }) {
   if (items.length === 0) {
-    return null;
+    return (
+      <section className="rounded-lg border border-kova-border bg-white">
+        <div className="border-b border-kova-border/60 px-4 py-2.5 sm:px-5">
+          <h2 className="text-sm font-semibold text-kova-dark">Needs action</h2>
+        </div>
+        <p className="px-4 py-3 text-sm text-gray-500 sm:px-5">Nothing is waiting.</p>
+      </section>
+    );
   }
 
   return (
@@ -76,6 +106,7 @@ export function buildOverviewActions(input: {
   packingOrders?: number;
   failedPosts?: number;
   deadPages?: { id: number; name: string }[];
+  hasPosts?: boolean;
   socialConnected: boolean;
   approvedContentCount: number;
   pendingSocialActions: number;
@@ -170,7 +201,12 @@ export function buildOverviewActions(input: {
     });
   }
 
-  if (!input.socialConnected) {
+  if (
+    !input.socialConnected &&
+    !input.hasPosts &&
+    (input.deadPages?.length ?? 0) === 0 &&
+    (input.failedPosts ?? 0) === 0
+  ) {
     items.push({
       id: "social-connect",
       title: "Connect Facebook or Instagram",

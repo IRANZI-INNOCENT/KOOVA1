@@ -9,24 +9,27 @@ import { KovaStepsGuide } from "@/components/workspace/kova-steps-guide";
 import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
 import {
   OverviewActionPanel,
+  TodayStrip,
   buildOverviewActions,
 } from "@/components/workspace/overview-daily-panel";
 import { ApiError } from "@/lib/api";
 import { getLatestBrief, type MorningBrief } from "@/lib/brief";
-import { getSocialPosts } from "@/lib/operations";
+import { getOrders, getSocialPosts, peekSocialPosts, type OrderRecord } from "@/lib/operations";
 import { getSocialOverview } from "@/lib/social";
 import {
   getConnectedChannels,
   getProducts,
   getCommercePage,
   getContents,
+  getExpenses,
   getLeads,
+  peekExpenses,
+  type BusinessExpense,
   type Product,
   type CommercePage,
   type Content,
   type Lead,
 } from "@/lib/commerce";
-import { getOrders, type OrderRecord } from "@/lib/operations";
 import { useAuth } from "@/lib/auth-context";
 import { useWorkspace } from "@/lib/workspace-context";
 
@@ -53,6 +56,8 @@ export default function OverviewPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [failedPosts, setFailedPosts] = useState(0);
+  const [hasPosts, setHasPosts] = useState(false);
+  const [expenses, setExpenses] = useState<BusinessExpense[]>([]);
   const [deadPages, setDeadPages] = useState<{ id: number; name: string }[]>(
     [],
   );
@@ -76,6 +81,15 @@ export default function OverviewPage() {
     const token = accessToken;
     const bizId = businessId;
     let cancelled = false;
+    const cachedPosts = peekSocialPosts(bizId) ?? [];
+    if (cachedPosts.length > 0) {
+      setHasPosts(true);
+      setFailedPosts(
+        cachedPosts.filter((item) => item.publishing_status === "failed").length,
+      );
+    }
+    const cachedExpenses = peekExpenses(bizId);
+    if (cachedExpenses) setExpenses(cachedExpenses);
 
     async function loadOverview() {
       try {
@@ -93,7 +107,7 @@ export default function OverviewPage() {
         setCommercePage(page);
         setLoading(false);
 
-        const [contentList, leadList, orderList, channels, social, dailyBrief, postList] =
+        const [contentList, leadList, orderList, channels, social, dailyBrief, postList, expenseList] =
           await Promise.all([
             getContents(bizId, token).catch(() => [] as Content[]),
             getLeads(bizId, token).catch(() => [] as Lead[]),
@@ -102,6 +116,7 @@ export default function OverviewPage() {
             getSocialOverview(bizId, token).catch(() => null),
             getLatestBrief(bizId, token).catch(() => null),
             getSocialPosts(bizId, token).catch(() => []),
+            getExpenses(bizId, token).catch(() => [] as BusinessExpense[]),
           ]);
 
         if (cancelled) return;
@@ -115,6 +130,8 @@ export default function OverviewPage() {
         const failedFromContent = contentList.filter(
           (item) => item.queue_status === "failed",
         ).length;
+        setHasPosts(postList.length > 0 || failedFromContent > 0);
+        setExpenses(expenseList);
         setFailedPosts(Math.max(failedFromPosts, failedFromContent));
         setDeadPages(
           (social?.channels?.accounts ?? [])
@@ -127,7 +144,11 @@ export default function OverviewPage() {
                 "Disconnected page",
             })),
         );
-        setSocialConnected(!!channels?.connected);
+        setSocialConnected(
+          !!channels?.connected ||
+            (social?.channels?.accounts?.length ?? 0) > 0 ||
+            postList.length > 0,
+        );
         setPendingSocialActions(social?.pending_actions ?? 0);
         setBrief(
           dailyBrief && dailyBrief.status === "ready" ? dailyBrief : null,
@@ -200,6 +221,22 @@ export default function OverviewPage() {
       order.offering_kind !== "service" &&
       ["confirmed", "packing", "out_for_delivery"].includes(order.status),
   ).length;
+  const ordersWaiting = orders.filter(
+    (order) => !["delivered", "fulfilled", "cancelled"].includes(order.status),
+  ).length;
+  const replyPeople = new Set(
+    leads
+      .filter((lead) => {
+        if (["converted", "lost"].includes(lead.status)) return false;
+        if (!lead.next_follow_up_at) return lead.status === "new";
+        return new Date(lead.next_follow_up_at).getTime() <= now;
+      })
+      .map((lead) => (lead.customer_name || "someone").trim().toLowerCase()),
+  ).size;
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const cashOut = expenses
+    .filter((item) => item.spent_on === todayKey)
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const approvedContent = contents.filter((c) => c.status === "approved");
   const publishedContent = contents.filter((c) => c.status === "published");
   const storeIsLive = !!commercePage?.is_published;
@@ -210,6 +247,7 @@ export default function OverviewPage() {
     packingOrders,
     failedPosts,
     deadPages,
+    hasPosts,
     socialConnected,
     approvedContentCount: approvedContent.length,
     pendingSocialActions,
@@ -299,38 +337,44 @@ export default function OverviewPage() {
             />
           ) : null}
 
+          <TodayStrip
+            items={[
+              {
+                label: "Orders waiting",
+                value: String(ordersWaiting),
+                href: "/workspace/commerce/orders",
+              },
+              {
+                label: "To reply",
+                value: String(replyPeople),
+                href: "/workspace/inbox",
+              },
+              {
+                label: "Failed posts",
+                value: String(failedPosts),
+                href: "/workspace/social",
+              },
+              {
+                label: "Cash out today",
+                value: `KES ${Math.round(cashOut).toLocaleString()}`,
+                href: "/workspace/commerce/expenses",
+              },
+            ]}
+          />
+
           <OverviewActionPanel items={actionItems} />
 
-          {brief ? (
-            <section className="rounded-lg border border-kova-border bg-white px-4 py-3.5 sm:px-5">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-sm font-semibold text-kova-dark">
-                  {brief.greeting || "Today’s report"}
-                </h2>
-                <Link
-                  href="/workspace/analytics"
-                  className="text-sm font-semibold text-kova-green hover:underline"
-                >
-                  Reports
-                </Link>
-              </div>
-              {brief.sections?.pulse?.summary ? (
-                <p className="mt-1.5 text-sm leading-6 text-gray-600">
-                  {brief.sections.pulse.summary}
-                </p>
-              ) : null}
-            </section>
-          ) : (
+          <p className="text-sm leading-6 text-gray-600">
+            {brief?.sections?.pulse?.summary ||
+              brief?.greeting ||
+              "The last 7 days of posts, orders, and replies."}{" "}
             <Link
               href="/workspace/analytics"
-              className="block border border-kova-border bg-white px-4 py-3.5 text-sm transition hover:border-kova-green/40 sm:px-5"
+              className="font-semibold text-kova-green hover:underline"
             >
-              <span className="font-semibold text-kova-dark">Reports</span>
-              <span className="mt-0.5 block text-gray-500">
-                Daily and weekly manager brief
-              </span>
+              Analytics
             </Link>
-          )}
+          </p>
 
           {products.length === 0 && !loading ? (
             <section className="border border-kova-border bg-white px-5 py-6">
