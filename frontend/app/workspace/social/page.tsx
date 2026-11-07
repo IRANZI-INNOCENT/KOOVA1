@@ -35,6 +35,14 @@ function knownMode(value: string | null | undefined): value is OperatingMode {
   return OPERATING_MODES.some((item) => item.value === value);
 }
 
+const STATUS_LABEL: Record<SocialPostRecord["publishing_status"], string> = {
+  failed: "Failed",
+  scheduled: "Scheduled",
+  published: "Published",
+  pending: "Pending",
+  publishing: "Sending",
+};
+
 const POST_GROUPS: {
   status: SocialPostRecord["publishing_status"];
   label: string;
@@ -44,12 +52,33 @@ const POST_GROUPS: {
   { status: "published", label: "Published" },
 ];
 
+function postPreview(caption: string) {
+  const flat = caption.replace(/\s+/g, " ").trim();
+  if (!flat) return "Untitled post";
+  if (flat.length <= 72) return flat;
+  return `${flat.slice(0, 72).trimEnd()}…`;
+}
+
+function postWhen(post: SocialPostRecord) {
+  const raw = post.published_at || post.scheduled_at;
+  if (!raw) return "";
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function SocialOverviewPage() {
   const { businessId, accessToken, workspaceLoading } = useWorkspace();
   const [overview, setOverview] = useState<SocialOverview | null>(null);
   const [posts, setPosts] = useState<SocialPostRecord[]>([]);
   const [mode, setMode] = useState<OperatingMode>("assist");
   const [retryingId, setRetryingId] = useState<number | null>(null);
+  const [selected, setSelected] = useState<SocialPostRecord | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -108,6 +137,7 @@ export default function SocialOverviewPage() {
       setPosts((current) =>
         current.map((item) => (item.id === postId ? updated : item)),
       );
+      setSelected((current) => (current?.id === postId ? updated : current));
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "Could not send that post again.",
@@ -179,44 +209,39 @@ export default function SocialOverviewPage() {
             const matching = visiblePosts.filter(
               (post) => post.publishing_status === group.status,
             );
-            const rows = matching.slice(0, 8);
-            if (!rows.length) return null;
+            if (!matching.length) return null;
             return (
               <div key={group.status}>
                 <h2 className="text-sm font-semibold text-kova-dark">
                   {group.label}{" "}
                   <span className="font-medium text-gray-400">{matching.length}</span>
                 </h2>
-                <ul className="mt-2 divide-y divide-kova-border overflow-hidden rounded-lg border border-kova-border bg-white">
-                  {rows.map((post) => (
-                    <li
-                      key={post.id}
-                      className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <Link
-                        href="/workspace/social/calendar"
-                        className="min-w-0"
-                      >
-                        <p className="truncate text-sm font-semibold text-kova-dark">
-                          {post.caption?.trim() || "Untitled post"}
-                        </p>
-                        <p className="mt-0.5 truncate text-xs text-gray-500">
-                          {post.account_name || post.platform}
-                          {post.publishing_error ? ` · ${post.publishing_error}` : ""}
-                        </p>
-                      </Link>
-                      {group.status === "failed" ? (
+                <ul className="mt-2 max-h-80 divide-y divide-kova-border overflow-y-auto rounded-lg border border-kova-border bg-white">
+                  {matching.map((post) => {
+                    const when = postWhen(post);
+                    return (
+                      <li key={post.id}>
                         <button
                           type="button"
-                          onClick={() => void retryPost(post.id)}
-                          disabled={retryingId === post.id}
-                          className="inline-flex h-9 items-center justify-center rounded-md bg-kova-green px-3 text-xs font-bold text-white disabled:opacity-60"
+                          onClick={() => setSelected(post)}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-kova-background"
                         >
-                          {retryingId === post.id ? "Sending…" : "Send again"}
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-semibold text-kova-dark">
+                              {postPreview(post.caption || "")}
+                            </span>
+                            <span className="mt-0.5 block truncate text-xs text-gray-500">
+                              {post.account_name || post.platform}
+                              {when ? ` · ${when}` : ""}
+                            </span>
+                          </span>
+                          <span className="shrink-0 text-xs font-semibold text-gray-400">
+                            View
+                          </span>
                         </button>
-                      ) : null}
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             );
@@ -322,6 +347,15 @@ export default function SocialOverviewPage() {
 
         <ActivityColumns items={recentActions} columns={3} />
 
+        {selected ? (
+          <PostDetailDialog
+            post={selected}
+            retrying={retryingId === selected.id}
+            onClose={() => setSelected(null)}
+            onRetry={() => void retryPost(selected.id)}
+          />
+        ) : null}
+
         {!hasChannels && drafts === 0 && recentActions.length === 0 ? (
           <section className="border border-kova-border bg-white px-5 py-6">
             <p className="font-semibold text-kova-dark">
@@ -337,6 +371,89 @@ export default function SocialOverviewPage() {
               Connect
             </Link>
           </section>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function PostDetailDialog({
+  post,
+  retrying,
+  onClose,
+  onRetry,
+}: {
+  post: SocialPostRecord;
+  retrying: boolean;
+  onClose: () => void;
+  onRetry: () => void;
+}) {
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const when = postWhen(post);
+  const failed = post.publishing_status === "failed";
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-kova-dark/50 p-0 sm:items-center sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="post-detail-title"
+        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-lg bg-white shadow-sm sm:rounded-lg"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-kova-border px-5 py-4">
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+              {STATUS_LABEL[post.publishing_status] ?? "Post"}
+            </p>
+            <h2 id="post-detail-title" className="mt-1 truncate text-base font-semibold text-kova-dark">
+              {post.account_name || post.platform}
+            </h2>
+            {when ? (
+              <p className="mt-0.5 text-xs text-gray-500">{when}</p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 text-sm font-semibold text-gray-400"
+          >
+            Close
+          </button>
+        </div>
+
+        <div className="overflow-y-auto px-5 py-4">
+          <p className="whitespace-pre-wrap text-sm leading-6 text-kova-dark">
+            {post.caption?.trim() || "Untitled post"}
+          </p>
+          {post.publishing_error ? (
+            <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">
+              {post.publishing_error}
+            </p>
+          ) : null}
+        </div>
+
+        {failed ? (
+          <div className="border-t border-kova-border px-5 py-4">
+            <button
+              type="button"
+              onClick={onRetry}
+              disabled={retrying}
+              className="inline-flex h-11 w-full items-center justify-center rounded-md bg-kova-green px-4 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {retrying ? "Sending…" : "Send again"}
+            </button>
+          </div>
         ) : null}
       </div>
     </div>
