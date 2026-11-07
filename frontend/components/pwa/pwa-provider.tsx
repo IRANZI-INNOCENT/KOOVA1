@@ -7,7 +7,6 @@ interface PwaProviderProps {
 }
 
 const SESSION_DISMISS_KEY = "kova-pwa-install-dismissed-session";
-const INSTALLED_KEY = "kova-pwa-installed";
 
 function isStandaloneApp(): boolean {
   if (typeof window === "undefined") {
@@ -29,7 +28,11 @@ function isIosDevice(): boolean {
     return false;
   }
 
-  return /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+    return true;
+  }
+
+  return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
 }
 
 /**
@@ -56,11 +59,32 @@ export function PwaProvider({ children }: PwaProviderProps) {
       return;
     }
 
+    let removeVisibility: (() => void) | undefined;
+    let cancelled = false;
+
     navigator.serviceWorker
       .register("/sw.js", { scope: "/" })
+      .then((registration) => {
+        if (cancelled) return;
+        const refresh = () => {
+          registration.update().catch(() => undefined);
+        };
+        const onVisible = () => {
+          if (document.visibilityState === "visible") refresh();
+        };
+        document.addEventListener("visibilitychange", onVisible);
+        removeVisibility = () =>
+          document.removeEventListener("visibilitychange", onVisible);
+        refresh();
+      })
       .catch(() => {
         /* Registration failure should not block the app. */
       });
+
+    return () => {
+      cancelled = true;
+      removeVisibility?.();
+    };
   }, []);
 
   useEffect(() => {
@@ -72,10 +96,6 @@ export function PwaProvider({ children }: PwaProviderProps) {
 
     function openInstallPopup() {
       if (isStandaloneApp()) {
-        return;
-      }
-
-      if (localStorage.getItem(INSTALLED_KEY) === "1") {
         return;
       }
 
@@ -93,7 +113,6 @@ export function PwaProvider({ children }: PwaProviderProps) {
     }
 
     function handleInstalled() {
-      localStorage.setItem(INSTALLED_KEY, "1");
       setShowInstallModal(false);
       setInstallEvent(null);
     }
@@ -104,22 +123,27 @@ export function PwaProvider({ children }: PwaProviderProps) {
     );
     window.addEventListener("appinstalled", handleInstalled);
 
-    const schedulePopup = () => {
-      openInstallPopup();
-    };
-
-    const idleCallback = (
-      window as Window & {
-        requestIdleCallback?: (
-          callback: () => void,
-          options?: { timeout: number },
-        ) => number;
+    let timer: number | undefined;
+    let usedIdle = false;
+    if (isIosDevice()) {
+      const schedulePopup = () => {
+        openInstallPopup();
+      };
+      const idleCallback = (
+        window as Window & {
+          requestIdleCallback?: (
+            callback: () => void,
+            options?: { timeout: number },
+          ) => number;
+        }
+      ).requestIdleCallback;
+      if (idleCallback) {
+        usedIdle = true;
+        timer = idleCallback(schedulePopup, { timeout: 2500 });
+      } else {
+        timer = window.setTimeout(schedulePopup, 1500);
       }
-    ).requestIdleCallback;
-
-    const timer = idleCallback
-      ? idleCallback(schedulePopup, { timeout: 2500 })
-      : window.setTimeout(schedulePopup, 1500);
+    }
 
     return () => {
       const cancelIdle = (
@@ -129,7 +153,7 @@ export function PwaProvider({ children }: PwaProviderProps) {
       ).cancelIdleCallback;
 
       if (typeof timer === "number") {
-        if (cancelIdle) {
+        if (usedIdle && cancelIdle) {
           cancelIdle(timer);
         } else {
           window.clearTimeout(timer);
@@ -146,6 +170,15 @@ export function PwaProvider({ children }: PwaProviderProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!showInstallModal) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") dismissForSession();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showInstallModal]);
+
   function dismissForSession() {
     sessionStorage.setItem(SESSION_DISMISS_KEY, "1");
     setShowInstallModal(false);
@@ -158,9 +191,8 @@ export function PwaProvider({ children }: PwaProviderProps) {
 
     await installEvent.prompt();
     const choice = await installEvent.userChoice;
-
-    if (choice.outcome === "accepted") {
-      localStorage.setItem(INSTALLED_KEY, "1");
+    if (choice.outcome === "dismissed") {
+      sessionStorage.setItem(SESSION_DISMISS_KEY, "1");
     }
 
     setShowInstallModal(false);
@@ -187,12 +219,12 @@ export function PwaProvider({ children }: PwaProviderProps) {
             onClick={(event) => event.stopPropagation()}
           >
           <div className="flex items-center gap-3">
-            <span
-              className="flex h-12 w-12 items-center justify-center bg-[#176B4D] text-2xl font-bold text-[#F4B183]"
-              aria-hidden="true"
-            >
-              K
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/icons/icon-192.png"
+              alt=""
+              className="h-12 w-12"
+            />
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#176B4D]">
                 Install KCOVA

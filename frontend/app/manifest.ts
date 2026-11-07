@@ -1,7 +1,16 @@
 import type { MetadataRoute } from "next";
 
+const ICONS = [
+  {
+    src: "/icons/icon-192.png",
+    sizes: "192x192",
+    type: "image/png",
+  },
+];
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: "/workspace",
     name: "KCOVA",
     short_name: "KCOVA",
     description:
@@ -9,6 +18,7 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/workspace",
     scope: "/",
     display: "standalone",
+    display_override: ["standalone", "browser"],
     orientation: "portrait",
     background_color: "#FAFAF8",
     theme_color: "#176B4D",
@@ -32,6 +42,12 @@ export default function manifest(): MetadataRoute.Manifest {
         type: "image/png",
         purpose: "maskable",
       },
+    ],
+    shortcuts: [
+      { name: "Home", url: "/workspace", icons: ICONS },
+      { name: "Post", url: "/workspace/social", icons: ICONS },
+      { name: "Snap", url: "/workspace/commerce/snap-to-sell", icons: ICONS },
+      { name: "Shop", url: "/workspace/commerce/products", icons: ICONS },
     ],
   };
 }
