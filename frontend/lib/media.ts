@@ -35,7 +35,8 @@ function normalizeMediaPath(raw: string): string {
 
 /**
  * Resolve product/content image URLs for <img src>.
- * Works with NEXT_PUBLIC_API_URL=/api by serving via /media on the site host.
+ * Always serves KCOVA uploads through the site origin (/media proxy) so
+ * workspace and storefront work when the API lives on a different host.
  */
 export function mediaSrc(url: string): string {
   const raw = (url || "").trim();
@@ -43,28 +44,28 @@ export function mediaSrc(url: string): string {
     return "";
   }
 
-  const toSiteMedia = (pathname: string) =>
-    `${getMediaBaseUrl()}${normalizeMediaPath(pathname)}`;
+  const siteMedia = (pathname: string, search = "") => {
+    const path = pathname.startsWith("/media/")
+      ? pathname
+      : normalizeMediaPath(pathname);
+    return `${getMediaBaseUrl()}${path}${search}`;
+  };
 
   if (raw.startsWith("http://") || raw.startsWith("https://")) {
     try {
       const parsed = new URL(raw);
+      let path = parsed.pathname;
+      if (path.startsWith("/api/media/")) {
+        path = path.slice("/api".length);
+      }
+      if (path.startsWith("/media/") || path === "/media") {
+        return `${getMediaBaseUrl()}${path}${parsed.search}`;
+      }
       if (
         parsed.hostname === "localhost" ||
         parsed.hostname === "127.0.0.1"
       ) {
-        return toSiteMedia(parsed.pathname);
-      }
-      const upstream = getUpstreamMediaBaseUrl();
-      if (upstream && parsed.pathname.startsWith("/media")) {
-        try {
-          const upstreamHost = new URL(upstream).host;
-          if (parsed.host === upstreamHost) {
-            return toSiteMedia(parsed.pathname);
-          }
-        } catch {
-          /* keep absolute URL */
-        }
+        return siteMedia(path, parsed.search);
       }
       return raw;
     } catch {
@@ -72,5 +73,5 @@ export function mediaSrc(url: string): string {
     }
   }
 
-  return toSiteMedia(raw);
+  return siteMedia(raw);
 }
