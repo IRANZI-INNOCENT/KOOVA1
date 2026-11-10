@@ -2,13 +2,28 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Logo } from "@/components/ui/logo";
 import {
   isSidebarNavActive,
   SIDEBAR_NAV_GROUPS,
+  type SidebarNavGroup,
   type SidebarNavItem,
 } from "@/components/workspace/sidebar-nav-config";
+
+const GROUPS_STORAGE_KEY = "kova-sidebar-groups-open";
+
+function readGroupsOpen(): Record<string, boolean> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(GROUPS_STORAGE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as Record<string, boolean>;
+  } catch {
+    return {};
+  }
+}
 
 export function Sidebar({
   collapsed,
@@ -18,6 +33,29 @@ export function Sidebar({
   onToggle: () => void;
 }) {
   const pathname = usePathname();
+  const [groupsOpen, setGroupsOpen] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setGroupsOpen(readGroupsOpen());
+  }, []);
+
+  const activeByGroup = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    for (const group of SIDEBAR_NAV_GROUPS) {
+      map[group.title] = group.items.some((item) =>
+        isSidebarNavActive(pathname, item),
+      );
+    }
+    return map;
+  }, [pathname]);
+
+  const setGroupOpen = useCallback((title: string, open: boolean) => {
+    setGroupsOpen((prev) => {
+      const next = { ...prev, [title]: open };
+      window.localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
 
   return (
     <aside
@@ -60,29 +98,84 @@ export function Sidebar({
 
       <nav
         aria-label="Workspace navigation"
-        className="min-h-0 flex-1 overflow-y-auto px-2 py-4"
+        className="sidebar-nav-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 py-3"
       >
         {SIDEBAR_NAV_GROUPS.map((group) => (
-          <div key={group.title} className="mb-6 last:mb-2">
-            {!collapsed ? (
-              <p className="px-2.5 text-[10px] font-semibold uppercase tracking-wide text-white/45">
-                {group.title}
-              </p>
-            ) : null}
-            <div className={`space-y-0.5 ${collapsed ? "" : "mt-1.5"}`}>
-              {group.items.map((item) => (
-                <NavRow
-                  key={item.href}
-                  item={item}
-                  active={isSidebarNavActive(pathname, item)}
-                  collapsed={collapsed}
-                />
-              ))}
-            </div>
-          </div>
+          <NavGroup
+            key={group.title}
+            group={group}
+            pathname={pathname}
+            collapsed={collapsed}
+            open={
+              collapsed
+                ? true
+                : groupsOpen[group.title] ?? activeByGroup[group.title] ?? true
+            }
+            onOpenChange={(open) => setGroupOpen(group.title, open)}
+          />
         ))}
       </nav>
     </aside>
+  );
+}
+
+function NavGroup({
+  group,
+  pathname,
+  collapsed,
+  open,
+  onOpenChange,
+}: {
+  group: SidebarNavGroup;
+  pathname: string;
+  collapsed: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
+    <div className="mb-2.5 last:mb-1">
+      {collapsed ? null : (
+        <button
+          type="button"
+          onClick={() => onOpenChange(!open)}
+          aria-expanded={open}
+          className="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wide text-white/45 hover:bg-white/5 hover:text-white/70"
+        >
+          <span>{group.title}</span>
+          <Chevron open={open} />
+        </button>
+      )}
+      {open || collapsed ? (
+        <div className={`space-y-0.5 ${collapsed ? "" : "mt-1"}`}>
+          {group.items.map((item) => (
+            <NavRow
+              key={item.href}
+              item={item}
+              active={isSidebarNavActive(pathname, item)}
+              collapsed={collapsed}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      className={`shrink-0 text-white/50 transition-transform ${open ? "rotate-180" : ""}`}
+      aria-hidden
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
   );
 }
 

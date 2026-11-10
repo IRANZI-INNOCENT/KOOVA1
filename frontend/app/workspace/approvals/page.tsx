@@ -122,40 +122,43 @@ export default function ApprovalsPage() {
                   title={message.customer_name || "Customer"}
                   body={preview(message.body)}
                   meta={message.needs_review ? "Needs review" : message.intent}
-                >
-                  <div className="flex flex-wrap gap-2">
-                    {message.draft_reply ? (
-                      <button
-                        type="button"
-                        disabled={busyKey !== null || !accessToken}
-                        onClick={() =>
-                          void act(`reply-${message.id}`, () =>
-                            replyToMessage(
-                              businessId!,
-                              message.id,
-                              accessToken!,
-                              message.draft_reply,
-                            ),
-                          )
-                        }
-                        className="rounded-md bg-kova-green px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                  actions={
+                    <>
+                      {message.draft_reply ? (
+                        <button
+                          type="button"
+                          disabled={busyKey !== null || !accessToken}
+                          onClick={() =>
+                            void act(`reply-${message.id}`, () =>
+                              replyToMessage(
+                                businessId!,
+                                message.id,
+                                accessToken!,
+                                message.draft_reply,
+                              ),
+                            )
+                          }
+                          className="rounded-md bg-kova-green px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                        >
+                          {busyKey === `reply-${message.id}` ? "Sending…" : "Send draft"}
+                        </button>
+                      ) : null}
+                      <Link
+                        href="/workspace/inbox"
+                        className="rounded-md border border-kova-border px-3 py-1.5 text-xs font-semibold text-kova-dark"
                       >
-                        {busyKey === `reply-${message.id}` ? "Sending…" : "Send draft"}
-                      </button>
-                    ) : null}
-                    <Link
-                      href="/workspace/inbox"
-                      className="rounded-md border border-kova-border px-3 py-1.5 text-xs font-semibold text-kova-dark"
-                    >
-                      Open inbox
-                    </Link>
-                  </div>
-                  {message.draft_reply ? (
-                    <p className="mt-2 text-xs text-kova-muted">
-                      Draft: {preview(message.draft_reply, 200)}
-                    </p>
-                  ) : null}
-                </QueueRow>
+                        Open inbox
+                      </Link>
+                    </>
+                  }
+                  extra={
+                    message.draft_reply ? (
+                      <p className="text-xs text-kova-muted">
+                        Draft: {preview(message.draft_reply, 200)}
+                      </p>
+                    ) : null
+                  }
+                />
               ))}
             </QueueSection>
 
@@ -170,20 +173,21 @@ export default function ApprovalsPage() {
                   title={post.platform}
                   body={preview(post.caption)}
                   meta={post.created_by_ai ? "KCOVA draft" : "Draft"}
-                >
-                  <button
-                    type="button"
-                    disabled={busyKey !== null || !accessToken}
-                    onClick={() =>
-                      void act(`approve-${post.id}`, () =>
-                        approveContent(businessId!, post.id, accessToken!),
-                      )
-                    }
-                    className="rounded-md bg-kova-green px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-                  >
-                    {busyKey === `approve-${post.id}` ? "Saving…" : "Approve"}
-                  </button>
-                </QueueRow>
+                  actions={
+                    <button
+                      type="button"
+                      disabled={busyKey !== null || !accessToken}
+                      onClick={() =>
+                        void act(`approve-${post.id}`, () =>
+                          approveContent(businessId!, post.id, accessToken!),
+                        )
+                      }
+                      className="rounded-md bg-kova-green px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                    >
+                      {busyKey === `approve-${post.id}` ? "Saving…" : "Approve"}
+                    </button>
+                  }
+                />
               ))}
             </QueueSection>
 
@@ -197,33 +201,34 @@ export default function ApprovalsPage() {
                   key={post.id}
                   title={post.platform}
                   body={preview(post.caption)}
-                >
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      disabled={busyKey !== null || !accessToken}
-                      onClick={() =>
-                        void act(`publish-${post.id}`, async () => {
-                          await publishContentToChannels(
-                            businessId!,
-                            post.id,
-                            accessToken!,
-                          );
-                          await dispatchDuePosts(businessId!, accessToken!);
-                        })
-                      }
-                      className="rounded-md bg-kova-green px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-                    >
-                      {busyKey === `publish-${post.id}` ? "Publishing…" : "Publish now"}
-                    </button>
-                    <Link
-                      href="/workspace/social/studio"
-                      className="rounded-md border border-kova-border px-3 py-1.5 text-xs font-semibold text-kova-dark"
-                    >
-                      Studio
-                    </Link>
-                  </div>
-                </QueueRow>
+                  actions={
+                    <>
+                      <button
+                        type="button"
+                        disabled={busyKey !== null || !accessToken}
+                        onClick={() =>
+                          void act(`publish-${post.id}`, async () => {
+                            await publishContentToChannels(
+                              businessId!,
+                              post.id,
+                              accessToken!,
+                            );
+                            await dispatchDuePosts(businessId!, accessToken!);
+                          })
+                        }
+                        className="rounded-md bg-kova-green px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                      >
+                        {busyKey === `publish-${post.id}` ? "Publishing…" : "Publish now"}
+                      </button>
+                      <Link
+                        href="/workspace/social/studio"
+                        className="rounded-md border border-kova-border px-3 py-1.5 text-xs font-semibold text-kova-dark"
+                      >
+                        Studio
+                      </Link>
+                    </>
+                  }
+                />
               ))}
             </QueueSection>
 
@@ -238,31 +243,32 @@ export default function ApprovalsPage() {
                   title={order.customer_name || `Order #${order.id}`}
                   body={order.product_name || "Store enquiry"}
                   meta={order.status.replace(/_/g, " ")}
-                >
-                  {order.status === "new" ? (
-                    <button
-                      type="button"
-                      disabled={busyKey !== null || !accessToken}
-                      onClick={() =>
-                        void act(`order-${order.id}`, () =>
-                          updateOrder(businessId!, order.id, accessToken!, {
-                            status: "confirmed",
-                          }),
-                        )
-                      }
-                      className="rounded-md bg-kova-green px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-                    >
-                      Confirm
-                    </button>
-                  ) : (
-                    <Link
-                      href="/workspace/commerce/orders"
-                      className="rounded-md border border-kova-border px-3 py-1.5 text-xs font-semibold text-kova-dark"
-                    >
-                      Manage
-                    </Link>
-                  )}
-                </QueueRow>
+                  actions={
+                    order.status === "new" ? (
+                      <button
+                        type="button"
+                        disabled={busyKey !== null || !accessToken}
+                        onClick={() =>
+                          void act(`order-${order.id}`, () =>
+                            updateOrder(businessId!, order.id, accessToken!, {
+                              status: "confirmed",
+                            }),
+                          )
+                        }
+                        className="rounded-md bg-kova-green px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                      >
+                        Confirm
+                      </button>
+                    ) : (
+                      <Link
+                        href="/workspace/commerce/orders"
+                        className="rounded-md border border-kova-border px-3 py-1.5 text-xs font-semibold text-kova-dark"
+                      >
+                        Manage
+                      </Link>
+                    )
+                  }
+                />
               ))}
             </QueueSection>
 
@@ -277,20 +283,21 @@ export default function ApprovalsPage() {
                   title={post.platform || "Post"}
                   body={preview(post.caption)}
                   meta={preview(post.error, 80)}
-                >
-                  <button
-                    type="button"
-                    disabled={busyKey !== null || !accessToken}
-                    onClick={() =>
-                      void act(`retry-${post.id}`, () =>
-                        retrySocialPost(businessId!, post.id, accessToken!),
-                      )
-                    }
-                    className="rounded-md bg-kova-orange px-3 py-1.5 text-xs font-semibold text-kova-dark disabled:opacity-50"
-                  >
-                    Retry
-                  </button>
-                </QueueRow>
+                  actions={
+                    <button
+                      type="button"
+                      disabled={busyKey !== null || !accessToken}
+                      onClick={() =>
+                        void act(`retry-${post.id}`, () =>
+                          retrySocialPost(businessId!, post.id, accessToken!),
+                        )
+                      }
+                      className="rounded-md bg-kova-orange px-3 py-1.5 text-xs font-semibold text-kova-dark disabled:opacity-50"
+                    >
+                      Retry
+                    </button>
+                  }
+                />
               ))}
             </QueueSection>
 
@@ -304,44 +311,45 @@ export default function ApprovalsPage() {
                   key={action.id}
                   title={action.action_type.replace(/_/g, " ")}
                   body={preview(action.intent)}
-                >
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      disabled={busyKey !== null || !accessToken}
-                      onClick={() =>
-                        void act(`go-${action.id}`, () =>
-                          decideSocialAction(
-                            businessId!,
-                            action.id,
-                            accessToken!,
-                            "approve",
-                          ),
-                        )
-                      }
-                      className="rounded-md bg-kova-green px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busyKey !== null || !accessToken}
-                      onClick={() =>
-                        void act(`no-${action.id}`, () =>
-                          decideSocialAction(
-                            businessId!,
-                            action.id,
-                            accessToken!,
-                            "reject",
-                          ),
-                        )
-                      }
-                      className="rounded-md border border-kova-border px-3 py-1.5 text-xs font-semibold text-kova-dark disabled:opacity-50"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </QueueRow>
+                  actions={
+                    <>
+                      <button
+                        type="button"
+                        disabled={busyKey !== null || !accessToken}
+                        onClick={() =>
+                          void act(`go-${action.id}`, () =>
+                            decideSocialAction(
+                              businessId!,
+                              action.id,
+                              accessToken!,
+                              "approve",
+                            ),
+                          )
+                        }
+                        className="rounded-md bg-kova-green px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyKey !== null || !accessToken}
+                        onClick={() =>
+                          void act(`no-${action.id}`, () =>
+                            decideSocialAction(
+                              businessId!,
+                              action.id,
+                              accessToken!,
+                              "reject",
+                            ),
+                          )
+                        }
+                        className="rounded-md border border-kova-border px-3 py-1.5 text-xs font-semibold text-kova-dark disabled:opacity-50"
+                      >
+                        Reject
+                      </button>
+                    </>
+                  }
+                />
               ))}
             </QueueSection>
           </div>
@@ -384,25 +392,28 @@ function QueueRow({
   title,
   body,
   meta,
-  children,
+  actions,
+  extra,
 }: {
   title: string;
   body: string;
   meta?: string;
-  children: ReactNode;
+  actions: ReactNode;
+  extra?: ReactNode;
 }) {
   return (
     <div className="px-4 py-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-kova-dark">{title}</p>
           <p className="mt-0.5 text-sm text-kova-muted">{body}</p>
           {meta ? (
             <p className="mt-1 text-xs capitalize text-kova-muted">{meta}</p>
           ) : null}
         </div>
-        <div className="shrink-0">{children}</div>
+        <div className="flex flex-wrap gap-2 sm:justify-end">{actions}</div>
       </div>
+      {extra ? <div className="mt-3 border-t border-kova-border/60 pt-3">{extra}</div> : null}
     </div>
   );
 }
