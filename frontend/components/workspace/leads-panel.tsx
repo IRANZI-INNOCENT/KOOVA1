@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
 
+import { BusyButton } from "@/components/ui/busy-button";
 import {
   createOrderFromLead,
   getLeads,
@@ -43,6 +44,7 @@ export function LeadsPanel() {
   );
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [busyKey, setBusyKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (workspaceLoading) return;
@@ -80,18 +82,25 @@ export function LeadsPanel() {
 
   async function copyDraft(lead: Lead) {
     const text = lead.follow_up_draft?.trim();
-    if (!text) return;
+    if (!text || busyKey) return;
+    const key = `lead-${lead.id}-copy`;
+    setBusyKey(key);
+    setError("");
     try {
       await navigator.clipboard.writeText(text);
       setNotice("Follow-up draft copied.");
     } catch {
       setError("Could not copy draft.");
+    } finally {
+      setBusyKey(null);
     }
   }
 
   async function startOrder(lead: Lead) {
-    if (!accessToken || !businessId) return;
+    if (!accessToken || !businessId || busyKey) return;
     if (lead.status === "lost") return;
+    const key = `lead-${lead.id}-order`;
+    setBusyKey(key);
     setError("");
     try {
       const { lead: updated, order } = await createOrderFromLead(
@@ -105,11 +114,16 @@ export function LeadsPanel() {
       setNotice(`Order #${order.id} created. Finish it under Shop → Orders.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create order.");
+    } finally {
+      setBusyKey(null);
     }
   }
 
   async function markDone(lead: Lead) {
-    if (!accessToken || !businessId) return;
+    if (!accessToken || !businessId || busyKey) return;
+    const key = `lead-${lead.id}-done`;
+    setBusyKey(key);
+    setError("");
     try {
       const updated = await markLeadFollowedUp(businessId, lead.id, accessToken);
       setLeads((current) =>
@@ -118,6 +132,8 @@ export function LeadsPanel() {
       setNotice("Follow-up marked. Next reminder in 3 days.");
     } catch {
       setError("Could not update lead.");
+    } finally {
+      setBusyKey(null);
     }
   }
 
@@ -175,30 +191,33 @@ export function LeadsPanel() {
               </div>
               <div className="flex w-full flex-wrap gap-2 sm:w-auto">
                 {lead.status !== "lost" && lead.status !== "converted" ? (
-                  <button
-                    type="button"
-                    onClick={() => startOrder(lead)}
-                    className="inline-flex h-11 flex-1 items-center justify-center rounded-md border border-kova-green/40 bg-kova-green/10 px-3 text-xs font-semibold text-kova-green sm:flex-none"
+                  <BusyButton
+                    busy={busyKey === `lead-${lead.id}-order`}
+                    busyLabel="Creating…"
+                    onClick={() => void startOrder(lead)}
+                    className="h-11 flex-1 rounded-md border border-kova-green/40 bg-kova-green/10 px-3 text-xs font-semibold text-kova-green sm:flex-none"
                   >
                     Create order
-                  </button>
+                  </BusyButton>
                 ) : null}
                 {lead.follow_up_draft ? (
-                  <button
-                    type="button"
-                    onClick={() => copyDraft(lead)}
-                    className="inline-flex h-11 flex-1 items-center justify-center rounded-md border border-kova-border px-3 text-xs font-semibold text-kova-dark sm:flex-none"
+                  <BusyButton
+                    busy={busyKey === `lead-${lead.id}-copy`}
+                    busyLabel="Copying…"
+                    onClick={() => void copyDraft(lead)}
+                    className="h-11 flex-1 rounded-md border border-kova-border px-3 text-xs font-semibold text-kova-dark sm:flex-none"
                   >
                     Copy draft
-                  </button>
+                  </BusyButton>
                 ) : null}
-                <button
-                  type="button"
-                  onClick={() => markDone(lead)}
-                  className="inline-flex h-11 flex-1 items-center justify-center rounded-md bg-kova-green px-3 text-xs font-bold text-white sm:flex-none"
+                <BusyButton
+                  busy={busyKey === `lead-${lead.id}-done`}
+                  busyLabel="Saving…"
+                  onClick={() => void markDone(lead)}
+                  className="h-11 flex-1 rounded-md bg-kova-green px-3 text-xs font-bold text-white sm:flex-none"
                 >
                   Done
-                </button>
+                </BusyButton>
               </div>
             </div>
           ))}
@@ -232,13 +251,14 @@ export function LeadsPanel() {
                 {new Date(lead.created_at).toLocaleDateString()}
               </p>
               {lead.status !== "lost" && lead.status !== "converted" ? (
-                <button
-                  type="button"
-                  onClick={() => startOrder(lead)}
-                  className="mt-3 inline-flex h-10 items-center rounded-md border border-kova-green/40 px-3 text-xs font-semibold text-kova-green"
+                <BusyButton
+                  busy={busyKey === `lead-${lead.id}-order`}
+                  busyLabel="Creating…"
+                  onClick={() => void startOrder(lead)}
+                  className="mt-3 h-10 rounded-md border border-kova-green/40 px-3 text-xs font-semibold text-kova-green"
                 >
                   Create order
-                </button>
+                </BusyButton>
               ) : null}
             </li>
           ))}

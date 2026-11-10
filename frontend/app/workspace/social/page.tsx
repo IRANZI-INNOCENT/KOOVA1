@@ -7,6 +7,8 @@ import { ApiError } from "@/lib/api";
 import { PlatformAvatar } from "@/components/social/platform-avatar";
 import { ActivityColumns } from "@/components/ui/activity-columns";
 import { WORKSPACE_PAGE } from "@/components/ui/page-header";
+import { BusyButton } from "@/components/ui/busy-button";
+import { mediaSrc } from "@/lib/media";
 import {
   getSocialPosts,
   peekSocialPosts,
@@ -216,26 +218,43 @@ export default function SocialOverviewPage() {
                   {group.label}{" "}
                   <span className="font-medium text-gray-400">{matching.length}</span>
                 </h2>
-                <ul className="mt-2 max-h-80 divide-y divide-kova-border overflow-y-auto rounded-lg border border-kova-border bg-white">
+                <ul className="mt-2 max-h-80 divide-y divide-kova-border overflow-y-auto rounded-lg border border-kova-border bg-white [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {matching.map((post) => {
                     const when = postWhen(post);
+                    const thumb = post.preview_image
+                      ? mediaSrc(post.preview_image)
+                      : "";
                     return (
                       <li key={post.id}>
                         <button
                           type="button"
                           onClick={() => setSelected(post)}
-                          className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-kova-background"
+                          className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-kova-background"
                         >
+                          {thumb ? (
+                            <img
+                              src={thumb}
+                              alt=""
+                              className="h-12 w-12 shrink-0 rounded-md object-cover"
+                            />
+                          ) : (
+                            <span
+                              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-kova-background text-[10px] font-semibold uppercase text-gray-400"
+                              aria-hidden
+                            >
+                              Text
+                            </span>
+                          )}
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-semibold text-kova-dark">
-                              {postPreview(post.caption || "")}
+                              {post.product_name || postPreview(post.caption || "")}
                             </span>
                             <span className="mt-0.5 block truncate text-xs text-gray-500">
                               {post.account_name || post.platform}
                               {when ? ` · ${when}` : ""}
                             </span>
                           </span>
-                          <span className="shrink-0 text-xs font-semibold text-gray-400">
+                          <span className="shrink-0 text-xs font-semibold text-kova-green">
                             View
                           </span>
                         </button>
@@ -398,6 +417,10 @@ function PostDetailDialog({
 
   const when = postWhen(post);
   const failed = post.publishing_status === "failed";
+  const images = (post.media_urls ?? [])
+    .map((url) => mediaSrc(url))
+    .filter(Boolean);
+  const hero = images[0] || (post.preview_image ? mediaSrc(post.preview_image) : "");
 
   return (
     <div
@@ -433,9 +456,29 @@ function PostDetailDialog({
         </div>
 
         <div className="overflow-y-auto px-5 py-4">
+          {hero ? (
+            <PostPreviewImage src={hero} label={post.product_name || "Post image"} />
+          ) : null}
+          {post.product_name ? (
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-kova-green">
+              {post.product_name}
+            </p>
+          ) : null}
           <p className="whitespace-pre-wrap text-sm leading-6 text-kova-dark">
             {post.caption?.trim() || "Untitled post"}
           </p>
+          {images.length > 1 ? (
+            <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+              {images.slice(1, 5).map((url) => (
+                <img
+                  key={url}
+                  src={url}
+                  alt=""
+                  className="h-16 w-16 shrink-0 rounded-md object-cover"
+                />
+              ))}
+            </div>
+          ) : null}
           {post.publishing_error ? (
             <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">
               {post.publishing_error}
@@ -445,17 +488,25 @@ function PostDetailDialog({
 
         {failed ? (
           <div className="border-t border-kova-border px-5 py-4">
-            <button
-              type="button"
+            <BusyButton
+              busy={retrying}
+              busyLabel="Sending…"
               onClick={onRetry}
-              disabled={retrying}
-              className="inline-flex h-11 w-full items-center justify-center rounded-md bg-kova-green px-4 text-sm font-semibold text-white disabled:opacity-60"
+              className="h-11 w-full rounded-md bg-kova-green px-4 text-sm font-semibold text-white"
             >
-              {retrying ? "Sending…" : "Send again"}
-            </button>
+              Send again
+            </BusyButton>
           </div>
         ) : null}
       </div>
     </div>
+  );
+}
+
+function PostPreviewImage({ src, label }: { src: string; label: string }) {
+  return (
+    <figure className="mb-4 overflow-hidden rounded-lg border border-kova-border bg-kova-background">
+      <img src={src} alt={label} className="aspect-[4/3] w-full object-cover" />
+    </figure>
   );
 }

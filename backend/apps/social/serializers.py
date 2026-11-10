@@ -53,7 +53,24 @@ class SocialAccountSerializer(serializers.ModelSerializer):
 class SocialPostSerializer(serializers.ModelSerializer):
     caption = serializers.CharField(source="content.caption", read_only=True)
     platform = serializers.CharField(source="content.platform", read_only=True)
+    content_type = serializers.CharField(source="content.content_type", read_only=True)
+    product_name = serializers.SerializerMethodField()
     account_name = serializers.CharField(source="social_account.account_name", read_only=True)
+    media_urls = serializers.SerializerMethodField()
+    preview_image = serializers.SerializerMethodField()
+
+    def get_product_name(self, obj):
+        product = getattr(obj.content, "product", None)
+        return product.name if product else None
+
+    def get_media_urls(self, obj):
+        from apps.content.services.content_quality import publish_image_urls_from_content
+
+        return publish_image_urls_from_content(obj.content)
+
+    def get_preview_image(self, obj):
+        urls = self.get_media_urls(obj)
+        return urls[0] if urls else None
 
     class Meta:
         model = SocialPost
@@ -62,6 +79,10 @@ class SocialPostSerializer(serializers.ModelSerializer):
             "content",
             "caption",
             "platform",
+            "content_type",
+            "product_name",
+            "media_urls",
+            "preview_image",
             "account_name",
             "social_account",
             "external_post_id",

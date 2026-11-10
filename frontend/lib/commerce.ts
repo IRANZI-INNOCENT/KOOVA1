@@ -1,4 +1,5 @@
 import { authenticatedApiRequest } from "@/lib/api";
+import { mediaSrc } from "@/lib/media";
 import {
   cachedResource,
   invalidateResourceCache,
@@ -477,6 +478,22 @@ export async function deleteProduct(
 /* ------------------------------------------------------------------ */
 
 export { mediaSrc } from "@/lib/media";
+
+/** Images shown in Create / preview — media on the piece, else product photo. */
+export function contentPreviewImages(piece: {
+  media_urls?: string[];
+  product_image?: string | null;
+}): string[] {
+  const fromMedia = (piece.media_urls ?? [])
+    .map((url) => mediaSrc(url))
+    .filter(Boolean);
+  if (fromMedia.length > 0) return fromMedia;
+  if (piece.product_image) {
+    const src = mediaSrc(piece.product_image);
+    return src ? [src] : [];
+  }
+  return [];
+}
 
 export interface ContentSlide {
   caption: string;

@@ -26,6 +26,7 @@ from apps.content.models import Content
 from apps.content.services.content_quality import (
     can_publish_native_carousel,
     carousel_image_urls_from_content,
+    publish_image_urls_from_content,
     first_http_url,
     merge_slide_captions_into_body,
     place_destination,
@@ -235,10 +236,10 @@ def dispatch_post(post: SocialPost) -> SocialPost:
 
     content = post.content
     account = post.social_account
-    carousel_urls = carousel_image_urls_from_content(content)
+    publish_images = publish_image_urls_from_content(content)
     native_carousel = (
         content.content_type == Content.ContentType.CAROUSEL
-        and can_publish_native_carousel(carousel_urls)
+        and can_publish_native_carousel(publish_images)
     )
     caption = outgoing_text(content, native_carousel=native_carousel)
     price_error = price_conflict(content, caption)
@@ -253,9 +254,9 @@ def dispatch_post(post: SocialPost) -> SocialPost:
     image_urls: list[str] = []
     video_url = ""
     if native_carousel:
-        image_urls = carousel_urls[:10]
-    elif isinstance(content.media_urls, list) and content.media_urls:
-        first = absolute_media_url(str(content.media_urls[0] or ""))
+        image_urls = publish_images[:10]
+    elif publish_images:
+        first = publish_images[0]
         if _is_video_media(first, content):
             video_url = first
         else:

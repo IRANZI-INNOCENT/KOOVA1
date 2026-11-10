@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { BusyButton } from "@/components/ui/busy-button";
+
 import {
   getAutopilot,
   startAutopilotShift,
@@ -71,14 +73,14 @@ export function AutopilotStudioPanel({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            disabled={busy}
+          <BusyButton
+            busy={busy}
+            busyLabel="Running…"
             onClick={() => void runShift()}
-            className="inline-flex h-9 items-center rounded-md bg-kova-orange px-4 text-xs font-bold text-kova-dark hover:bg-[#f0a46e] disabled:opacity-60"
+            className="h-9 rounded-md bg-kova-orange px-4 text-xs font-bold text-kova-dark hover:bg-[#f0a46e]"
           >
-            {busy ? "Running…" : "Run shift"}
-          </button>
+            Run shift
+          </BusyButton>
           <Link
             href="/workspace/social/calendar"
             className="inline-flex h-9 items-center rounded-md border border-kova-border px-4 text-xs font-semibold text-kova-dark hover:border-kova-green"

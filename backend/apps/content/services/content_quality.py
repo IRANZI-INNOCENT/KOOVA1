@@ -201,6 +201,34 @@ def carousel_image_urls_from_content(content: Any) -> list[str]:
     return unique_image_urls(urls)
 
 
+def product_image_urls_for_content(content: Any) -> list[str]:
+    """Product photos when media_urls were not stored on the content row."""
+    product = getattr(content, "product", None)
+    if product is None and getattr(content, "product_id", None):
+        from apps.commerce.models import Product
+
+        product = (
+            Product.objects.filter(pk=content.product_id)
+            .prefetch_related("images")
+            .first()
+        )
+    if not product:
+        return []
+    urls: list[str] = []
+    for img in product.images.all():
+        if img.image:
+            urls.append(absolute_media_url(img.image.url))
+    return unique_image_urls(urls)
+
+
+def publish_image_urls_from_content(content: Any) -> list[str]:
+    """All image URLs to send with a post (slides, media_urls, then product)."""
+    urls = carousel_image_urls_from_content(content)
+    if urls:
+        return [absolute_media_url(u) for u in urls]
+    return product_image_urls_for_content(content)
+
+
 def formats_for_channel(
     account: SocialAccount,
     *,

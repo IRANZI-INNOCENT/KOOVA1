@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { AutopilotStudioPanel } from "@/components/social/autopilot-studio-panel";
 import { PlatformAvatar } from "@/components/social/platform-avatar";
+import { BusyButton } from "@/components/ui/busy-button";
 import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { ApiError, authenticatedApiRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -15,6 +16,7 @@ import {
   getContentBatches,
   getContentCapabilities,
   getOrganicContentSeeds,
+  contentPreviewImages,
   getProducts,
   mediaSrc,
   publishOwnerVideo,
@@ -348,7 +350,13 @@ export default function ContentStudioPage() {
 
         {/* ──── Brief composer (assist / approval only) ──── */}
         {mode !== "autopilot" && (
-        <div className="overflow-hidden rounded-lg border border-kova-border bg-white">
+        <div className="overflow-hidden rounded-xl border border-kova-border bg-white shadow-sm">
+          <div className="border-b border-kova-border bg-kova-background/40 px-4 py-3 sm:px-5">
+            <h2 className="text-sm font-semibold text-kova-dark">New campaign</h2>
+            <p className="mt-0.5 text-xs text-gray-500">
+              Pick a product or tip — KCOVA drafts copy and attaches product photos.
+            </p>
+          </div>
           <div className="space-y-4 p-4 sm:p-5">
             <div className="grid grid-cols-3 gap-2">
               {(
@@ -524,7 +532,16 @@ export default function ContentStudioPage() {
         </div>
         )}
 
-        {/* ──── Batch list ──── */}
+        {/* ──── Draft posts ──── */}
+        {batches.length > 0 ? (
+          <p className="text-sm font-semibold text-kova-dark">
+            Draft posts
+            <span className="ml-2 font-normal text-gray-400">
+              Product posts include your catalogue photos when published.
+            </span>
+          </p>
+        ) : null}
+
         {batches.map((batch) => (
           <BatchSection
             key={batch.id}
@@ -561,9 +578,8 @@ function BatchSection({
   const hasDrafts = batch.contents.some((c) => c.status === "draft");
 
   return (
-    <section className="overflow-hidden rounded-lg border border-kova-border bg-white">
-      {/* Batch header */}
-      <div className="flex flex-col gap-3 border-b border-kova-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+    <section className="overflow-hidden rounded-xl border border-kova-border bg-white shadow-sm">
+      <div className="flex flex-col gap-3 border-b border-kova-border bg-kova-background/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="min-w-0">
           <h2 className="truncate text-sm font-semibold text-kova-dark">
             {batch.kind === "owner_video"
@@ -589,8 +605,7 @@ function BatchSection({
         ) : null}
       </div>
 
-      {/* Piece grid */}
-      <div className="grid gap-px bg-kova-border sm:grid-cols-2 lg:grid-cols-3">
+      <div className="divide-y divide-kova-border">
         {batch.contents.map((piece) => (
           <PieceCard
             key={piece.id}
@@ -639,9 +654,46 @@ function PieceCard({
         ? "scheduled"
         : piece.status;
 
+  const images = contentPreviewImages(piece);
+  const textOnly = images.length === 0;
+
   return (
-    <div className="flex flex-col bg-white">
-      {/* Card header */}
+    <article className="flex flex-col bg-white md:flex-row md:items-stretch">
+      <div
+        className={`relative shrink-0 border-b border-kova-border md:w-56 md:border-b-0 md:border-r lg:w-64 ${
+          textOnly ? "bg-kova-background" : "bg-kova-background/50"
+        }`}
+      >
+        {images.length > 0 ? (
+          <>
+            <img
+              src={images[0]}
+              alt={piece.product_name || "Post preview"}
+              className="aspect-square w-full object-cover md:aspect-auto md:h-full md:min-h-[12rem]"
+            />
+            {images.length > 1 ? (
+              <div className="absolute bottom-2 right-2 rounded-md bg-kova-dark/75 px-2 py-0.5 text-[10px] font-semibold text-white">
+                +{images.length - 1} photo{images.length - 1 === 1 ? "" : "s"}
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <div className="flex aspect-square flex-col items-center justify-center gap-2 px-4 text-center md:aspect-auto md:min-h-[12rem]">
+            <span className="text-2xl text-gray-300" aria-hidden>
+              ✎
+            </span>
+            <p className="text-xs font-medium text-gray-500">
+              Text-only tip
+            </p>
+            <p className="text-[11px] leading-4 text-gray-400">
+              Organic posts can ship without a photo. Product posts always use
+              your uploads.
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="flex min-w-0 flex-1 flex-col">
       <div className="flex items-center justify-between border-b border-kova-border px-4 py-3">
         <div className="flex items-center gap-2 text-xs">
           <span className="font-semibold text-kova-dark">
@@ -670,43 +722,12 @@ function PieceCard({
         </div>
       ) : null}
 
-      {/* Media */}
-      {(() => {
-        const images = (
-          piece.media_urls?.length
-            ? piece.media_urls
-            : piece.product_image
-              ? [piece.product_image]
-              : []
-        )
-          .map(mediaSrc)
-          .filter(Boolean);
-        if (images.length === 0) return null;
-        return (
-          <div className="border-b border-kova-border">
-            <img
-              src={images[0]}
-              alt={piece.product_name || "Post image"}
-              className="aspect-[4/3] w-full object-cover"
-            />
-            {images.length > 1 && (
-              <div className="flex gap-1.5 overflow-x-auto p-3">
-                {images.slice(1, 4).map((url) => (
-                  <img
-                    key={url}
-                    src={url}
-                    alt=""
-                    className="h-14 w-14 shrink-0 rounded-md object-cover"
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* Body */}
-      <div className="flex-1 space-y-3 p-4">
+      <div className="flex-1 space-y-3 p-4 sm:p-5">
+        {piece.product_name ? (
+          <p className="text-xs font-semibold uppercase tracking-wide text-kova-green">
+            {piece.product_name}
+          </p>
+        ) : null}
         <p className="whitespace-pre-wrap text-sm leading-6 text-kova-dark">
           {piece.caption}
         </p>
@@ -749,36 +770,38 @@ function PieceCard({
       {piece.status !== "published" &&
         piece.status !== "rejected" &&
         !queued && (
-        <div className="flex flex-wrap gap-2 border-t border-kova-border px-4 py-3">
+        <div className="flex flex-wrap gap-2 border-t border-kova-border px-4 py-3 sm:px-5">
           {piece.status === "draft" && mode !== "autopilot" && (
-            <button
-              type="button"
+            <BusyButton
+              busy={busy && busyLabel === "approve"}
+              busyLabel="Approving…"
               onClick={() => onAction("approve")}
-              disabled={busy}
-              className="inline-flex h-8 items-center rounded-md border border-kova-border bg-white px-3 text-xs font-semibold text-kova-dark transition hover:border-kova-dark disabled:opacity-60"
+              className="h-9 rounded-md border border-kova-border bg-white px-3 text-xs font-semibold text-kova-dark hover:border-kova-dark"
             >
-              {busy && busyLabel === "approve" ? "Approving…" : "Approve"}
-            </button>
+              Approve
+            </BusyButton>
           )}
           {(piece.status === "approved" || mode !== "autopilot") && (
-            <button
-              type="button"
+            <BusyButton
+              busy={busy && busyLabel === "publish"}
+              busyLabel="Publishing…"
               onClick={() => onAction("publish")}
-              disabled={busy}
-              className="inline-flex h-8 items-center rounded-md bg-kova-green px-3 text-xs font-bold text-white disabled:opacity-60"
+              className="h-9 rounded-md bg-kova-green px-3 text-xs font-bold text-white"
             >
-              {busy && busyLabel === "publish" ? "Publishing…" : "Publish"}
-            </button>
+              Publish
+            </BusyButton>
           )}
-          <button
-            type="button"
+          <BusyButton
+            busy={busy && busyLabel === "reject"}
+            busyLabel="Removing…"
             onClick={() => onAction("reject")}
-            className="inline-flex h-8 items-center rounded-md px-3 text-xs font-semibold text-gray-400 transition hover:text-red-600"
+            className="h-9 rounded-md px-3 text-xs font-semibold text-gray-500 hover:text-red-600"
           >
             Reject
-          </button>
+          </BusyButton>
         </div>
       )}
-    </div>
+      </div>
+    </article>
   );
 }

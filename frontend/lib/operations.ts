@@ -6,6 +6,10 @@ export interface SocialPostRecord {
   content: number;
   caption: string;
   platform: string;
+  content_type?: string;
+  product_name?: string | null;
+  media_urls?: string[];
+  preview_image?: string | null;
   account_name: string;
   social_account: number;
   external_post_id: string;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BusyButton } from "@/components/ui/busy-button";
 import { WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { useWorkspace } from "@/lib/workspace-context";
 import {
@@ -38,6 +39,8 @@ export default function OrdersPage() {
     () => (businessId ? peekOrders(businessId) : undefined) ?? [],
   );
   const [error, setError] = useState("");
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     if (workspaceLoading || !businessId || !accessToken) return;
@@ -57,7 +60,9 @@ export default function OrdersPage() {
           ? "confirmed"
           : null
         : NEXT[order.status];
-    if (!status || !accessToken || !businessId) return;
+    if (!status || !accessToken || !businessId || busyKey) return;
+    const key = `order-${order.id}-advance`;
+    setBusyKey(key);
     setError("");
     try {
       const updated = await updateOrder(businessId, order.id, accessToken, {
@@ -66,17 +71,22 @@ export default function OrdersPage() {
       setOrders((current) =>
         current.map((item) => (item.id === updated.id ? updated : item)),
       );
+      setNotice(`Marked as ${LABEL[status] || status}.`);
       if (status === "delivered") {
         invalidateResourceCache(`leads:${businessId}`);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update order.");
+    } finally {
+      setBusyKey(null);
     }
   }
 
   async function cancel(order: OrderRecord) {
-    if (!accessToken || !businessId) return;
+    if (!accessToken || !businessId || busyKey) return;
     if (order.status === "cancelled" || order.status === "delivered") return;
+    const key = `order-${order.id}-cancel`;
+    setBusyKey(key);
     setError("");
     try {
       const updated = await updateOrder(businessId, order.id, accessToken, {
@@ -85,18 +95,27 @@ export default function OrdersPage() {
       setOrders((current) =>
         current.map((item) => (item.id === updated.id ? updated : item)),
       );
+      setNotice("Order cancelled.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not cancel order.");
+    } finally {
+      setBusyKey(null);
     }
   }
 
   async function copyReview(order: OrderRecord) {
     const text = order.review_ask_draft?.trim();
-    if (!text) return;
+    if (!text || busyKey) return;
+    const key = `order-${order.id}-copy`;
+    setBusyKey(key);
+    setError("");
     try {
       await navigator.clipboard.writeText(text);
+      setNotice("Review ask copied.");
     } catch {
       setError("Could not copy review ask.");
+    } finally {
+      setBusyKey(null);
     }
   }
 
@@ -106,6 +125,11 @@ export default function OrdersPage() {
         {error ? (
           <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
+          </p>
+        ) : null}
+        {notice && !error ? (
+          <p className="rounded-md border border-kova-green/30 bg-kova-green/5 px-3 py-2 text-sm font-medium text-kova-green">
+            {notice}
           </p>
         ) : null}
         {orders.length === 0 ? (
@@ -150,33 +174,36 @@ export default function OrdersPage() {
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {next ? (
-                    <button
-                      type="button"
-                      onClick={() => advance(order)}
-                      className="inline-flex h-11 items-center rounded-md bg-kova-green px-3 text-xs font-bold text-white"
+                    <BusyButton
+                      busy={busyKey === `order-${order.id}-advance`}
+                      busyLabel="Saving…"
+                      onClick={() => void advance(order)}
+                      className="h-11 rounded-md bg-kova-green px-3 text-xs font-bold text-white"
                     >
                       Mark {LABEL[next] || next}
-                    </button>
+                    </BusyButton>
                   ) : null}
                   {order.status !== "cancelled" &&
                   order.status !== "delivered" &&
                   order.status !== "fulfilled" ? (
-                    <button
-                      type="button"
-                      onClick={() => cancel(order)}
-                      className="inline-flex h-11 items-center rounded-md border border-kova-border px-3 text-xs font-semibold text-kova-dark"
+                    <BusyButton
+                      busy={busyKey === `order-${order.id}-cancel`}
+                      busyLabel="Cancelling…"
+                      onClick={() => void cancel(order)}
+                      className="h-11 rounded-md border border-kova-border px-3 text-xs font-semibold text-kova-dark"
                     >
                       Cancel
-                    </button>
+                    </BusyButton>
                   ) : null}
                   {order.review_ask_draft ? (
-                    <button
-                      type="button"
-                      onClick={() => copyReview(order)}
-                      className="inline-flex h-11 items-center rounded-md border border-kova-border px-3 text-xs font-semibold text-kova-dark"
+                    <BusyButton
+                      busy={busyKey === `order-${order.id}-copy`}
+                      busyLabel="Copying…"
+                      onClick={() => void copyReview(order)}
+                      className="h-11 rounded-md border border-kova-border px-3 text-xs font-semibold text-kova-dark"
                     >
                       Copy review ask
-                    </button>
+                    </BusyButton>
                   ) : null}
                 </div>
               </article>

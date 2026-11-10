@@ -290,7 +290,8 @@ class SocialPostListView(APIView):
         )
         posts = (
             SocialPost.objects.filter(social_account__business=business)
-            .select_related("social_account", "content")
+            .select_related("social_account", "content", "content__product")
+            .prefetch_related("content__product__images")
             .order_by("-id")[:80]
         )
         return Response(SocialPostSerializer(posts, many=True).data)
