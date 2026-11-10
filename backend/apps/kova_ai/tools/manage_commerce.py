@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from apps.commerce.models import CommercePage, Product
+from apps.commerce.models import CommercePage, Order, Product
 from apps.kova_ai.context.types import BusinessContext
 from apps.kova_ai.decisions.types import Decision, DecisionAction
 
@@ -43,6 +43,8 @@ class ManageCommerceTool(Tool):
                         "list_products",
                         "get_commerce_page",
                         "get_sales_summary",
+                        "list_orders",
+                        "get_order",
                     ],
                 },
                 "resource_id": {
@@ -73,6 +75,10 @@ class ManageCommerceTool(Tool):
             return self._get_commerce_page(business_id)
         elif operation == "get_sales_summary":
             return self._get_sales_summary(business_id)
+        elif operation == "list_orders":
+            return self._list_orders(business_id)
+        elif operation == "get_order":
+            return self._get_order(business_id, arguments)
         else:
             return ToolResult(
                 status=ToolStatus.FAILED,
@@ -170,12 +176,77 @@ class ManageCommerceTool(Tool):
             status=Product.Status.DRAFT,
         ).count()
 
+        orders = Order.objects.filter(business_id=business_id)
+
         return ToolResult(
             status=ToolStatus.SUCCESS,
-            message="Sales summary retrieved.",
+            message="Commerce summary retrieved.",
             data={
+                "note": "Orders are store enquiries, not payment confirmations.",
                 "total_products": total,
                 "active_products": active,
                 "draft_products": drafts,
+                "total_orders": orders.count(),
+                "open_orders": orders.exclude(
+                    status__in=[Order.Status.DELIVERED, Order.Status.CANCELLED]
+                ).count(),
             },
         )
+
+    def _list_orders(self, business_id: int) -> ToolResult:
+        orders = (
+            Order.objects.filter(business_id=business_id)
+            .select_related("product")
+            .order_by("-created_at")[:50]
+        )
+        return ToolResult(
+            status=ToolStatus.SUCCESS,
+            message=f"Found {len(orders)} orders.",
+            data={
+                "orders": [self._order_row(order) for order in orders],
+            },
+        )
+
+    def _get_order(
+        self,
+        business_id: int,
+        arguments: dict[str, Any],
+    ) -> ToolResult:
+        resource_id = arguments.get("resource_id")
+        if resource_id is None:
+            return ToolResult(
+                status=ToolStatus.FAILED,
+                message="resource_id is required to get an order.",
+            )
+
+        try:
+            order = Order.objects.select_related("product").get(
+                pk=int(resource_id),
+                business_id=business_id,
+            )
+        except Order.DoesNotExist:
+            return ToolResult(
+                status=ToolStatus.FAILED,
+                message=f"Order {resource_id} not found.",
+            )
+
+        return ToolResult(
+            status=ToolStatus.SUCCESS,
+            message="Order retrieved.",
+            data={"order": self._order_row(order)},
+        )
+
+    @staticmethod
+    def _order_row(order: Order) -> dict[str, Any]:
+        product = order.product
+        return {
+            "id": order.pk,
+            "status": order.status,
+            "quantity": order.quantity,
+            "customer_name": order.customer_name,
+            "phone": order.phone,
+            "source": order.source,
+            "product_id": product.pk if product else None,
+            "product_name": product.name if product else None,
+            "created_at": order.created_at.isoformat(),
+        }

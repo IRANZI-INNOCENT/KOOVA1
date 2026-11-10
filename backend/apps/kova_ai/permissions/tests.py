@@ -335,6 +335,54 @@ class PermissionEngineTests(TestCase):
 
         self.assertEqual(result.status, PermissionStatus.DENIED)
 
+    def test_autopilot_still_respects_auto_publish_flag(self):
+        """Autopilot must not bypass explicit business policy flags."""
+
+        self.policy.social_operating_mode = BusinessPolicy.OperatingMode.AUTOPILOT
+        self.policy.allow_auto_publish = False
+        self.policy.save()
+
+        context = self.build_context(task=ContextTask.CONTENT_CREATION)
+
+        decision = Decision(
+            action=DecisionAction.PUBLISH_CONTENT,
+            status=DecisionStatus.READY,
+            reason="Publish content.",
+        )
+
+        result = self.permission_engine.check(
+            decision=decision,
+            context=context,
+        )
+
+        self.assertEqual(result.status, PermissionStatus.REQUIRES_APPROVAL)
+        self.assertFalse(result.allowed)
+
+    def test_autopilot_still_denies_dm_replies_when_disabled(self):
+        self.policy.social_operating_mode = BusinessPolicy.OperatingMode.AUTOPILOT
+        self.policy.allow_dm_replies = False
+        self.policy.allow_comment_replies = False
+        self.policy.save()
+
+        context = self.build_context(
+            task=ContextTask.CUSTOMER_RESPONSE,
+            task_context={"channel": "dm"},
+        )
+
+        decision = Decision(
+            action=DecisionAction.RESPOND_TO_CUSTOMER,
+            status=DecisionStatus.READY,
+            reason="Reply to DM.",
+            inputs={"channel": "dm"},
+        )
+
+        result = self.permission_engine.check(
+            decision=decision,
+            context=context,
+        )
+
+        self.assertEqual(result.status, PermissionStatus.DENIED)
+
     def test_permission_check_does_not_modify_policy(self):
         self.policy.allow_content_creation = True
         self.policy.save()

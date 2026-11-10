@@ -8,6 +8,7 @@
 
   /* KCOVA neutrals */
   --kova-dark: #17211d;
+  --kova-muted: #68756e;
   --kova-background: #fafaf8;
   --kova-white: #ffffff;
   --kova-border: #e5e7e5;
@@ -22,6 +23,7 @@
   --color-kova-orange: var(--kova-orange);
   --color-kova-orange-soft: var(--kova-orange-soft);
   --color-kova-dark: var(--kova-dark);
+  --color-kova-muted: var(--kova-muted);
   --color-kova-background: var(--kova-background);
   --color-kova-white: var(--kova-white);
   --color-kova-border: var(--kova-border);

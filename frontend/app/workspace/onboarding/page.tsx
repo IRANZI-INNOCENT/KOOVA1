@@ -19,18 +19,18 @@ const choices: {
   mark: "person" | "shop" | "both";
 }[] = [
   {
-    path: "linkedin",
-    title: "LinkedIn professional",
-    description:
-      "Plan topics, capture events, and manage your personal brand on LinkedIn.",
-    mark: "person",
-  },
-  {
     path: "business",
     title: "Business workspace",
     description:
       "Run social, commerce, and your morning brief for a small business.",
     mark: "shop",
+  },
+  {
+    path: "linkedin",
+    title: "LinkedIn professional",
+    description:
+      "Plan topics, capture events, and manage your personal brand on LinkedIn.",
+    mark: "person",
   },
   {
     path: "both",
@@ -142,10 +142,11 @@ export default function OnboardingPage() {
           Welcome to KCOVA
         </p>
         <h1 className="mt-3 max-w-xl font-display text-3xl font-semibold tracking-tight text-kova-dark sm:text-4xl">
-          What do you want to manage first?
+          Set up your business workspace
         </h1>
         <p className="mt-3 max-w-xl text-base leading-7 text-gray-600">
-          You can add the other later. One account works for both.
+          Most owners start with shop and social. LinkedIn is optional and you can
+          add it anytime from the same account.
         </p>
 
         {error && (

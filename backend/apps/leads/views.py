@@ -6,9 +6,12 @@ from rest_framework.views import APIView
 
 from apps.businesses.models import Business
 
+from apps.commerce.serializers import OrderSerializer
+
 from .models import Lead
 from .serializers import LeadSerializer
 from .services.followups import mark_followed_up, schedule_initial_follow_up
+from .services.orders import LeadConversionError, convert_lead_to_order
 
 
 class LeadListView(APIView):
@@ -88,3 +91,28 @@ class LeadDetailView(APIView):
         lead = get_object_or_404(Lead, pk=pk, business=business)
         lead.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class LeadCreateOrderView(APIView):
+    """Record an order from a lead enquiry."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, business_id, pk):
+        business = get_object_or_404(
+            Business, id=business_id, owner=request.user
+        )
+        lead = get_object_or_404(Lead, pk=pk, business=business)
+        try:
+            order = convert_lead_to_order(lead)
+        except LeadConversionError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        lead.refresh_from_db()
+        return Response(
+            {
+                "lead": LeadSerializer(lead).data,
+                "order": OrderSerializer(order, context={"request": request}).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )

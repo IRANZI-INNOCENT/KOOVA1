@@ -12,7 +12,9 @@ from .views import (
     SocialAccountListView,
     AutopilotShiftView,
     SocialAccountVerifyView,
+    SocialActionDecisionView,
     SocialActionListView,
+    WorkspaceQueueView,
     SocialDispatchView,
     SocialMessageDraftView,
     SocialMessageListView,
@@ -131,5 +133,15 @@ urlpatterns = [
         "<int:business_id>/actions/",
         SocialActionListView.as_view(),
         name="social-actions",
+    ),
+    path(
+        "<int:business_id>/actions/<int:pk>/decision/",
+        SocialActionDecisionView.as_view(),
+        name="social-action-decision",
+    ),
+    path(
+        "<int:business_id>/queue/",
+        WorkspaceQueueView.as_view(),
+        name="workspace-queue",
     ),
 ]

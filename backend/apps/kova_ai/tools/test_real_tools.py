@@ -11,7 +11,7 @@ from django.test import TestCase
 
 from apps.accounts.models import User
 from apps.businesses.models import Business
-from apps.commerce.models import Product
+from apps.commerce.models import Order, Product
 from apps.content.models import Content
 from apps.leads.models import Lead
 from apps.kova_ai.context.types import BusinessContext, ContextTask
@@ -23,9 +23,16 @@ from apps.kova_ai.decisions.types import (
 
 from .create_lead import CreateLeadTool
 from .get_analytics import GetAnalyticsTool
+from .get_social_activity import GetSocialActivityTool
 from .manage_commerce import ManageCommerceTool
+from .manage_order import ManageOrderTool
 from .manage_product import ManageProductTool
+from unittest.mock import patch
+
+from apps.social.models import SocialMessage
+
 from .publish_content import PublishContentTool
+from .respond_to_customer import RespondToCustomerTool
 from .types import ToolStatus
 
 
@@ -241,8 +248,8 @@ class PublishContentToolTests(RealToolTestBase):
     def test_publishes_draft_content(self):
         content = Content.objects.create(
             business=self.business,
-            platform="instagram",
-            content_type="post",
+            platform="whatsapp",
+            content_type="status",
             caption="Test post",
             status=Content.Status.DRAFT,
         )
@@ -261,8 +268,8 @@ class PublishContentToolTests(RealToolTestBase):
     def test_publishes_approved_content(self):
         content = Content.objects.create(
             business=self.business,
-            platform="facebook",
-            content_type="post",
+            platform="whatsapp",
+            content_type="status",
             caption="Approved post",
             status=Content.Status.APPROVED,
         )
@@ -327,6 +334,47 @@ class PublishContentToolTests(RealToolTestBase):
             arguments={},
         )
         self.assertEqual(result.status, ToolStatus.FAILED)
+
+
+class RespondToCustomerToolTests(RealToolTestBase):
+    def setUp(self):
+        super().setUp()
+        self.tool = RespondToCustomerTool()
+
+    @patch("apps.kova_ai.tools.respond_to_customer.send_reply")
+    def test_sends_reply_for_inbound_message(self, mock_send):
+        inbound = SocialMessage.objects.create(
+            business=self.business,
+            channel=SocialMessage.Channel.FACEBOOK,
+            kind="message",
+            direction=SocialMessage.Direction.INBOUND,
+            customer_name="Jane",
+            body="How much is this?",
+        )
+        outbound = SocialMessage.objects.create(
+            business=self.business,
+            channel=inbound.channel,
+            kind=inbound.kind,
+            direction=SocialMessage.Direction.OUTBOUND,
+            body="Thanks for asking!",
+            delivery_status=SocialMessage.Delivery.SENT,
+            in_reply_to=inbound,
+        )
+        mock_send.return_value = outbound
+
+        result = self.tool.execute(
+            decision=self._decision(DecisionAction.RESPOND_TO_CUSTOMER),
+            context=self.context,
+            arguments={
+                "conversation_id": str(inbound.pk),
+                "message": "Thanks for asking!",
+                "channel": "dm",
+            },
+        )
+
+        self.assertEqual(result.status, ToolStatus.SUCCESS)
+        mock_send.assert_called_once()
+        self.assertEqual(result.data["outbound_message_id"], outbound.pk)
 
 
 class ManageCommerceToolTests(RealToolTestBase):
@@ -401,6 +449,16 @@ class ManageCommerceToolTests(RealToolTestBase):
         self.assertEqual(result.data["active_products"], 1)
         self.assertEqual(result.data["draft_products"], 1)
 
+    def test_list_orders(self):
+        Order.objects.create(business=self.business, status=Order.Status.NEW)
+        result = self.tool.execute(
+            decision=self._decision(DecisionAction.MANAGE_COMMERCE),
+            context=self.context,
+            arguments={"operation": "list_orders"},
+        )
+        self.assertEqual(result.status, ToolStatus.SUCCESS)
+        self.assertEqual(len(result.data["orders"]), 1)
+
     def test_invalid_operation_fails(self):
         result = self.tool.execute(
             decision=self._decision(DecisionAction.MANAGE_COMMERCE),
@@ -408,6 +466,89 @@ class ManageCommerceToolTests(RealToolTestBase):
             arguments={"operation": "drop_tables"},
         )
         self.assertEqual(result.status, ToolStatus.FAILED)
+
+
+class ManageOrderToolTests(RealToolTestBase):
+    def setUp(self):
+        super().setUp()
+        self.tool = ManageOrderTool()
+        self.product = Product.objects.create(
+            business=self.business,
+            name="Agent Shoe",
+            price=Decimal("1200"),
+            status=Product.Status.ACTIVE,
+        )
+        self.order = Order.objects.create(
+            business=self.business,
+            product=self.product,
+            customer_name="Alex",
+            status=Order.Status.NEW,
+        )
+
+    def test_view_order(self):
+        result = self.tool.execute(
+            decision=self._decision(DecisionAction.MANAGE_ORDER),
+            context=self.context,
+            arguments={"operation": "view", "order_id": str(self.order.pk)},
+        )
+        self.assertEqual(result.status, ToolStatus.SUCCESS)
+        self.assertEqual(result.data["order"]["id"], self.order.pk)
+        self.assertEqual(result.data["order"]["status"], "new")
+
+    def test_confirm_order(self):
+        result = self.tool.execute(
+            decision=self._decision(DecisionAction.MANAGE_ORDER),
+            context=self.context,
+            arguments={"operation": "confirm", "order_id": str(self.order.pk)},
+        )
+        self.assertEqual(result.status, ToolStatus.SUCCESS)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.Status.CONFIRMED)
+
+    def test_refund_rejected(self):
+        result = self.tool.execute(
+            decision=self._decision(DecisionAction.MANAGE_ORDER),
+            context=self.context,
+            arguments={"operation": "refund", "order_id": str(self.order.pk)},
+        )
+        self.assertEqual(result.status, ToolStatus.FAILED)
+
+
+class GetSocialActivityToolTests(RealToolTestBase):
+    def setUp(self):
+        super().setUp()
+        self.tool = GetSocialActivityTool()
+
+    def test_lists_leads(self):
+        Lead.objects.create(
+            business=self.business,
+            source="instagram",
+            interest="Bulk order",
+            status=Lead.Status.NEW,
+        )
+        result = self.tool.execute(
+            decision=self._decision(DecisionAction.GET_SOCIAL_ACTIVITY),
+            context=self.context,
+            arguments={"activity_type": "leads"},
+        )
+        self.assertEqual(result.status, ToolStatus.SUCCESS)
+        self.assertEqual(len(result.data["items"]), 1)
+
+    def test_lists_posts(self):
+        Content.objects.create(
+            business=self.business,
+            platform="instagram",
+            content_type="post",
+            caption="Hello world",
+            status=Content.Status.DRAFT,
+        )
+        result = self.tool.execute(
+            decision=self._decision(DecisionAction.GET_SOCIAL_ACTIVITY),
+            context=self.context,
+            arguments={"activity_type": "posts"},
+        )
+        self.assertEqual(result.status, ToolStatus.SUCCESS)
+        self.assertEqual(len(result.data["items"]), 1)
 
 
 class GetAnalyticsToolTests(RealToolTestBase):
@@ -471,6 +612,19 @@ class GetAnalyticsToolTests(RealToolTestBase):
         self.assertIn("products", result.data)
         self.assertIn("leads", result.data)
         self.assertIn("content", result.data)
+
+    def test_orders_analytics(self):
+        Order.objects.create(
+            business=self.business,
+            status=Order.Status.NEW,
+        )
+        result = self.tool.execute(
+            decision=self._decision(DecisionAction.GET_ANALYTICS),
+            context=self.context,
+            arguments={"metric": "orders"},
+        )
+        self.assertEqual(result.status, ToolStatus.SUCCESS)
+        self.assertEqual(result.data["new_orders"], 1)
 
     def test_invalid_metric_fails(self):
         result = self.tool.execute(

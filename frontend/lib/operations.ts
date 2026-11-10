@@ -78,6 +78,12 @@ export type OrderStatus =
   | "fulfilled"
   | "cancelled";
 
+export type OrderPaymentStatus =
+  | "unpaid"
+  | "paid"
+  | "partial"
+  | "refunded";
+
 export interface OrderRecord {
   id: number;
   product: number | null;
@@ -92,6 +98,8 @@ export interface OrderRecord {
   review_ask_draft?: string;
   quantity: number;
   status: OrderStatus;
+  payment_status?: OrderPaymentStatus;
+  paid_at?: string | null;
   source: string;
   stock_adjusted?: boolean;
   created_at: string;
@@ -208,6 +216,7 @@ export function updateOrder(
   token: string,
   body: {
     status?: OrderStatus;
+    payment_status?: OrderPaymentStatus;
     note?: string;
     delivery_note?: string;
     rider_name?: string;
@@ -225,6 +234,8 @@ export function placeStoreOrder(
   slug: string,
   productSlug: string,
   customerName = "",
+  quantity = 1,
+  note = "",
 ) {
   return apiRequest<{ id: number; status: string }>(
     `/commerce/public/${slug}/orders/`,
@@ -233,6 +244,8 @@ export function placeStoreOrder(
       body: JSON.stringify({
         product_slug: productSlug,
         customer_name: customerName,
+        quantity,
+        note,
       }),
     },
   );

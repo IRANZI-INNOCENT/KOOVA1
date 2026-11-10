@@ -7,6 +7,7 @@ import { AppShell } from "@/components/workspace/app-shell";
 import { WorkspaceSectionNav } from "@/components/workspace/workspace-section-nav";
 
 const TABS = [
+  { href: "/workspace/commerce", label: "Overview", exact: true },
   { href: "/workspace/commerce/products", label: "Products" },
   { href: "/workspace/commerce/storefront", label: "Store" },
   { href: "/workspace/commerce/orders", label: "Orders" },

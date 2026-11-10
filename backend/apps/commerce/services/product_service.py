@@ -29,7 +29,11 @@ from apps.businesses.models import Business
 
 from ..models import Product, ProductAIAnalysis, ProductImage
 from .business_context import CommerceBusinessContextService
-from .product_vision import ProductVisionError, ProductVisionService
+from .product_vision import (
+    ProductVisionError,
+    ProductVisionService,
+    visible_color_from_analysis,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -417,7 +421,7 @@ class SnapToSellService:
         color = (
             str(owner_facts.get("color") or "").strip()
             or str(analysis.get("color") or "").strip()
-            or ProductVisionService._visible_color(analysis)
+            or visible_color_from_analysis(analysis)
         )
         offering_kind = (
             str(owner_facts.get("offering_kind") or "product").strip().lower()

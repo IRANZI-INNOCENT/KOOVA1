@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    BusinessAnalyticsView,
     CommercePageBannerDetailView,
     CommercePageBannerListCreateView,
     CommercePageBannerReorderView,
@@ -15,9 +16,11 @@ from .views import (
     ProductImageDetailView,
     ProductPolishView,
     ProductImageListCreateView,
+    ProductStockView,
     ProductListCreateView,
     PublicOrderView,
     PublicProductView,
+    PublicStorefrontEventView,
     PublicSitemapCatalogView,
     PublicStorefrontView,
     SnapToSellBatchView,
@@ -47,6 +50,12 @@ urlpatterns = [
         "public/<slug:slug>/orders/",
         PublicOrderView.as_view(),
         name="public-order",
+    ),
+
+    path(
+        "public/<slug:slug>/events/",
+        PublicStorefrontEventView.as_view(),
+        name="public-storefront-event",
     ),
 
     path(
@@ -110,6 +119,12 @@ urlpatterns = [
     # --------------------------------------------------------------
 
     path(
+        "<int:business_id>/analytics/",
+        BusinessAnalyticsView.as_view(),
+        name="business-analytics",
+    ),
+
+    path(
         "<int:business_id>/orders/",
         OrderListView.as_view(),
         name="order-list",
@@ -155,6 +170,12 @@ urlpatterns = [
         "<int:business_id>/products/<int:product_id>/",
         ProductDetailView.as_view(),
         name="product-detail",
+    ),
+
+    path(
+        "<int:business_id>/products/<int:product_id>/stock/",
+        ProductStockView.as_view(),
+        name="product-stock",
     ),
 
     # --------------------------------------------------------------

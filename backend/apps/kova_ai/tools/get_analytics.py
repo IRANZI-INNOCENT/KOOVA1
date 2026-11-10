@@ -11,7 +11,7 @@ from typing import Any
 
 from django.utils import timezone
 
-from apps.commerce.models import Product
+from apps.commerce.models import Order, Product
 from apps.content.models import Content
 from apps.leads.models import Lead
 from apps.kova_ai.context.types import BusinessContext
@@ -44,6 +44,7 @@ class GetAnalyticsTool(Tool):
                     "type": "string",
                     "enum": [
                         "sales",
+                        "orders",
                         "leads",
                         "content",
                         "engagement",
@@ -75,6 +76,8 @@ class GetAnalyticsTool(Tool):
 
         if metric == "sales":
             return self._sales_analytics(business_id, date_filter)
+        elif metric == "orders":
+            return self._orders_analytics(business_id, date_filter)
         elif metric == "leads":
             return self._leads_analytics(business_id, date_filter)
         elif metric == "content":
@@ -82,11 +85,7 @@ class GetAnalyticsTool(Tool):
         elif metric == "overview":
             return self._overview(business_id, date_filter)
         elif metric == "engagement":
-            return ToolResult(
-                status=ToolStatus.SUCCESS,
-                message="Engagement analytics will be available when social integrations are connected.",
-                data={"metric": "engagement", "available": False},
-            )
+            return self._engagement_analytics(business_id)
         else:
             return ToolResult(
                 status=ToolStatus.FAILED,
@@ -100,14 +99,81 @@ class GetAnalyticsTool(Tool):
         else:
             products_in_period = products
 
+        orders = Order.objects.filter(business_id=business_id)
+
         return ToolResult(
             status=ToolStatus.SUCCESS,
-            message="Sales analytics retrieved.",
+            message="Catalogue and store-order analytics retrieved.",
             data={
+                "note": "Orders are store enquiries, not payment confirmations.",
                 "total_products": products.count(),
                 "active_products": products.filter(status=Product.Status.ACTIVE).count(),
                 "draft_products": products.filter(status=Product.Status.DRAFT).count(),
                 "new_in_period": products_in_period.count(),
+                "open_orders": orders.exclude(
+                    status__in=[Order.Status.DELIVERED, Order.Status.CANCELLED]
+                ).count(),
+                "total_orders": orders.count(),
+            },
+        )
+
+    def _orders_analytics(self, business_id: int, date_filter: dict) -> ToolResult:
+        orders = Order.objects.filter(business_id=business_id)
+        if date_filter:
+            orders_in_period = orders.filter(**date_filter)
+        else:
+            orders_in_period = orders
+
+        return ToolResult(
+            status=ToolStatus.SUCCESS,
+            message="Store order analytics retrieved.",
+            data={
+                "note": "Orders are store enquiries, not payment confirmations.",
+                "total_orders": orders.count(),
+                "new_orders": orders.filter(status=Order.Status.NEW).count(),
+                "in_fulfilment": orders.filter(
+                    status__in=[
+                        Order.Status.CONFIRMED,
+                        Order.Status.PACKING,
+                        Order.Status.OUT_FOR_DELIVERY,
+                    ]
+                ).count(),
+                "delivered": orders.filter(status=Order.Status.DELIVERED).count(),
+                "cancelled": orders.filter(status=Order.Status.CANCELLED).count(),
+                "new_in_period": orders_in_period.count(),
+            },
+        )
+
+    def _engagement_analytics(self, business_id: int) -> ToolResult:
+        from django.db.models import Sum
+
+        from apps.social.models import SocialPost
+
+        qs = SocialPost.objects.filter(content__business_id=business_id)
+        published = qs.filter(
+            publishing_status=SocialPost.PublishingStatus.PUBLISHED
+        ).count()
+        if published == 0:
+            return ToolResult(
+                status=ToolStatus.SUCCESS,
+                message="No published social posts with metrics yet.",
+                data={"metric": "engagement", "published_posts": 0, "available": False},
+            )
+
+        totals = qs.aggregate(
+            likes=Sum("likes"),
+            comments=Sum("comments_count"),
+            shares=Sum("shares"),
+            reach=Sum("reach"),
+        )
+        return ToolResult(
+            status=ToolStatus.SUCCESS,
+            message="Engagement totals from social posts.",
+            data={
+                "metric": "engagement",
+                "available": True,
+                "published_posts": published,
+                "totals": {k: int(v or 0) for k, v in totals.items()},
             },
         )
 

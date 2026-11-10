@@ -3,8 +3,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { StoreCatalog } from "@/components/store/store-catalog";
 import { StoreFrame } from "@/components/store/store-frame";
 import { StoreSpotlight } from "@/components/store/store-spotlight";
+import { StoreViewTracker } from "@/components/store/store-view-tracker";
 import { JsonLd } from "@/components/seo/json-ld";
 import type { CommercePage, Product } from "@/lib/commerce";
 import { mediaSrc } from "@/lib/media";
@@ -20,6 +22,7 @@ import {
   storeHeadline,
   storeHeroSubtitle,
   whatsappLink,
+  buildStoreWhatsAppMessage,
 } from "@/lib/storefront";
 
 type Params = { slug: string };
@@ -35,12 +38,15 @@ export async function generateMetadata({
     return { title: "Store not found", robots: { index: false } };
   }
   const { page, products } = data;
-  const title =
-    page.title?.trim() || `${page.business_name} — Shop online`;
+  const location = page.location?.trim();
+  const title = page.title?.trim() || page.business_name;
+  const seoTitle = location
+    ? `${title} | Shop in ${location}`
+    : `${title} | Online shop`;
   const description =
     page.description?.trim() ||
     page.tagline?.trim() ||
-    `Browse products from ${page.business_name}${page.location ? ` in ${page.location}` : ""}. Order on WhatsApp.`;
+    `Browse products from ${page.business_name}${location ? ` in ${location}` : ""}. Order on WhatsApp.`;
   const cover = page.cover_url || page.logo_url;
   const primary =
     cover ||
@@ -49,7 +55,7 @@ export async function generateMetadata({
     undefined;
 
   return buildPageMetadata({
-    title,
+    title: seoTitle,
     description,
     path: `/store/${slug}`,
     images: primary ? [mediaSrc(primary)] : undefined,
@@ -60,44 +66,6 @@ function productImage(product: Product) {
   return product.images.find((i) => i.is_primary) ?? product.images[0];
 }
 
-function OfferingCard({
-  product,
-  slug,
-}: {
-  product: Product;
-  slug: string;
-}) {
-  const image = productImage(product);
-  return (
-    <Link href={`/store/${slug}/${product.slug}`} className="group block">
-      <div className="aspect-square overflow-hidden rounded-md border border-kova-orange bg-[var(--store-secondary-soft)]">
-        {image?.url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={mediaSrc(image.url)}
-            alt={image.alt_text || product.name}
-            className="h-full w-full object-cover"
-            loading="lazy"
-            decoding="async"
-          />
-        ) : null}
-      </div>
-      <p
-        className="mt-2.5 line-clamp-2 text-sm font-semibold leading-snug"
-        style={{ color: "var(--store-secondary)" }}
-      >
-        {product.name}
-      </p>
-      {listingFacts(product) ? (
-        <p className="mt-0.5 text-xs text-gray-500">{listingFacts(product)}</p>
-      ) : null}
-      <p className="mt-1 text-sm font-bold" style={{ color: "var(--store-accent)" }}>
-        {formatPrice(product.currency, product.price)}
-      </p>
-    </Link>
-  );
-}
-
 function SectionTitle({ children }: { children: ReactNode }) {
   return (
     <h2 className="text-xl font-bold" style={{ color: "var(--store-secondary)" }}>
@@ -105,6 +73,34 @@ function SectionTitle({ children }: { children: ReactNode }) {
         {children}
       </span>
     </h2>
+  );
+}
+
+function OfferingCard({ product, slug }: { product: Product; slug: string }) {
+  const image = productImage(product);
+  return (
+    <Link href={`/store/${slug}/${product.slug}`} className="group block">
+      <div className="aspect-[4/5] overflow-hidden rounded-md border border-kova-border bg-[var(--store-secondary-soft)]">
+        {image?.url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={mediaSrc(image.url)}
+            alt={image.alt_text || product.name}
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+        ) : null}
+      </div>
+      <p className="mt-2 line-clamp-2 text-sm font-semibold" style={{ color: "var(--store-secondary)" }}>
+        {product.name}
+      </p>
+      {listingFacts(product) ? (
+        <p className="text-xs text-kova-muted">{listingFacts(product)}</p>
+      ) : null}
+      <p className="text-sm font-bold tabular-nums" style={{ color: "var(--store-accent)" }}>
+        {formatPrice(product.currency, product.price)}
+      </p>
+    </Link>
   );
 }
 
@@ -118,6 +114,7 @@ export default async function PublicStorePage({
   if (!data) notFound();
 
   const { page, products } = data;
+  const name = page.title?.trim() || page.business_name;
   const { lead, accent } = storeHeadline(page);
   const subtitle = storeHeroSubtitle(page);
   const bannerSlides =
@@ -140,6 +137,7 @@ export default async function PublicStorePage({
               },
             ]
           : [];
+
   const layout = page.layout_preset || "compact";
   const showFeatured = page.show_featured === true;
   const popular = products.slice(0, 4);
@@ -148,6 +146,9 @@ export default async function PublicStorePage({
   const phoneLabel = page.phone ? displayStorePhone(page.phone) : "";
   const whatsappLabel = page.whatsapp ? displayStorePhone(page.whatsapp) : "";
   const offeringGrid = offeringGridClass(layout);
+  const waHref = page.whatsapp
+    ? whatsappLink(page.whatsapp, buildStoreWhatsAppMessage(name))
+    : "";
 
   const storeLd = {
     "@context": "https://schema.org",
@@ -171,6 +172,7 @@ export default async function PublicStorePage({
 
   return (
     <StoreFrame page={page} slug={slug}>
+      <StoreViewTracker slug={slug} />
       <JsonLd data={storeLd} />
 
       {page.show_hero !== false ? (
@@ -179,11 +181,10 @@ export default async function PublicStorePage({
           lead={lead}
           accent={accent}
           subtitle={subtitle}
-          menuHref="#offerings"
-          menuLabel="See offerings"
-          whatsappHref={page.whatsapp ? whatsappLink(page.whatsapp) : ""}
+          menuHref="#catalog"
+          whatsappHref={waHref}
           whatsappLabel={
-            whatsappLabel ? `WhatsApp  ${whatsappLabel}` : "WhatsApp"
+            whatsappLabel ? `Chat on WhatsApp · ${whatsappLabel}` : "Chat on WhatsApp"
           }
           phoneLabel={phoneLabel}
         />
@@ -193,85 +194,37 @@ export default async function PublicStorePage({
         <ContactStrip page={page} phoneLabel={phoneLabel} />
       ) : null}
 
-      {showFeatured ? (
-        <section className="mx-auto max-w-6xl px-4 pt-10 sm:px-6">
+      {showFeatured && popular.length > 0 ? (
+        <section className="mx-auto max-w-6xl px-4 pt-8 sm:px-6">
           <SectionTitle>Popular</SectionTitle>
-          {popular.length === 0 ? (
-            <p className="mt-6 text-sm" style={{ color: "var(--store-secondary)" }}>
-              Offerings will appear here once they are published.
-            </p>
-          ) : (
-            <div className={`mt-6 grid gap-x-3 gap-y-7 sm:gap-x-5 sm:gap-y-8 ${offeringGrid}`}>
-              {popular.map((product) => (
-                <OfferingCard key={product.id} product={product} slug={slug} />
-              ))}
-            </div>
-          )}
+          <div className={`mt-6 grid gap-x-3 gap-y-8 sm:gap-x-5 ${offeringGrid}`}>
+            {popular.map((product) => (
+              <OfferingCard key={product.id} product={product} slug={slug} />
+            ))}
+          </div>
         </section>
       ) : null}
 
-      <section
-        className={`mx-auto grid max-w-6xl gap-10 px-4 py-10 sm:px-6 lg:py-12 ${
-          page.show_about !== false && layout === "compact"
-            ? "lg:grid-cols-[minmax(0,1fr)_280px]"
-            : ""
-        }`}
-      >
-        <div id="offerings">
-          <h2 className="text-xl font-bold" style={{ color: "var(--store-secondary)" }}>
-            Offerings
-          </h2>
-          {products.length === 0 ? (
-            <p className="mt-6 text-sm" style={{ color: "var(--store-secondary)" }}>
-              Nothing is listed yet.
-            </p>
-          ) : (
-            <div className={`mt-6 grid gap-x-3 gap-y-7 sm:gap-x-5 sm:gap-y-8 ${offeringGrid}`}>
-              {products.map((product) => (
-                <OfferingCard key={product.id} product={product} slug={slug} />
-              ))}
-            </div>
-          )}
-        </div>
+      <StoreCatalog slug={slug} page={page} products={products} />
 
-        {page.show_about !== false ? (
-          <aside id="about" className={layout === "compact" ? "" : "max-w-2xl"}>
-            <SectionTitle>
-              About {page.title?.trim() || page.business_name}
-            </SectionTitle>
-            {aboutCopy ? (
-              <p className="mt-5 text-sm leading-6" style={{ color: "var(--store-secondary)" }}>
-                {aboutCopy}
-              </p>
-            ) : null}
-            <div className="mt-4 space-y-1 text-sm" style={{ color: "var(--store-secondary)" }}>
-              {page.location ? <p>{page.location}</p> : null}
-              {page.phone ? (
-                <p>
-                  <a href={`tel:${page.phone}`} className="hover:underline">
-                    {phoneLabel}
-                  </a>
-                </p>
-              ) : null}
-              {page.email ? (
-                <p>
-                  <a href={`mailto:${page.email}`} className="hover:underline">
-                    {page.email}
-                  </a>
-                </p>
-              ) : null}
-            </div>
-            {aboutPhoto && layout !== "gallery" ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={aboutPhoto}
-                alt=""
-                className="mt-6 h-28 w-full rounded-md border border-kova-orange object-cover"
-              />
-            ) : null}
-          </aside>
-        ) : null}
-      </section>
+      {page.show_about !== false && aboutCopy ? (
+        <section
+          id="about"
+          className="mx-auto max-w-6xl border-t border-kova-border px-4 py-10 sm:px-6"
+        >
+          <SectionTitle>About {name}</SectionTitle>
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-kova-muted">{aboutCopy}</p>
+          {aboutPhoto && layout !== "gallery" ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={aboutPhoto}
+              alt=""
+              className="mt-6 h-40 w-full max-w-md rounded-md border border-kova-border object-cover"
+              loading="lazy"
+            />
+          ) : null}
+        </section>
+      ) : null}
     </StoreFrame>
   );
 }
@@ -302,16 +255,6 @@ function ContactStrip({
         {page.email ? (
           <a href={`mailto:${page.email}`} className="hover:underline">
             {page.email}
-          </a>
-        ) : null}
-        {page.whatsapp ? (
-          <a
-            href={whatsappLink(page.whatsapp)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:underline"
-          >
-            WhatsApp {displayStorePhone(page.whatsapp)}
           </a>
         ) : null}
       </div>

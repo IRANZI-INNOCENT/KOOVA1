@@ -62,7 +62,13 @@ def publish_product_on_store(product: Product) -> CommercePage:
         updates.append("updated_at")
         page.save(update_fields=updates)
 
-    if product.status != Product.Status.ARCHIVED and product.status != Product.Status.ACTIVE:
+    from apps.commerce.services.product_activation import product_ready_for_store
+
+    if (
+        product.status != Product.Status.ARCHIVED
+        and product.status != Product.Status.ACTIVE
+        and product_ready_for_store(product)
+    ):
         product.status = Product.Status.ACTIVE
         product.save(update_fields=["status", "updated_at"])
 

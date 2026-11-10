@@ -17,7 +17,7 @@ export function StoreSpotlight({
   accent,
   subtitle,
   menuHref,
-  menuLabel = "See offerings",
+  menuLabel = "Shop products",
   whatsappHref,
   whatsappLabel,
   phoneLabel = "",
@@ -44,7 +44,7 @@ export function StoreSpotlight({
   }, [count]);
 
   return (
-    <section className="relative min-h-[260px] overflow-hidden sm:min-h-[420px] lg:min-h-[460px]">
+    <section className="relative min-h-[200px] overflow-hidden sm:min-h-[280px] lg:min-h-[320px]">
       {count > 0 ? (
         slides.map((slide, i) => (
           // eslint-disable-next-line @next/next/no-img-element
@@ -70,9 +70,9 @@ export function StoreSpotlight({
         }}
       />
 
-      <div className="relative mx-auto flex min-h-[260px] max-w-6xl items-center px-4 py-8 sm:min-h-[420px] sm:px-6 sm:py-12 lg:min-h-[460px]">
+      <div className="relative mx-auto flex min-h-[200px] max-w-6xl items-center px-4 py-6 sm:min-h-[280px] sm:px-6 sm:py-8 lg:min-h-[320px]">
         <div className="w-full max-w-xl">
-        <h1 className="text-[1.7rem] font-bold leading-[1.08] tracking-tight text-white sm:text-5xl">
+        <h1 className="text-2xl font-bold leading-[1.1] tracking-tight text-white sm:text-4xl">
           {lead}
           {accent ? (
             <span className="mt-1 block" style={{ color: "var(--store-accent)" }}>

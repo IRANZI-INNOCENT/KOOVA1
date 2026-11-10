@@ -1,11 +1,9 @@
 """
 KCOVA Publish Content Tool.
 
-Updates a Content record's status to published. The actual platform
-integration (posting to Instagram, etc.) is delegated to the social
-publishing layer when it becomes available.
-
-This tool writes to the database.
+Queues content through the social publishing layer so Meta (or fallback
+channels) receive the post. The database reflects publication only after
+the publisher succeeds, except for channels KCOVA saves as ready messages.
 """
 
 from __future__ import annotations
@@ -13,11 +11,11 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from django.utils import timezone
-
 from apps.content.models import Content
 from apps.kova_ai.context.types import BusinessContext
 from apps.kova_ai.decisions.types import Decision, DecisionAction
+from apps.social.models import SocialPost
+from apps.social.services.publish import PublishError, enqueue
 
 from .base import Tool
 from .types import ToolResult, ToolStatus
@@ -61,7 +59,7 @@ class PublishContentTool(Tool):
         context: BusinessContext,
         arguments: dict[str, Any] | None = None,
     ) -> ToolResult:
-        """Mark a Content record as published."""
+        """Queue or send content through the social publishing service."""
 
         arguments = arguments or {}
         content_id = arguments.get("content_id")
@@ -92,6 +90,12 @@ class PublishContentTool(Tool):
                 message=f"Content {content_id} not found for this business.",
             )
 
+        if content.status == Content.Status.REJECTED:
+            return ToolResult(
+                status=ToolStatus.FAILED,
+                message="Rejected content cannot be published. Create new content instead.",
+            )
+
         if content.status == Content.Status.PUBLISHED:
             return ToolResult(
                 status=ToolStatus.SUCCESS,
@@ -99,39 +103,56 @@ class PublishContentTool(Tool):
                 data={"content_id": content.pk, "status": content.status},
             )
 
-        if content.status == Content.Status.REJECTED:
+        try:
+            post = enqueue(content)
+        except PublishError as exc:
             return ToolResult(
                 status=ToolStatus.FAILED,
-                message="Rejected content cannot be published. Create new content instead.",
+                message=str(exc),
             )
 
-        now = timezone.now()
-        content.status = Content.Status.PUBLISHED
-        content.published_at = now
-        content.save(update_fields=["status", "published_at", "updated_at"])
-
-        # Verify the update persisted
         content.refresh_from_db()
-        if content.status != Content.Status.PUBLISHED:
-            return ToolResult(
-                status=ToolStatus.FAILED,
-                message="Failed to update content status in database.",
-            )
+        payload: dict[str, Any] = {
+            "content_id": content.pk,
+            "business_id": business_id,
+            "platform": content.platform,
+            "status": content.status,
+        }
+
+        if post is not None:
+            payload["social_post_id"] = post.pk
+            payload["publishing_status"] = post.publishing_status
+            if post.publishing_status == SocialPost.PublishingStatus.PUBLISHED:
+                payload["published_at"] = str(content.published_at or post.published_at or "")
+                message = "Content published successfully."
+            elif post.publishing_status == SocialPost.PublishingStatus.SCHEDULED:
+                message = "Content scheduled for publishing."
+                payload["scheduled_at"] = (
+                    post.scheduled_at.isoformat() if post.scheduled_at else ""
+                )
+            elif post.publishing_status == SocialPost.PublishingStatus.FAILED:
+                return ToolResult(
+                    status=ToolStatus.FAILED,
+                    message=post.publishing_error or "Publishing failed.",
+                    data=payload,
+                )
+            else:
+                message = "Content queued for publishing."
+        else:
+            message = "Content is ready to send on a channel without API publishing."
+
+        if content.status == Content.Status.PUBLISHED:
+            payload["published_at"] = str(content.published_at or "")
 
         logger.info(
-            "Content %s published for business %s",
+            "Content %s publish requested for business %s (status=%s)",
             content.pk,
             business_id,
+            content.status,
         )
 
         return ToolResult(
             status=ToolStatus.SUCCESS,
-            message="Content published successfully.",
-            data={
-                "content_id": content.pk,
-                "business_id": business_id,
-                "platform": content.platform,
-                "status": content.status,
-                "published_at": str(content.published_at),
-            },
+            message=message,
+            data=payload,
         )

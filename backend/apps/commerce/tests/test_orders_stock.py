@@ -66,6 +66,18 @@ class OrderStockTests(TestCase):
         self.product.refresh_from_db()
         self.assertEqual(self.product.stock, 5)
 
+    def test_mark_paid_sets_timestamp(self):
+        order = Order.objects.create(
+            business=self.business,
+            product=self.product,
+            quantity=1,
+            status=Order.Status.NEW,
+        )
+        apply_order_update(order, data={"payment_status": Order.PaymentStatus.PAID})
+        order.refresh_from_db()
+        self.assertEqual(order.payment_status, Order.PaymentStatus.PAID)
+        self.assertIsNotNone(order.paid_at)
+
     def test_delivered_sets_review_ask(self):
         order = Order.objects.create(
             business=self.business,

@@ -988,3 +988,9 @@ Also put those colors in visual_attributes.color.
             extension,
             "image/jpeg",
         )
+
+
+def visible_color_from_analysis(result: dict[str, Any]) -> str:
+    """Read detected color without going through a mocked vision client."""
+
+    return ProductVisionService._visible_color(result)

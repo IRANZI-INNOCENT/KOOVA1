@@ -415,6 +415,22 @@ class CommerceAPITests(APITestCase):
     # Product CRUD
     # ------------------------------------------------------------------
 
+    def test_activate_draft_without_price_blocked(self):
+        product = Product.objects.create(
+            business=self.business,
+            name="Unpriced item",
+            slug="unpriced-item",
+            status=Product.Status.DRAFT,
+        )
+        response = self.client.patch(
+            f"/api/commerce/{self.business.id}/products/{product.id}/",
+            {"status": "active"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        product.refresh_from_db()
+        self.assertEqual(product.status, Product.Status.DRAFT)
+
     def test_product_create_and_update(self):
         """Owner can create and patch a product."""
         response = self.client.post(

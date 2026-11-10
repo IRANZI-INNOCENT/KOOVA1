@@ -343,6 +343,86 @@ class ProductDetailView(BusinessOwnedAPIView):
         )
 
 
+class ProductStockView(BusinessOwnedAPIView):
+    """Read stock history or set stock with an audit row."""
+
+    def get_product(self):
+        return get_object_or_404(
+            Product,
+            id=self.kwargs["product_id"],
+            business=self.get_business(),
+        )
+
+    def get(self, request, business_id, product_id):
+        product = self.get_product()
+        from .models import ProductStockAdjustment
+        from .serializers import ProductStockAdjustmentSerializer
+
+        rows = ProductStockAdjustment.objects.filter(product=product)[:40]
+        return Response(ProductStockAdjustmentSerializer(rows, many=True).data)
+
+    def post(self, request, business_id, product_id):
+        from .services.stock import (
+            StockAdjustmentError,
+            apply_stock_delta,
+            set_product_stock,
+        )
+
+        product = self.get_product()
+        note = str(request.data.get("note") or "")[:400]
+        reason = str(request.data.get("reason") or "manual").strip()
+        allowed = {
+            "manual",
+            "restock",
+        }
+        if reason not in allowed:
+            reason = "manual"
+
+        try:
+            if "delta" in request.data and request.data.get("delta") is not None:
+                delta = int(request.data.get("delta"))
+                product = apply_stock_delta(
+                    product,
+                    delta=delta,
+                    reason=reason,
+                    note=note,
+                )
+            else:
+                raw = request.data.get("stock")
+                if raw is None:
+                    return Response(
+                        {"detail": "Send stock or delta."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                if raw == "" or raw is False:
+                    stock = None
+                else:
+                    stock = int(raw)
+                    if stock < 0:
+                        return Response(
+                            {"detail": "Stock cannot be negative."},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                product = set_product_stock(
+                    product,
+                    stock=stock,
+                    reason=reason,
+                    note=note,
+                )
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "Enter a valid stock number."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except StockAdjustmentError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        product.refresh_from_db()
+        return Response(
+            ProductSerializer(product, context={"request": request}).data,
+        )
+
+
 class ProductPolishView(BusinessOwnedAPIView):
     """
     Look at the product photos and rewrite the public listing.
@@ -1262,6 +1342,13 @@ class PublicOrderView(APIView):
 
     permission_classes = []
     authentication_classes = []
+    throttle_classes = []
+    throttle_scope = "public_store_order"
+
+    def get_throttles(self):
+        from apps.commerce.throttles import PublicStoreOrderThrottle
+
+        return [PublicStoreOrderThrottle()]
 
     def post(self, request, slug):
         page = get_object_or_404(CommercePage, slug=slug, is_published=True)
@@ -1271,12 +1358,19 @@ class PublicOrderView(APIView):
             slug=request.data.get("product_slug") or "",
             status=Product.Status.ACTIVE,
         )
+        try:
+            quantity = int(request.data.get("quantity") or 1)
+        except (TypeError, ValueError):
+            quantity = 1
+        quantity = max(1, min(quantity, 99))
+
         order = Order.objects.create(
             business=page.business,
             product=product,
             customer_name=(request.data.get("customer_name") or "")[:200],
             phone=(request.data.get("phone") or "")[:30],
             note=(request.data.get("note") or "")[:1000],
+            quantity=quantity,
             source=Order.Source.STORE,
         )
         try:
@@ -1362,3 +1456,72 @@ class BroadcastPackView(BusinessOwnedAPIView):
             "yes",
         }
         return Response(build_broadcast_pack(business, polish=polish))
+
+
+class BusinessAnalyticsView(BusinessOwnedAPIView):
+    """Aggregated KPIs and time series for workspace analytics."""
+
+    def get(self, request, business_id):
+        from datetime import date
+
+        from apps.commerce.services.analytics import build_business_analytics
+
+        self.get_business()
+        period = request.query_params.get("period")
+        start_raw = request.query_params.get("start")
+        end_raw = request.query_params.get("end")
+        start_date = None
+        end_date = None
+        if start_raw and end_raw:
+            try:
+                start_date = date.fromisoformat(str(start_raw)[:10])
+                end_date = date.fromisoformat(str(end_raw)[:10])
+            except ValueError:
+                return Response(
+                    {"detail": "Use ISO dates for start and end."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        payload = build_business_analytics(
+            business_id,
+            period=period,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        return Response(payload)
+
+
+class PublicStorefrontEventView(APIView):
+    """Record anonymous storefront interaction events (throttled)."""
+
+    permission_classes = []
+    authentication_classes = []
+    throttle_scope = "public_store_order"
+
+    def get_throttles(self):
+        from apps.commerce.throttles import PublicStoreOrderThrottle
+
+        return [PublicStoreOrderThrottle()]
+
+    def post(self, request, slug):
+        from apps.commerce.services.storefront_events import record_storefront_event
+
+        kind = str(request.data.get("kind") or "").strip()
+        product_slug = request.data.get("product_slug")
+        path = str(request.data.get("path") or "")[:300]
+        meta = request.data.get("meta")
+        if not isinstance(meta, dict):
+            meta = {}
+
+        event = record_storefront_event(
+            slug=slug,
+            kind=kind,
+            product_slug=product_slug if product_slug else None,
+            path=path,
+            meta=meta,
+        )
+        if event is None:
+            return Response(
+                {"detail": "Event was not recorded."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response({"ok": True}, status=status.HTTP_201_CREATED)

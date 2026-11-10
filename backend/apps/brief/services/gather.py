@@ -412,6 +412,10 @@ def _commerce_evidence(business: Business, since=None, *, until=None) -> dict:
     cash_out = expenses_today.aggregate(total=Sum("amount"))["total"]
 
     return {
+        "note": (
+            "Orders are customer enquiries from the store or leads — "
+            "not payment confirmations."
+        ),
         "total_products": sum(counts.values()),
         "active": counts.get("active", 0),
         "draft": counts.get("draft", 0),

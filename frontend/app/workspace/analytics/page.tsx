@@ -2,14 +2,19 @@
 
 import { useEffect, useState } from "react";
 
+import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard";
 import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { AppShell } from "@/components/workspace/app-shell";
-import { BusinessAnalytics } from "@/components/workspace/business-analytics";
 import {
   DailyBriefPanel,
   WeeklyReportPanel,
 } from "@/components/workspace/report-panels";
 import { ApiError } from "@/lib/api";
+import {
+  getBusinessAnalytics,
+  type AnalyticsPeriod,
+  type BusinessAnalyticsReport,
+} from "@/lib/analytics";
 import {
   generateBrief,
   generateWeeklyReport,
@@ -18,33 +23,13 @@ import {
   type MorningBrief,
   type WeeklyReport,
 } from "@/lib/brief";
-import {
-  getExpenses,
-  getLeads,
-  peekExpenses,
-  peekLeads,
-  type BusinessExpense,
-  type Lead,
-} from "@/lib/commerce";
-import {
-  getMessages,
-  getOrders,
-  getSocialPosts,
-  peekOrders,
-  peekSocialPosts,
-  type OrderRecord,
-  type SocialMessageRecord,
-  type SocialPostRecord,
-} from "@/lib/operations";
 import { useWorkspace } from "@/lib/workspace-context";
 
 export default function AnalyticsPage() {
-  const { businessId, accessToken, workspaceLoading } = useWorkspace();
-  const [posts, setPosts] = useState<SocialPostRecord[]>([]);
-  const [orders, setOrders] = useState<OrderRecord[]>([]);
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [expenses, setExpenses] = useState<BusinessExpense[]>([]);
-  const [messages, setMessages] = useState<SocialMessageRecord[]>([]);
+  const { businessId, accessToken, workspaceLoading, business } = useWorkspace();
+  const [period, setPeriod] = useState<AnalyticsPeriod>("7d");
+  const [report, setReport] = useState<BusinessAnalyticsReport | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [brief, setBrief] = useState<MorningBrief | null>(null);
   const [weekly, setWeekly] = useState<WeeklyReport | null>(null);
   const [error, setError] = useState("");
@@ -52,57 +37,35 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     if (workspaceLoading || !businessId || !accessToken) return;
-    const token = accessToken;
-    const bizId = businessId;
-    const cachedPosts = peekSocialPosts(bizId);
-    const cachedOrders = peekOrders(bizId);
-    const cachedLeads = peekLeads(bizId);
-    const cachedExpenses = peekExpenses(bizId);
-    if (cachedPosts) setPosts(cachedPosts);
-    if (cachedOrders) setOrders(cachedOrders);
-    if (cachedLeads) setLeads(cachedLeads);
-    if (cachedExpenses) setExpenses(cachedExpenses);
 
     let cancelled = false;
-    void getSocialPosts(bizId, token)
-      .then((rows) => {
-        if (!cancelled) setPosts(rows);
+    setAnalyticsLoading(true);
+    void getBusinessAnalytics(businessId, accessToken, period)
+      .then((payload) => {
+        if (!cancelled) setReport(payload);
       })
-      .catch(() => undefined);
-    void getOrders(bizId, token)
-      .then((rows) => {
-        if (!cancelled) setOrders(rows);
+      .catch((err) => {
+        if (!cancelled) {
+          setError(
+            err instanceof ApiError ? err.message : "Could not load analytics.",
+          );
+        }
       })
-      .catch(() => undefined);
-    void getLeads(bizId, token)
-      .then((rows) => {
-        if (!cancelled) setLeads(rows);
-      })
-      .catch(() => undefined);
-    void getExpenses(bizId, token)
-      .then((rows) => {
-        if (!cancelled) setExpenses(rows);
-      })
-      .catch(() => undefined);
-    void getMessages(bizId, token)
-      .then((rows) => {
-        if (!cancelled) setMessages(rows);
-      })
-      .catch(() => undefined);
-    void getLatestBrief(bizId, token)
-      .then((row) => {
-        if (!cancelled) setBrief(row);
-      })
-      .catch(() => undefined);
-    void getLatestWeeklyReport(bizId, token)
-      .then((row) => {
-        if (!cancelled) setWeekly(row);
-      })
-      .catch(() => undefined);
+      .finally(() => {
+        if (!cancelled) setAnalyticsLoading(false);
+      });
 
     return () => {
       cancelled = true;
     };
+  }, [accessToken, businessId, period, workspaceLoading]);
+
+  useEffect(() => {
+    if (workspaceLoading || !businessId || !accessToken) return;
+    const token = accessToken;
+    const bizId = businessId;
+    void getLatestBrief(bizId, token).then(setBrief).catch(() => undefined);
+    void getLatestWeeklyReport(bizId, token).then(setWeekly).catch(() => undefined);
   }, [accessToken, businessId, workspaceLoading]);
 
   const refreshDaily = async (force = false) => {
@@ -113,9 +76,7 @@ export default function AnalyticsPage() {
       setBrief(await generateBrief(businessId, accessToken, force));
     } catch (err) {
       setError(
-        err instanceof ApiError
-          ? err.message
-          : "KCOVA could not generate today’s brief.",
+        err instanceof ApiError ? err.message : "KCOVA could not generate today’s brief.",
       );
     } finally {
       setBusy(null);
@@ -130,9 +91,7 @@ export default function AnalyticsPage() {
       setWeekly(await generateWeeklyReport(businessId, accessToken, force));
     } catch (err) {
       setError(
-        err instanceof ApiError
-          ? err.message
-          : "KCOVA could not generate the weekly report.",
+        err instanceof ApiError ? err.message : "KCOVA could not generate the weekly report.",
       );
     } finally {
       setBusy(null);
@@ -143,35 +102,36 @@ export default function AnalyticsPage() {
     <AppShell>
       <div className={WORKSPACE_PAGE}>
         <PageHeader
-          title="Last 7 days"
-          description="Posts, shop, and people."
+          eyebrow={business?.name}
+          title="Analytics"
+          description="Real numbers from your shop, leads, expenses, and social posts — never estimated revenue."
         />
 
-        {error ? (
-          <div className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        ) : null}
-
-        <div className="mt-6">
-          <BusinessAnalytics
-            posts={posts}
-            orders={orders}
-            leads={leads}
-            expenses={expenses}
-            messages={messages}
+        <div className="mt-8">
+          <AnalyticsDashboard
+            report={report}
+            period={period}
+            onPeriodChange={setPeriod}
+            loading={analyticsLoading}
+            error={error && !report ? error : undefined}
           />
         </div>
 
-        <section className="mt-10 space-y-4">
+        <section className="mt-12 space-y-4 border-t border-kova-border pt-10">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-sm font-semibold text-kova-dark">Brief</h2>
+            <div>
+              <h2 className="text-sm font-semibold text-kova-dark">Written brief</h2>
+              <p className="mt-1 text-xs text-kova-muted">
+                AI narrative grounded in the same business data. Recommendations are
+                suggestions — verify facts above.
+              </p>
+            </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"
                 disabled={busy !== null}
                 onClick={() => void refreshDaily(Boolean(brief))}
-                className="inline-flex h-10 items-center justify-center rounded-lg bg-[#176B4D] px-4 text-sm font-medium text-white transition hover:bg-[#12563D] disabled:opacity-60"
+                className="inline-flex h-10 items-center justify-center rounded-lg bg-kova-green px-4 text-sm font-medium text-white transition hover:bg-[#12563d] disabled:opacity-60"
               >
                 {busy === "daily" ? "Writing…" : brief ? "Refresh daily" : "Generate daily"}
               </button>
@@ -179,7 +139,7 @@ export default function AnalyticsPage() {
                 type="button"
                 disabled={busy !== null}
                 onClick={() => void refreshWeekly(Boolean(weekly))}
-                className="inline-flex h-10 items-center justify-center rounded-lg border border-[#176B4D] px-4 text-sm font-medium text-[#176B4D] transition hover:bg-[#176B4D]/5 disabled:opacity-60"
+                className="inline-flex h-10 items-center justify-center rounded-lg border border-kova-green px-4 text-sm font-medium text-kova-green transition hover:bg-kova-green/5 disabled:opacity-60"
               >
                 {busy === "weekly" ? "Writing…" : weekly ? "Refresh weekly" : "Generate weekly"}
               </button>
@@ -193,8 +153,8 @@ export default function AnalyticsPage() {
               {brief.error_message || "The daily brief did not finish."}
             </p>
           ) : (
-            <p className="text-sm leading-6 text-gray-500">
-              Generate the daily brief when you want the written version of this week.
+            <p className="text-sm leading-6 text-kova-muted">
+              Generate a daily brief when you want KCOVA to summarise this period in prose.
             </p>
           )}
 

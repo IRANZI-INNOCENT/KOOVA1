@@ -121,7 +121,11 @@ export function BusinessAnalytics({
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Reach" value={reach.toLocaleString()} />
         <Stat label="Engagement" value={(likes + comments + shares).toLocaleString()} />
-        <Stat label="Orders" value={String(weekOrders.length)} />
+        <Stat
+          label="Store orders"
+          value={String(weekOrders.length)}
+          hint="Enquiries from your catalogue"
+        />
         <Stat label="New leads" value={String(weekLeads.length)} />
       </section>
 
@@ -162,7 +166,7 @@ export function BusinessAnalytics({
       </ChartCard>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <ChartCard title="Orders" hint="By status, last 7 days">
+        <ChartCard title="Store orders" hint="By status, last 7 days">
           {orderCounts.length === 0 ? (
             <EmptyChart text="No orders in the last 7 days." href="/workspace/commerce/orders" action="Orders" />
           ) : (
@@ -200,11 +204,20 @@ export function BusinessAnalytics({
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
   return (
     <div className="rounded-lg border border-kova-border bg-white px-4 py-3">
       <p className="text-xs text-gray-500">{label}</p>
       <p className="mt-1 text-2xl font-semibold tracking-tight text-kova-dark">{value}</p>
+      {hint ? <p className="mt-1 text-[10px] leading-snug text-gray-400">{hint}</p> : null}
     </div>
   );
 }

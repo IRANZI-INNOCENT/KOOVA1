@@ -9,6 +9,7 @@ from .models import (
     Product,
     ProductAIAnalysis,
     ProductImage,
+    ProductStockAdjustment,
 )
 
 
@@ -315,6 +316,35 @@ class ProductCreateSerializer(serializers.ModelSerializer):
 
         return value
 
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        if not self.instance:
+            return attrs
+
+        next_status = attrs.get("status", self.instance.status)
+        if next_status != Product.Status.ACTIVE:
+            return attrs
+
+        from apps.commerce.services.product_activation import assert_ready_for_active
+
+        probe = self.instance
+        for field in (
+            "name",
+            "price",
+            "offering_kind",
+            "currency",
+            "stock",
+        ):
+            if field in attrs:
+                setattr(probe, field, attrs[field])
+
+        try:
+            assert_ready_for_active(probe)
+        except Exception as exc:
+            raise serializers.ValidationError({"status": str(exc)}) from exc
+
+        return attrs
+
 
 def _banner_product_image_field(product):
     """Primary product photo (or first image) for hero slides."""
@@ -567,6 +597,22 @@ class BusinessExpenseSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "business", "created_at"]
 
 
+class ProductStockAdjustmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductStockAdjustment
+        fields = [
+            "id",
+            "previous_stock",
+            "new_stock",
+            "delta",
+            "reason",
+            "note",
+            "order",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
 class OrderSerializer(serializers.ModelSerializer):
     product_name = serializers.SerializerMethodField()
     offering_kind = serializers.SerializerMethodField()
@@ -596,6 +642,9 @@ class OrderSerializer(serializers.ModelSerializer):
             "review_ask_draft",
             "quantity",
             "status",
+            "lead",
+            "payment_status",
+            "paid_at",
             "source",
             "stock_adjusted",
             "created_at",

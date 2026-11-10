@@ -222,7 +222,7 @@ export function buildOverviewActions(input: {
         input.pendingSocialActions === 1
           ? "1 action waiting for approval"
           : `${input.pendingSocialActions} actions waiting for approval`,
-      href: "/workspace/social",
+      href: "/workspace/approvals",
       priority: "high",
     });
   }
@@ -234,7 +234,7 @@ export function buildOverviewActions(input: {
         input.approvedContentCount === 1
           ? "1 approved post ready"
           : `${input.approvedContentCount} approved posts ready`,
-      href: "/workspace/social/studio",
+      href: "/workspace/approvals",
     });
   }
 

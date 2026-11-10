@@ -116,3 +116,77 @@ class LeadAPITests(TestCase):
         self.client.force_authenticate(user=None)
         response = self.client.get(f"/api/leads/{self.business.id}/")
         self.assertEqual(response.status_code, 401)
+
+    def test_create_order_from_lead(self):
+        from apps.commerce.models import Order, Product
+
+        product = Product.objects.create(
+            business=self.business,
+            name="Bag",
+            slug="bag",
+            price="1500.00",
+            status=Product.Status.ACTIVE,
+        )
+        lead = Lead.objects.create(
+            business=self.business,
+            product=product,
+            source="whatsapp",
+            interest="I want the bag",
+            customer_name="Amina",
+            customer_id="+254712345678",
+            status=Lead.Status.NEW,
+        )
+        response = self.client.post(
+            f"/api/leads/{self.business.id}/{lead.pk}/order/",
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Order.objects.filter(business=self.business).count(), 1)
+        order = Order.objects.get()
+        self.assertEqual(order.product_id, product.id)
+        self.assertEqual(order.customer_name, "Amina")
+        self.assertEqual(order.source, "whatsapp")
+        lead.refresh_from_db()
+        self.assertEqual(lead.status, Lead.Status.QUALIFIED)
+
+    def test_lead_marked_converted_when_order_delivered(self):
+        from apps.commerce.models import Order, Product
+        from apps.commerce.services.orders import apply_order_update
+
+        product = Product.objects.create(
+            business=self.business,
+            name="Shoes",
+            slug="shoes",
+            price="2000.00",
+            stock=10,
+            status=Product.Status.ACTIVE,
+        )
+        lead = Lead.objects.create(
+            business=self.business,
+            product=product,
+            source="whatsapp",
+            interest="Size 42",
+            customer_name="Tom",
+            status=Lead.Status.QUALIFIED,
+        )
+        order = Order.objects.create(
+            business=self.business,
+            product=product,
+            lead=lead,
+            status=Order.Status.NEW,
+        )
+        apply_order_update(order, data={"status": Order.Status.CONFIRMED})
+        apply_order_update(order, data={"status": Order.Status.DELIVERED})
+        lead.refresh_from_db()
+        self.assertEqual(lead.status, Lead.Status.CONVERTED)
+
+    def test_create_order_from_lost_lead_fails(self):
+        lead = Lead.objects.create(
+            business=self.business,
+            source="instagram",
+            interest="No longer interested",
+            status=Lead.Status.LOST,
+        )
+        response = self.client.post(
+            f"/api/leads/{self.business.id}/{lead.pk}/order/",
+        )
+        self.assertEqual(response.status_code, 400)

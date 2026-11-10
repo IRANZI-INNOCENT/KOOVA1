@@ -29,6 +29,7 @@ import {
 } from "@/lib/commerce";
 import { getOrders, getSocialPosts } from "@/lib/operations";
 import { getSocialAccounts, getSocialOverview } from "@/lib/social";
+import { getWorkspaceQueue } from "@/lib/workspace-queue";
 
 const WORKSPACE_PREFETCH_ROUTES = [
   "/workspace",
@@ -37,6 +38,7 @@ const WORKSPACE_PREFETCH_ROUTES = [
   "/workspace/social/channels",
   "/workspace/social/studio",
   "/workspace/social/calendar",
+  "/workspace/commerce",
   "/workspace/commerce/products",
   "/workspace/commerce/storefront",
   "/workspace/commerce/orders",
@@ -52,6 +54,7 @@ const WORKSPACE_PREFETCH_ROUTES = [
   "/workspace/settings/business-policy",
   "/workspace/settings/email",
   "/workspace/analytics",
+  "/workspace/approvals",
   "/workspace/kova",
   "/workspace/linkedin",
   "/workspace/linkedin/topic-week",
@@ -91,6 +94,7 @@ function prefetchWorkspaceData(
   void getLeads(businessId, token).catch(() => undefined);
   void getOrders(businessId, token).catch(() => undefined);
   void getExpenses(businessId, token).catch(() => undefined);
+  void getWorkspaceQueue(businessId, token).catch(() => undefined);
 }
 
 export function WorkspaceProvider({

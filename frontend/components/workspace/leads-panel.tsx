@@ -3,13 +3,35 @@
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/lib/auth-context";
+import Link from "next/link";
+
 import {
+  createOrderFromLead,
   getLeads,
   markLeadFollowedUp,
   peekLeads,
   type Lead,
 } from "@/lib/commerce";
 import { useWorkspace } from "@/lib/workspace-context";
+
+const LEAD_STATUS: Record<
+  Lead["status"],
+  { label: string; className: string }
+> = {
+  new: { label: "New", className: "text-kova-green font-semibold" },
+  contacted: { label: "Contacted", className: "text-gray-700" },
+  qualified: { label: "Qualified", className: "text-amber-800" },
+  converted: { label: "Converted", className: "text-emerald-700 font-semibold" },
+  lost: { label: "Lost", className: "text-gray-400" },
+};
+
+function LeadStatusBadge({ status }: { status: Lead["status"] }) {
+  const row = LEAD_STATUS[status] ?? {
+    label: status,
+    className: "text-gray-500",
+  };
+  return <span className={`text-xs ${row.className}`}>{row.label}</span>;
+}
 
 export function LeadsPanel() {
   const { accessToken } = useAuth();
@@ -67,6 +89,25 @@ export function LeadsPanel() {
     }
   }
 
+  async function startOrder(lead: Lead) {
+    if (!accessToken || !businessId) return;
+    if (lead.status === "lost") return;
+    setError("");
+    try {
+      const { lead: updated, order } = await createOrderFromLead(
+        businessId,
+        lead.id,
+        accessToken,
+      );
+      setLeads((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      );
+      setNotice(`Order #${order.id} created. Finish it under Shop → Orders.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create order.");
+    }
+  }
+
   async function markDone(lead: Lead) {
     if (!accessToken || !businessId) return;
     try {
@@ -102,7 +143,18 @@ export function LeadsPanel() {
         {dueLeads.length > 0 ? ` · ${dueLeads.length} due for follow-up` : ""}
       </p>
       {notice ? (
-        <p className="mt-2 text-xs font-medium text-kova-green">{notice}</p>
+        <p className="mt-2 text-xs font-medium text-kova-green">
+          {notice.includes("Order #") ? (
+            <>
+              {notice}{" "}
+              <Link href="/workspace/commerce/orders" className="font-semibold underline">
+                Open orders
+              </Link>
+            </>
+          ) : (
+            notice
+          )}
+        </p>
       ) : null}
 
       {dueLeads.length > 0 ? (
@@ -121,7 +173,16 @@ export function LeadsPanel() {
                   {lead.follow_up_draft || lead.interest}
                 </p>
               </div>
-              <div className="flex w-full gap-2 sm:w-auto">
+              <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+                {lead.status !== "lost" && lead.status !== "converted" ? (
+                  <button
+                    type="button"
+                    onClick={() => startOrder(lead)}
+                    className="inline-flex h-11 flex-1 items-center justify-center rounded-md border border-kova-green/40 bg-kova-green/10 px-3 text-xs font-semibold text-kova-green sm:flex-none"
+                  >
+                    Create order
+                  </button>
+                ) : null}
                 {lead.follow_up_draft ? (
                   <button
                     type="button"
@@ -163,15 +224,22 @@ export function LeadsPanel() {
                 {lead.customer_id || "No contact"}
               </p>
               <p className="mt-2 text-xs text-gray-500">
-                <span className={lead.status === "new" ? "font-semibold text-kova-green" : ""}>
-                  {lead.status}
-                </span>
+                <LeadStatusBadge status={lead.status} />
                 {" · "}
                 {lead.source}
                 {lead.created_by_ai ? " · AI" : ""}
                 {" · "}
                 {new Date(lead.created_at).toLocaleDateString()}
               </p>
+              {lead.status !== "lost" && lead.status !== "converted" ? (
+                <button
+                  type="button"
+                  onClick={() => startOrder(lead)}
+                  className="mt-3 inline-flex h-10 items-center rounded-md border border-kova-green/40 px-3 text-xs font-semibold text-kova-green"
+                >
+                  Create order
+                </button>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -196,15 +264,7 @@ export function LeadsPanel() {
                     {lead.customer_id || "—"}
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`inline-block text-xs font-medium ${
-                        lead.status === "new"
-                          ? "text-kova-green"
-                          : "text-gray-500"
-                      }`}
-                    >
-                      {lead.status}
-                    </span>
+                    <LeadStatusBadge status={lead.status} />
                   </td>
                   <td className="px-4 py-3 text-gray-500">
                     {lead.source}

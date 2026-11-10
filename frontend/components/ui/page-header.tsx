@@ -25,7 +25,7 @@ export function PageHeader({
     <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
         {eyebrow ? (
-          <p className="text-xs font-medium text-gray-500">{eyebrow}</p>
+          <p className="text-xs font-medium text-kova-muted">{eyebrow}</p>
         ) : null}
         <h1
           className={`text-2xl font-semibold tracking-tight text-kova-dark sm:text-3xl ${
@@ -35,7 +35,7 @@ export function PageHeader({
           {title}
         </h1>
         {description ? (
-          <p className="mt-1.5 max-w-xl text-sm leading-6 text-gray-500">
+          <p className="mt-1.5 max-w-xl text-sm leading-6 text-kova-muted">
             {description}
           </p>
         ) : null}

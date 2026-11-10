@@ -6,6 +6,8 @@ import Link from "next/link";
 
 import { PageHeader, WORKSPACE_PAGE } from "@/components/ui/page-header";
 import { KovaStepsGuide } from "@/components/workspace/kova-steps-guide";
+import { OverviewKpiRow } from "@/components/workspace/overview-kpi-row";
+import { QueueSummaryBanner } from "@/components/workspace/queue-summary-banner";
 import { WorkspacePageFrame } from "@/components/workspace/workspace-page-frame";
 import {
   OverviewActionPanel,
@@ -302,6 +304,9 @@ export default function OverviewPage() {
             }
           />
 
+          {!loading ? <QueueSummaryBanner /> : null}
+          {!loading ? <OverviewKpiRow /> : null}
+
           {showSetup && !loading ? (
             <KovaStepsGuide
               title="Get started"
@@ -340,7 +345,7 @@ export default function OverviewPage() {
           <TodayStrip
             items={[
               {
-                label: "Orders waiting",
+                label: "Open orders",
                 value: String(ordersWaiting),
                 href: "/workspace/commerce/orders",
               },
@@ -367,7 +372,7 @@ export default function OverviewPage() {
           <p className="text-sm leading-6 text-gray-600">
             {brief?.sections?.pulse?.summary ||
               brief?.greeting ||
-              "The last 7 days of posts, orders, and replies."}{" "}
+              "The last 7 days of posts, store enquiries, and replies."}{" "}
             <Link
               href="/workspace/analytics"
               className="font-semibold text-kova-green hover:underline"

@@ -313,6 +313,56 @@ class SocialActionListView(APIView):
         return Response(SocialActionSerializer(actions, many=True).data)
 
 
+class WorkspaceQueueView(APIView):
+    """Items that need the owner's attention in one payload."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, business_id):
+        from .services.workspace_queue import build_workspace_queue
+
+        business = get_object_or_404(
+            Business, id=business_id, owner=request.user,
+        )
+        return Response(build_workspace_queue(business))
+
+
+class SocialActionDecisionView(APIView):
+    """Approve or reject a pending social action."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, business_id, pk):
+        from django.utils import timezone
+
+        from .services.action_decisions import decide_social_action
+
+        business = get_object_or_404(
+            Business, id=business_id, owner=request.user,
+        )
+        decision = str(request.data.get("decision") or "").strip().lower()
+        if decision not in {"approve", "reject"}:
+            return Response(
+                {"detail": "decision must be approve or reject."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        action = get_object_or_404(SocialAction, pk=pk, business=business)
+        if action.action_status != SocialAction.ActionStatus.PENDING:
+            return Response(
+                {"detail": "This action is no longer pending."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            updated = decide_social_action(
+                action,
+                decision=decision,
+                user=request.user,
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(SocialActionSerializer(updated).data)
+
+
 # ------------------------------------------------------------------ #
 # Social overview (aggregated health)
 # ------------------------------------------------------------------ #

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { StoreOrderButton } from "@/components/store/order-button";
 import { ProductGallery } from "@/components/store/product-gallery";
+import { ProductPurchasePanel } from "@/components/store/product-purchase-panel";
 import { StoreFrame } from "@/components/store/store-frame";
 import { JsonLd } from "@/components/seo/json-ld";
 import { mediaSrc } from "@/lib/media";
@@ -55,20 +55,6 @@ export default async function PublicProductPage({
   if (!data) notFound();
 
   const { page, product, related_products: related } = data;
-  const facts = [
-    product.brand && ["Brand", product.brand],
-    product.material && ["Material", product.material],
-    product.condition && ["Condition", product.condition],
-  ].filter(Boolean) as [string, string][];
-  const shortCopy = product.short_description?.trim() || "";
-  const longCopy = product.description?.trim() || "";
-  const aboutCopy =
-    longCopy && longCopy !== shortCopy && !shortCopy.includes(longCopy) && !longCopy.includes(shortCopy)
-      ? longCopy
-      : "";
-  const leadCopy = shortCopy || longCopy;
-  const fit = listingFacts(product);
-
   const productUrl = absoluteUrl(`/store/${slug}/${productSlug}`);
   const availability =
     product.stock != null && product.stock <= 0
@@ -104,183 +90,98 @@ export default async function PublicProductPage({
     },
   };
 
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: page.business_name,
+        item: absoluteUrl(`/store/${slug}`),
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: product.name,
+        item: productUrl,
+      },
+    ],
+  };
+
+  const shortCopy = product.short_description?.trim() || "";
+  const longCopy = product.description?.trim() || "";
+
   return (
     <StoreFrame page={page} slug={slug}>
       <JsonLd data={productLd} />
-      <div className="border-b" style={{ borderColor: "var(--store-border)" }}>
-        <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6">
-          <Link
-            href={`/store/${slug}`}
-            className="text-sm font-semibold hover:underline"
-            style={{ color: "var(--store-secondary)" }}
-          >
-            ← All products
-          </Link>
-        </div>
-      </div>
+      <JsonLd data={breadcrumbLd} />
+      <nav
+        className="border-b"
+        style={{ borderColor: "var(--store-border)" }}
+        aria-label="Breadcrumb"
+      >
+        <ProductBreadcrumb
+          slug={slug}
+          businessName={page.business_name}
+          productName={product.name}
+        />
+      </nav>
 
       <section className="mx-auto grid max-w-6xl gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <ProductGallery images={product.images} productName={product.name} />
-
         <div>
-          {product.category && (
-            <p
-              className="text-xs font-bold uppercase tracking-[0.16em]"
-            style={{ color: "var(--store-accent)" }}
-          >
-            {product.category}
-          </p>
-          )}
-          <h1
-            className="mt-2 break-words text-2xl font-bold tracking-tight sm:text-3xl"
-            style={{ color: "var(--store-secondary)" }}
-          >
-            {product.name}
-          </h1>
-          <p
-            className="mt-4 text-2xl font-bold"
-            style={{ color: "var(--store-accent)" }}
-          >
-            {formatPrice(product.currency, product.price)}
-          </p>
-          {fit ? (
-            <p className="mt-2 text-sm font-medium text-kova-dark">{fit}</p>
-          ) : null}
-          {product.offering_kind !== "service" && product.stock != null && (
-            <p className="mt-1 text-sm text-gray-500">
-              {product.stock > 0
-                ? `${product.stock} in stock`
-                : "Currently unavailable"}
-            </p>
-          )}
-          {leadCopy ? (
-            <p className="mt-5 text-base leading-7 text-gray-600">{leadCopy}</p>
-          ) : null}
-
-          {page.whatsapp && (
-            <StoreOrderButton
-              slug={slug}
-              productSlug={productSlug}
-              productName={product.name}
-              whatsapp={page.whatsapp}
-              imageUrl={
-                mediaSrc(
-                  product.images.find((image) => image.is_primary)?.url ||
-                    product.images[0]?.url ||
-                    "",
-                ) || undefined
-              }
-              priceLabel={
-                product.price
-                  ? formatPrice(product.currency, product.price)
-                  : undefined
-              }
-              service={product.offering_kind === "service"}
-              className="mt-6 inline-flex h-12 items-center justify-center rounded-md px-6 text-sm font-semibold disabled:opacity-70"
-              style={{ backgroundColor: "var(--store-accent)", color: "var(--store-on-accent)" }}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mr-2"
-              >
-                <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
-              </svg>
-              {product.offering_kind === "service"
-                ? "Message on WhatsApp"
-                : "Order on WhatsApp"}
-            </StoreOrderButton>
-          )}
-
-          {product.selling_points?.length > 0 && (
-            <ul className="mt-8 space-y-2.5">
-              {product.selling_points.map((point) => (
-                <li
-                  key={point}
-                  className="flex items-start gap-2.5 text-sm text-kova-dark"
-                >
-                  <span className="mt-1.5 flex h-1.5 w-1.5 shrink-0 rounded-full bg-kova-orange" />
-                  {point}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {aboutCopy ? (
+          <ProductPurchasePanel
+            slug={slug}
+            productSlug={productSlug}
+            page={page}
+            product={product}
+          />
+          {shortCopy && longCopy && shortCopy !== longCopy ? (
             <div className="mt-8">
-              <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-gray-400">
-                About this product
+              <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-kova-muted">
+                Full description
               </h2>
-              <p className="mt-3 whitespace-pre-line text-sm leading-7 text-gray-600">
-                {aboutCopy}
+              <p className="mt-3 whitespace-pre-line text-sm leading-7 text-kova-muted">
+                {longCopy}
               </p>
             </div>
           ) : null}
-
-          {facts.length > 0 && (
-            <dl className="mt-8 overflow-hidden rounded-lg border border-kova-border bg-white">
-              {facts.map(([label, value], i) => (
-                <div
-                  key={label}
-                  className={`grid grid-cols-1 gap-0.5 px-4 py-3 sm:grid-cols-[120px_1fr] sm:gap-0 ${
-                    i < facts.length - 1 ? "border-b border-kova-border" : ""
-                  }`}
-                >
-                  <dt className="text-xs font-bold uppercase tracking-wide text-gray-400">
-                    {label}
-                  </dt>
-                  <dd className="text-sm text-kova-dark">{value}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
         </div>
       </section>
 
       {related.length > 0 && (
-        <section>
+        <section className="border-t border-kova-border">
           <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
             <h2 className="text-xl font-bold" style={{ color: "var(--store-secondary)" }}>
               More from {page.business_name}
             </h2>
-            <div className="mt-6 grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-8 lg:grid-cols-4">
+            <div className="mt-6 grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4">
               {related.map((item) => {
                 const thumb =
                   item.images.find((img) => img.is_primary) ?? item.images[0];
                 return (
-                  <Link
-                    key={item.id}
-                    href={`/store/${slug}/${item.slug}`}
-                    className="block"
-                  >
-                    <div className="aspect-square overflow-hidden bg-[var(--store-secondary-soft)]">
+                  <Link key={item.id} href={`/store/${slug}/${item.slug}`} className="block">
+                    <div className="aspect-[4/5] overflow-hidden rounded-md bg-[var(--store-secondary-soft)]">
                       {thumb?.url && (
                         <img
                           src={mediaSrc(thumb.url)}
                           alt={item.name}
                           className="h-full w-full object-cover"
+                          loading="lazy"
                         />
                       )}
                     </div>
                     <p
-                      className="mt-2.5 line-clamp-2 text-sm font-semibold leading-snug"
+                      className="mt-2 line-clamp-2 text-sm font-semibold"
                       style={{ color: "var(--store-secondary)" }}
                     >
                       {item.name}
                     </p>
                     {listingFacts(item) ? (
-                      <p className="mt-0.5 text-xs text-gray-500">{listingFacts(item)}</p>
+                      <p className="text-xs text-kova-muted">{listingFacts(item)}</p>
                     ) : null}
-                    <p
-                      className="mt-1 text-sm font-bold"
-                      style={{ color: "var(--store-accent)" }}
-                    >
+                    <p className="text-sm font-bold" style={{ color: "var(--store-accent)" }}>
                       {formatPrice(item.currency, item.price)}
                     </p>
                   </Link>
@@ -291,5 +192,33 @@ export default async function PublicProductPage({
         </section>
       )}
     </StoreFrame>
+  );
+}
+
+function ProductBreadcrumb({
+  slug,
+  businessName,
+  productName,
+}: {
+  slug: string;
+  businessName: string;
+  productName: string;
+}) {
+  return (
+    <ol className="mx-auto flex max-w-6xl flex-wrap gap-2 px-4 py-3 text-sm sm:px-6">
+      <li>
+        <Link
+          href={`/store/${slug}`}
+          className="font-semibold hover:underline"
+          style={{ color: "var(--store-secondary)" }}
+        >
+          {businessName}
+        </Link>
+      </li>
+      <li aria-hidden className="text-kova-muted">
+        /
+      </li>
+      <li className="text-kova-muted">{productName}</li>
+    </ol>
   );
 }

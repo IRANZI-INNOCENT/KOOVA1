@@ -10,6 +10,7 @@ import {
   type OrderRecord,
   type OrderStatus,
 } from "@/lib/operations";
+import { invalidateResourceCache } from "@/lib/resource-cache";
 
 const NEXT: Record<OrderStatus, OrderStatus | null> = {
   new: "confirmed",
@@ -65,6 +66,9 @@ export default function OrdersPage() {
       setOrders((current) =>
         current.map((item) => (item.id === updated.id ? updated : item)),
       );
+      if (status === "delivered") {
+        invalidateResourceCache(`leads:${businessId}`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update order.");
     }
@@ -106,7 +110,8 @@ export default function OrdersPage() {
         ) : null}
         {orders.length === 0 ? (
           <p className="py-6 text-sm text-gray-500">
-            No orders yet. They appear when someone orders from your store.
+            No orders yet. They appear when someone taps Order on your store or
+            you create one from a lead.
           </p>
         ) : (
           <div className="space-y-3">

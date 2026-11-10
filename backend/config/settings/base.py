@@ -93,6 +93,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_THROTTLE_RATES": {
         "kova_agent": "30/minute",
+        "public_store_order": "60/hour",
     },
 }
 

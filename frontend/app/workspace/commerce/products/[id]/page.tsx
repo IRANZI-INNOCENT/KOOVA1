@@ -11,13 +11,16 @@ import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import {
   deleteProduct,
+  adjustProductStock,
   getProduct,
   getProductContentPlans,
+  getProductStockHistory,
   peekProducts,
   polishProduct,
   updateProduct,
   type Product,
   type ProductContentPlan,
+  type StockAdjustment,
 } from "@/lib/commerce";
 import { useAuth } from "@/lib/auth-context";
 import { useWorkspace } from "@/lib/workspace-context";
@@ -59,6 +62,9 @@ export default function ProductDetailPage() {
   const [contentPlan, setContentPlan] = useState<ProductContentPlan | null>(
     null,
   );
+  const [stockHistory, setStockHistory] = useState<StockAdjustment[]>([]);
+  const [stockNote, setStockNote] = useState("");
+  const [stockSaving, setStockSaving] = useState(false);
 
   useEffect(() => {
     if (authLoading || workspaceLoading || !accessToken || !isAuthenticated) return;
@@ -84,6 +90,12 @@ export default function ProductDetailPage() {
         setContentPlan(
           plans.find((plan) => plan.product_id === found.id) ?? null,
         );
+        const history = await getProductStockHistory(
+          bizId,
+          found.id,
+          token,
+        ).catch(() => [] as StockAdjustment[]);
+        setStockHistory(history);
       } catch (err) {
         setError(
           err instanceof ApiError
@@ -128,6 +140,40 @@ export default function ProductDetailPage() {
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function logStock() {
+    if (!product || !businessId || !accessToken) return;
+    if (product.offering_kind === "service") return;
+    setStockSaving(true);
+    setError("");
+    try {
+      const updated = await adjustProductStock(
+        businessId,
+        product.id,
+        accessToken,
+        {
+          stock: product.stock,
+          reason: "restock",
+          note: stockNote.trim(),
+        },
+      );
+      setProduct(updated);
+      const history = await getProductStockHistory(
+        businessId,
+        product.id,
+        accessToken,
+      );
+      setStockHistory(history);
+      setStockNote("");
+      setSuccess("Stock updated and logged.");
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "Could not update stock.",
+      );
+    } finally {
+      setStockSaving(false);
     }
   }
 
@@ -476,17 +522,47 @@ export default function ProductDetailPage() {
                     }
                   />
                   {product.offering_kind === "service" ? null : (
-                  <Input
-                    label="Stock"
-                    type="number"
-                    value={product.stock ?? ""}
-                    onChange={(e) =>
-                      setProduct({
-                        ...product,
-                        stock: e.target.value ? Number(e.target.value) : null,
-                      })
-                    }
-                  />
+                    <div className="sm:col-span-2 space-y-3">
+                      <Input
+                        label="Stock"
+                        type="number"
+                        value={product.stock ?? ""}
+                        onChange={(e) =>
+                          setProduct({
+                            ...product,
+                            stock: e.target.value
+                              ? Number(e.target.value)
+                              : null,
+                          })
+                        }
+                      />
+                      <Input
+                        label="Stock note (optional)"
+                        value={stockNote}
+                        onChange={(e) => setStockNote(e.target.value)}
+                        placeholder="e.g. New carton from market"
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={stockSaving}
+                        onClick={logStock}
+                      >
+                        {stockSaving ? "Saving…" : "Save stock & log change"}
+                      </Button>
+                      {stockHistory.length > 0 ? (
+                        <ul className="space-y-1 text-xs text-gray-500">
+                          {stockHistory.slice(0, 5).map((row) => (
+                            <li key={row.id}>
+                              {new Date(row.created_at).toLocaleString()} ·{" "}
+                              {row.delta >= 0 ? "+" : ""}
+                              {row.delta} ({row.reason})
+                              {row.note ? ` — ${row.note}` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
                   )}
                   <Input
                     label="SKU"

@@ -37,6 +37,7 @@ Rules:
 - Be specific and actionable. Avoid generic advice that could fit any business.
 - Be concise. The manager reads this on their phone.
 - Use publishing metrics, inbox, leads, orders, and posting cadence from evidence.
+- Treat orders as store enquiries and fulfilment records — never describe them as confirmed payments unless evidence says otherwise.
 - Call out unanswered messages, failed posts, and remaining posting slots when relevant.
 - Reply with one JSON object and no markdown fences.
 

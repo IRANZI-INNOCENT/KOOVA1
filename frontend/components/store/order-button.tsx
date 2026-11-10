@@ -83,7 +83,6 @@ export function StoreOrderButton({
           productUrl,
           priceLabel,
           service,
-          imageUrl: photo || undefined,
         }),
         "_blank",
         "noopener,noreferrer",

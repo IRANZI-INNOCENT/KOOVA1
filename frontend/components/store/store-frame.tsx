@@ -3,7 +3,8 @@ import Link from "next/link";
 
 import type { CommercePage } from "@/lib/commerce";
 import { resolveStoreImage, storeThemeStyle } from "@/lib/store-theme";
-import { whatsappLink } from "@/lib/storefront";
+import { buildStoreWhatsAppMessage, whatsappLink } from "@/lib/storefront";
+import { StorefrontWhatsAppLink } from "@/components/store/storefront-whatsapp-link";
 
 interface StoreFrameProps {
   page: CommercePage;
@@ -32,7 +33,7 @@ export function StoreFrame({ page, slug, children }: StoreFrameProps) {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={logoSrc}
-                alt=""
+                alt={`${name} logo`}
                 className="h-9 w-9 shrink-0 rounded-md object-cover sm:h-10 sm:w-10"
               />
             ) : (
@@ -44,19 +45,22 @@ export function StoreFrame({ page, slug, children }: StoreFrameProps) {
           </Link>
 
           {page.whatsapp ? (
-            <a
-              href={whatsappLink(page.whatsapp)}
-              target="_blank"
-              rel="noopener noreferrer"
+            <StorefrontWhatsAppLink
+              slug={slug}
+              href={whatsappLink(
+                page.whatsapp,
+                buildStoreWhatsAppMessage(name),
+              )}
               className="inline-flex h-11 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-semibold sm:px-4"
               style={{
                 backgroundColor: "var(--store-accent)",
                 color: "var(--store-on-accent)",
               }}
+              kind="whatsapp_header"
             >
               <WhatsAppGlyph light={false} />
               WhatsApp
-            </a>
+            </StorefrontWhatsAppLink>
           ) : null}
         </div>
       </header>
@@ -64,10 +68,22 @@ export function StoreFrame({ page, slug, children }: StoreFrameProps) {
       {children}
 
       <footer id="contact" style={{ backgroundColor: "var(--store-primary)", color: "var(--store-on-primary)" }}>
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-end sm:justify-between sm:px-6">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-lg font-bold">{name}</p>
-            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
+            <nav className="mt-3 flex flex-wrap gap-4 text-sm underline-offset-2">
+              <Link href={shopHref} className="hover:underline">
+                Shop
+              </Link>
+              <a href="#catalog" className="hover:underline">
+                Products
+              </a>
+              <a href="#about" className="hover:underline">
+                About
+              </a>
+            </nav>
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm">
               {page.location ? <span>{page.location}</span> : null}
               {page.phone ? (
                 <a href={`tel:${page.phone}`} className="hover:underline">
@@ -81,7 +97,8 @@ export function StoreFrame({ page, slug, children }: StoreFrameProps) {
               ) : null}
             </div>
           </div>
-          <p className="text-xs opacity-70">Powered by KCOVA</p>
+          <p className="text-xs opacity-70 sm:pt-1">Powered by KCOVA</p>
+          </div>
         </div>
       </footer>
     </div>

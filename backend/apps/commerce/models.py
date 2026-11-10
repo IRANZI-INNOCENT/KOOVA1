@@ -601,6 +601,50 @@ class ProductAIAnalysis(models.Model):
         return f"{self.product.name} - {self.model}"
 
 
+class ProductStockAdjustment(models.Model):
+    """Audit log when stock changes on a product."""
+
+    class Reason(models.TextChoices):
+        MANUAL = "manual", "Manual"
+        RESTOCK = "restock", "Restock"
+        SALE = "sale", "Sale"
+        CANCEL = "cancel", "Order cancelled"
+
+    business = models.ForeignKey(
+        Business,
+        on_delete=models.CASCADE,
+        related_name="stock_adjustments",
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="stock_adjustments",
+    )
+    order = models.ForeignKey(
+        "Order",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stock_adjustments",
+    )
+    previous_stock = models.PositiveIntegerField(null=True, blank=True)
+    new_stock = models.PositiveIntegerField(null=True, blank=True)
+    delta = models.IntegerField(default=0)
+    reason = models.CharField(
+        max_length=20,
+        choices=Reason.choices,
+        default=Reason.MANUAL,
+    )
+    note = models.CharField(max_length=400, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.product_id} Δ{self.delta}"
+
+
 class Order(models.Model):
     """
     A customer order started from the public store.
@@ -622,6 +666,12 @@ class Order(models.Model):
         WHATSAPP = "whatsapp", "WhatsApp"
         MANUAL = "manual", "Manual"
 
+    class PaymentStatus(models.TextChoices):
+        UNPAID = "unpaid", "Unpaid"
+        PAID = "paid", "Paid"
+        PARTIAL = "partial", "Partially paid"
+        REFUNDED = "refunded", "Refunded"
+
     business = models.ForeignKey(
         Business,
         on_delete=models.CASCADE,
@@ -629,6 +679,13 @@ class Order(models.Model):
     )
     product = models.ForeignKey(
         Product,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders",
+    )
+    lead = models.ForeignKey(
+        "leads.Lead",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -652,6 +709,12 @@ class Order(models.Model):
         choices=Source.choices,
         default=Source.STORE,
     )
+    payment_status = models.CharField(
+        max_length=20,
+        choices=PaymentStatus.choices,
+        default=PaymentStatus.UNPAID,
+    )
+    paid_at = models.DateTimeField(null=True, blank=True)
     stock_adjusted = models.BooleanField(
         default=False,
         help_text="True after stock was decremented for this order.",
@@ -698,3 +761,38 @@ class BusinessExpense(models.Model):
 
     def __str__(self):
         return f"{self.category} {self.currency} {self.amount}"
+
+
+class StorefrontEvent(models.Model):
+    """Privacy-conscious storefront interaction log (no PII required)."""
+
+    class Kind(models.TextChoices):
+        STORE_VIEW = "store_view", "Store viewed"
+        PRODUCT_VIEW = "product_view", "Product viewed"
+        WHATSAPP_HEADER = "whatsapp_header", "WhatsApp (header)"
+        WHATSAPP_PRODUCT = "whatsapp_product", "WhatsApp (product)"
+        SEARCH = "search", "Product search"
+        FILTER = "filter", "Catalogue filter"
+
+    business = models.ForeignKey(
+        Business,
+        on_delete=models.CASCADE,
+        related_name="storefront_events",
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="storefront_events",
+    )
+    kind = models.CharField(max_length=32, choices=Kind.choices)
+    path = models.CharField(max_length=300, blank=True)
+    meta = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["business", "kind", "created_at"]),
+        ]

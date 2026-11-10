@@ -422,6 +422,43 @@ export async function updateProduct(
   );
 }
 
+export interface StockAdjustment {
+  id: number;
+  previous_stock: number | null;
+  new_stock: number | null;
+  delta: number;
+  reason: string;
+  note: string;
+  order: number | null;
+  created_at: string;
+}
+
+export async function getProductStockHistory(
+  businessId: number,
+  productId: number,
+  token: string,
+): Promise<StockAdjustment[]> {
+  return authenticatedApiRequest<StockAdjustment[]>(
+    `/commerce/${businessId}/products/${productId}/stock/`,
+    token,
+  );
+}
+
+export async function adjustProductStock(
+  businessId: number,
+  productId: number,
+  token: string,
+  payload: { stock?: number | null; delta?: number; reason?: string; note?: string },
+): Promise<Product> {
+  const body: Record<string, unknown> = { ...payload };
+  if (payload.stock === null) body.stock = "";
+  return authenticatedApiRequest<Product>(
+    `/commerce/${businessId}/products/${productId}/stock/`,
+    token,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
 export async function deleteProduct(
   businessId: number,
   productId: number,
@@ -536,6 +573,30 @@ export async function getContents(
   return authenticatedApiRequest<Content[]>(
     `/content/${businessId}/`,
     token,
+  );
+}
+
+export async function approveContent(
+  businessId: number,
+  contentId: number,
+  token: string,
+): Promise<Content> {
+  return authenticatedApiRequest<Content>(
+    `/content/${businessId}/${contentId}/approve/`,
+    token,
+    { method: "POST" },
+  );
+}
+
+export async function publishContentToChannels(
+  businessId: number,
+  contentId: number,
+  token: string,
+): Promise<Content> {
+  return authenticatedApiRequest<Content>(
+    `/content/${businessId}/${contentId}/publish/`,
+    token,
+    { method: "POST", body: JSON.stringify({}) },
   );
 }
 
@@ -689,6 +750,20 @@ export async function markLeadFollowedUp(
   );
   invalidateResourceCache(`leads:${businessId}`);
   return updated;
+}
+
+export async function createOrderFromLead(
+  businessId: number,
+  leadId: number,
+  token: string,
+): Promise<{ lead: Lead; order: { id: number; status?: string } }> {
+  const result = await authenticatedApiRequest<{
+    lead: Lead;
+    order: { id: number };
+  }>(`/leads/${businessId}/${leadId}/order/`, token, { method: "POST" });
+  invalidateResourceCache(`leads:${businessId}`);
+  invalidateResourceCache(`orders:${businessId}`);
+  return result;
 }
 
 export interface BusinessExpense {

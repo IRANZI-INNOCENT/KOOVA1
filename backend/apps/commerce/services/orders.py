@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from django.db import transaction
 from django.db.models import F
+from django.utils import timezone
 
-from apps.commerce.models import Order, Product
+from apps.commerce.models import Order, Product, ProductStockAdjustment
 
 # Statuses that mean stock has left the shelf (or is reserved).
 STOCK_HELD = {
@@ -42,6 +43,17 @@ def apply_order_update(order: Order, *, data: dict) -> Order:
             locked.delivery_note = str(data.get("delivery_note") or "")[:400]
         if "rider_name" in data:
             locked.rider_name = str(data.get("rider_name") or "")[:120]
+
+        if "payment_status" in data and data.get("payment_status") is not None:
+            pay = str(data.get("payment_status") or "").strip()
+            if pay not in Order.PaymentStatus.values:
+                raise OrderUpdateError("Unknown payment status.")
+            previous_pay = locked.payment_status
+            locked.payment_status = pay
+            if pay == Order.PaymentStatus.PAID and previous_pay != Order.PaymentStatus.PAID:
+                locked.paid_at = timezone.now()
+            elif pay == Order.PaymentStatus.UNPAID:
+                locked.paid_at = None
 
         status_value = data.get("status")
         if status_value is not None:
@@ -84,37 +96,66 @@ def _transition_status(order: Order, previous: str, new_status: str) -> None:
 
     order.status = new_status
 
-    if new_status == Order.Status.DELIVERED and not (order.review_ask_draft or "").strip():
-        order.review_ask_draft = build_review_ask_draft(order)
+    if new_status == Order.Status.DELIVERED:
+        if not (order.review_ask_draft or "").strip():
+            order.review_ask_draft = build_review_ask_draft(order)
+        _mark_lead_converted(order)
+
+
+def _mark_lead_converted(order: Order) -> None:
+    from apps.leads.models import Lead
+
+    lead = order.lead
+    if lead is None and order.pk:
+        lead = (
+            Lead.objects.filter(orders=order)
+            .exclude(status=Lead.Status.LOST)
+            .first()
+        )
+    if lead is None:
+        return
+    if lead.status in {Lead.Status.CONVERTED, Lead.Status.LOST}:
+        return
+    lead.status = Lead.Status.CONVERTED
+    lead.save(update_fields=["status", "updated_at"])
 
 
 def _decrement_stock(order: Order) -> None:
+    from apps.commerce.services.stock import apply_stock_delta
+
     product = order.product
     if product is None or product.stock is None:
         order.stock_adjusted = True
         return
 
     qty = max(1, int(order.quantity or 1))
-    locked = Product.objects.select_for_update().get(pk=product.pk)
-    if locked.stock is None:
-        order.stock_adjusted = True
-        return
-    if locked.stock < qty:
-        raise OrderUpdateError(
-            f"Not enough stock for {locked.name}. Available: {locked.stock}."
+    try:
+        apply_stock_delta(
+            product,
+            delta=-qty,
+            reason=ProductStockAdjustment.Reason.SALE,
+            note=f"Order #{order.pk} confirmed",
+            order=order,
         )
-    Product.objects.filter(pk=locked.pk).update(stock=F("stock") - qty)
+    except Exception as exc:
+        raise OrderUpdateError(str(exc)) from exc
     order.stock_adjusted = True
 
 
 def _restore_stock(order: Order) -> None:
+    from apps.commerce.services.stock import apply_stock_delta
+
     product = order.product
     if product is None or product.stock is None:
         order.stock_adjusted = False
         return
     qty = max(1, int(order.quantity or 1))
-    Product.objects.filter(pk=product.pk, stock__isnull=False).update(
-        stock=F("stock") + qty,
+    apply_stock_delta(
+        product,
+        delta=qty,
+        reason=ProductStockAdjustment.Reason.CANCEL,
+        note=f"Order #{order.pk} cancelled",
+        order=order,
     )
     order.stock_adjusted = False
 
